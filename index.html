@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ISIS Frentes">
+<meta name="theme-color" content="#0D1B2A">
+<title>ISIS Proyectos – Gestión de Frentes</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+:root{
+  --amarillo:#F5A623;--naranja:#E8610A;--azul-oscuro:#0D1B2A;--azul:#1B4F72;
+  --gris-claro:#F4F5F7;--blanco:#FFFFFF;--verde:#1A7A4A;--rojo:#C0392B;
+  --morado:#6C3483;--texto:#1C2B3A;--texto-muted:#5D6D7E;
+  --borde:#D5DAE0;--radio:6px;--sombra:0 2px 8px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#E8EBEF;color:var(--texto);font-size:14px}
+
+/* ══ PANTALLA DE LOGIN ══ */
+#pantalla-login{position:fixed;inset:0;background:var(--azul-oscuro);display:flex;align-items:center;justify-content:center;z-index:999;flex-direction:column;gap:0}
+.login-box{background:#fff;border-radius:12px;padding:40px 36px;max-width:420px;width:92%;box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.login-logo{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--amarillo);margin-bottom:4px;text-align:center}
+.login-sub{font-size:12px;color:var(--texto-muted);text-align:center;margin-bottom:28px}
+.login-tabs{display:flex;border:1px solid var(--borde);border-radius:6px;overflow:hidden;margin-bottom:22px}
+.login-tab{flex:1;padding:10px;text-align:center;font-weight:700;font-size:13px;cursor:pointer;background:#fff;border:none;color:var(--texto-muted);transition:.2s}
+.login-tab.active{background:var(--azul-oscuro);color:#fff}
+.login-field{width:100%;border:1px solid var(--borde);border-radius:5px;padding:10px 14px;font-size:14px;font-family:'Barlow',sans-serif;outline:none;margin-bottom:12px;color:var(--texto)}
+.login-field:focus{border-color:var(--azul);box-shadow:0 0 0 2px rgba(27,79,114,.15)}
+.login-btn{width:100%;padding:12px;border:none;border-radius:5px;font-weight:700;font-size:15px;cursor:pointer;font-family:'Barlow',sans-serif;transition:.15s}
+.login-btn-colab{background:var(--naranja);color:#fff}
+.login-btn-admin{background:var(--azul-oscuro);color:var(--amarillo)}
+.login-btn:hover{opacity:.88}
+.login-error{background:#FDDEDE;color:#7B241C;border-radius:4px;padding:8px 12px;font-size:13px;margin-top:10px;display:none}
+.login-hint{font-size:11px;color:var(--texto-muted);text-align:center;margin-top:14px}
+
+/* ══ APP SHELL ══ */
+#app-shell{display:none}
+header{background:var(--azul-oscuro);color:#fff;display:flex;align-items:center;gap:14px;padding:10px 20px;position:sticky;top:0;z-index:100;border-bottom:3px solid var(--amarillo)}
+.logo-text{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:1px;color:var(--amarillo)}
+.logo-sub{font-size:10px;opacity:.7;margin-top:1px}
+header .spacer{flex:1}
+.badge-rol{padding:3px 12px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.badge-rol-colab{background:rgba(232,97,10,.25);color:var(--amarillo);border:1px solid var(--naranja)}
+.badge-rol-admin{background:rgba(245,166,35,.2);color:var(--amarillo);border:1px solid var(--amarillo)}
+.badge-fecha{background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.4);color:var(--amarillo);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600}
+.btn-logout{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.2)}
+
+/* ══ SESSION BAR ══ */
+#session-bar{background:var(--azul);color:#fff;padding:7px 20px;display:flex;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+#session-bar input,#session-bar select{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:4px 10px;border-radius:4px;font-size:13px;outline:none}
+#session-bar input::placeholder{color:rgba(255,255,255,.6)}
+#session-bar select option{color:#000}
+.btn-session{background:var(--amarillo);color:var(--azul-oscuro);border:none;padding:5px 14px;border-radius:4px;font-weight:700;cursor:pointer;font-size:13px}
+.online-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot-on{background:#2ECC71}.dot-off{background:#E74C3C}
+
+/* ══ NAV ══ */
+nav{background:var(--blanco);border-bottom:1px solid var(--borde);display:flex;gap:2px;padding:0 14px;overflow-x:auto;position:sticky;top:57px;z-index:90}
+nav button{background:none;border:none;padding:9px 13px;cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-muted);border-bottom:3px solid transparent;white-space:nowrap;transition:.2s}
+nav button.active{color:var(--naranja);border-color:var(--naranja)}
+nav button:hover:not(.active){color:var(--texto);background:var(--gris-claro)}
+
+/* ══ MAIN ══ */
+main{padding:18px;max-width:1400px;margin:0 auto}
+.seccion{display:none}.seccion.activa{display:block}
+
+/* ══ CARDS ══ */
+.card{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);padding:16px;margin-bottom:14px;box-shadow:var(--sombra)}
+.card-titulo{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--azul);margin-bottom:12px;display:flex;align-items:center;gap:8px;border-bottom:2px solid var(--gris-claro);padding-bottom:8px}
+.card-inspeccion{background:#F5F0FF;border-color:#C39BD3}
+.card-autoreporte{background:#F0FFF4;border-color:#82E0AA}
+.card-admin{background:#FFF8E8;border:2px solid var(--amarillo)}
+
+/* ══ FORM ══ */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:11px;font-weight:700;color:var(--texto-muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{border:1px solid var(--borde);border-radius:4px;padding:7px 10px;font-size:13px;font-family:'Barlow',sans-serif;outline:none;transition:.2s;background:#fff;color:var(--texto)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--azul);box-shadow:0 0 0 2px rgba(27,79,114,.15)}
+.form-group textarea{resize:vertical;min-height:65px}
+
+/* ══ BOTONES ══ */
+.btn{padding:7px 16px;border:none;border-radius:4px;font-weight:700;cursor:pointer;font-size:13px;font-family:'Barlow',sans-serif;transition:.15s}
+.btn-primario{background:var(--naranja);color:#fff}.btn-primario:hover{background:#c95208}
+.btn-secundario{background:var(--azul);color:#fff}.btn-secundario:hover{background:#153e5a}
+.btn-verde{background:var(--verde);color:#fff}
+.btn-amarillo{background:var(--amarillo);color:var(--azul-oscuro)}
+.btn-morado{background:var(--morado);color:#fff}
+.btn-rojo{background:var(--rojo);color:#fff;font-size:11px;padding:4px 9px}
+.btn-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* ══ TABLA ══ */
+.tabla-wrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--azul-oscuro);color:#fff;padding:7px 9px;text-align:left;font-size:11px;font-weight:700;white-space:nowrap}
+td{padding:6px 9px;border-bottom:1px solid var(--gris-claro);vertical-align:top}
+tr:nth-child(even){background:#F9FAFB}
+tr:hover{background:#EFF3F7}
+
+/* ══ BADGES ══ */
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-verde{background:#D5F0E0;color:#1A7A4A}
+.badge-rojo{background:#FDDEDE;color:#C0392B}
+.badge-amarillo{background:#FEF3D0;color:#9A6A00}
+.badge-azul{background:#D4E8F7;color:#1B4F72}
+.badge-gris{background:#E8EBEF;color:#5D6D7E}
+.badge-morado{background:#E8DAEF;color:#6C3483}
+.badge-naranja{background:#FDEBD0;color:#E8610A}
+
+/* ══ CARGO BADGES ══ */
+.cargo-badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.4px}
+.cargo-jefe{background:#0D1B2A;color:#F5A623}
+.cargo-hse{background:#6C3483;color:#fff}
+.cargo-analistaSST{background:#1B4F72;color:#fff}
+.cargo-supervisor{background:#1A7A4A;color:#fff}
+.cargo-operativo{background:#5D6D7E;color:#fff}
+.cargo-rescatista{background:#C0392B;color:#fff}
+
+/* ══ STATS ══ */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.stat-card{background:var(--blanco);border:1px solid var(--borde);border-radius:var(--radio);padding:12px;text-align:center;box-shadow:var(--sombra)}
+.stat-num{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:var(--naranja)}
+.stat-label{font-size:10px;color:var(--texto-muted);font-weight:700;margin-top:2px;text-transform:uppercase}
+
+/* ══ FOTOS ══ */
+.foto-zona{border:2px dashed var(--borde);border-radius:6px;padding:14px;text-align:center;cursor:pointer;transition:.2s;background:#FAFBFC}
+.foto-zona:hover{border-color:var(--naranja);background:#FFF8F0}
+.foto-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.foto-thumb{width:72px;height:72px;object-fit:cover;border-radius:4px;border:1px solid var(--borde);cursor:pointer}
+.foto-thumb:hover{opacity:.8}
+.input-file-hidden{display:none}
+
+/* ══ ALERTAS ══ */
+.alerta{padding:9px 12px;border-radius:4px;font-size:12px;font-weight:500;margin-bottom:10px}
+.alerta-ok{background:#D5F0E0;color:#145A32;border-left:4px solid var(--verde)}
+.alerta-warn{background:#FEF3D0;color:#7D6608;border-left:4px solid var(--amarillo)}
+.alerta-err{background:#FDDEDE;color:#7B241C;border-left:4px solid var(--rojo)}
+.alerta-info{background:#D4E8F7;color:#1B4F72;border-left:4px solid var(--azul)}
+
+/* ══ LLUVIA ══ */
+.lluvia-banner{background:#D4E8F7;border:1px solid #85C1E9;border-radius:6px;padding:10px 14px;margin-bottom:10px;font-weight:700;color:#1B4F72;display:none}
+#lluvia-timer{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;letter-spacing:2px}
+
+/* ══ MODAL ══ */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center}
+.modal-overlay.abierto{display:flex}
+.modal-box{background:#fff;border-radius:10px;padding:24px;max-width:700px;width:95%;max-height:92vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.3)}
+.modal-titulo{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--azul);margin-bottom:16px}
+
+/* ══ PROGRESO ══ */
+.progreso-bar-wrap{background:var(--gris-claro);border-radius:10px;height:14px;overflow:hidden;margin-top:4px}
+.progreso-bar{height:100%;background:linear-gradient(90deg,var(--verde),#27AE60);border-radius:10px;transition:.5s}
+
+/* ══ ITEMS INSPECCION ══ */
+.ins-item{background:#F8F9FA;border:1px solid var(--borde);border-radius:4px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+
+/* ══ ADMIN PANEL ══ */
+.admin-frente-card{background:#fff;border:1px solid var(--borde);border-radius:8px;margin-bottom:14px;overflow:hidden;box-shadow:var(--sombra)}
+.admin-frente-header{background:var(--azul-oscuro);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+.admin-frente-titulo{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700}
+.admin-frente-body{padding:16px;display:none}
+.admin-frente-body.abierto{display:block}
+.admin-kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+.admin-kpi{background:var(--gris-claro);border-radius:6px;padding:10px;text-align:center}
+.admin-kpi-num{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--naranja)}
+.admin-kpi-label{font-size:10px;color:var(--texto-muted);font-weight:700;text-transform:uppercase}
+.seccion-admin-tab{display:inline-block;padding:5px 12px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;margin:2px;border:1px solid var(--borde);background:#fff;color:var(--texto)}
+.seccion-admin-tab.active{background:var(--azul-oscuro);color:#fff;border-color:var(--azul-oscuro)}
+.sub-seccion-admin{display:none;margin-top:12px}.sub-seccion-admin.activa{display:block}
+.sensible-tag{background:#FDDEDE;color:#C0392B;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;margin-left:6px}
+
+/* ══ RESPONSIVE ══ */
+@media(max-width:600px){main{padding:10px}.form-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}nav button{font-size:11px;padding:7px 9px}}
+
+/* ══ iOS / ANDROID MÓVIL ══ */
+/* Safe area para notch y barra inferior en iPhone */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+/* Evitar zoom automático en inputs iOS (font-size mínimo 16px en iOS) */
+@media(max-width:768px){
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* Botones con área de toque mínima 44px (Apple HIG) */
+  .btn { min-height: 44px; padding: 10px 16px; }
+  .btn-rojo { min-height: 36px; }
+  .login-btn { min-height: 48px; }
+  /* Header fijo con safe-area */
+  header { padding-top: max(10px, env(safe-area-inset-top)); }
+  /* Nav scrollable con buen scroll horizontal táctil */
+  nav { -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+  nav button { scroll-snap-align: start; }
+  /* Tablas: scroll horizontal fluido */
+  .tabla-wrap { -webkit-overflow-scrolling: touch; }
+  /* Modal con safe area */
+  .modal-box { margin: env(safe-area-inset-top) 8px env(safe-area-inset-bottom); }
+  /* Stat cards más grandes en móvil */
+  .stat-num { font-size: 26px; }
+  /* HH badge destacado */
+  #hh-live-badge { font-size: 15px; }
+}
+/* Tap highlight removal */
+* { -webkit-tap-highlight-color: transparent; }
+/* Smooth scroll en iOS */
+html { scroll-behavior: smooth; }
+
+.texto-muted{color:var(--texto-muted);font-size:12px}
+.fw-bold{font-weight:700}.mt-8{margin-top:8px}.mt-14{margin-top:14px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.section-header h2{font-family:'Barlow Condensed',sans-serif;font-size:21px;font-weight:700;color:var(--azul-oscuro)}
+.separador{height:1px;background:var(--borde);margin:12px 0}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  PANTALLA DE LOGIN / SELECTOR DE ROL      -->
+<!-- ══════════════════════════════════════════ -->
+<div id="pantalla-login">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:18px">
+      <div class="login-logo">ISIS PROYECTOS DE INGENIERÍA</div>
+      <div class="login-sub">Sistema de Gestión Diaria de Frentes de Obra</div>
+    </div>
+    <div class="login-tabs">
+      <button class="login-tab active" onclick="selTab('colab')">👷 Colaborador / Campo</button>
+      <button class="login-tab" onclick="selTab('admin')">🔐 Administrador</button>
+    </div>
+
+    <!-- FORM COLABORADOR -->
+    <div id="form-colab">
+      <div style="font-size:13px;color:var(--texto-muted);margin-bottom:14px">Ingresa los datos de tu frente para comenzar el registro del día.</div>
+      <input class="login-field" id="c-frente" type="text" placeholder="Nombre del frente de trabajo (Ej: Frente Subestación Norte)">
+      <input class="login-field" id="c-responsable" type="text" placeholder="Tu nombre completo (responsable del reporte)">
+      <input class="login-field" id="c-fecha" type="date">
+      <button class="login-btn login-btn-colab" onclick="entrarColab()">▶ Ingresar al frente</button>
+      <div class="login-error" id="err-colab">Complete todos los campos para continuar.</div>
+      <div class="login-hint">Solo tienes acceso al registro de tu frente asignado.</div>
+    </div>
+
+    <!-- FORM ADMIN -->
+    <div id="form-admin" style="display:none">
+      <div style="font-size:13px;color:var(--texto-muted);margin-bottom:14px">Acceso exclusivo para la jefatura. Ingresa la clave de administrador.</div>
+      <input class="login-field" id="a-usuario" type="text" placeholder="Usuario administrador">
+      <input class="login-field" id="a-clave" type="password" placeholder="Contraseña" onkeydown="if(event.key==='Enter')entrarAdmin()">
+      <button class="login-btn login-btn-admin" onclick="entrarAdmin()">🔐 Acceder al panel de control</button>
+      <div class="login-error" id="err-admin">Usuario o contraseña incorrectos.</div>
+      <div class="login-hint">Si olvidaste la clave, contacta al área de sistemas.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════ -->
+<!--  APP SHELL (se muestra tras login)        -->
+<!-- ══════════════════════════════════════════ -->
+<div id="app-shell">
+
+<!-- HEADER -->
+<header>
+  <div>
+    <div class="logo-text">ISIS PROYECTOS DE INGENIERÍA</div>
+    <div class="logo-sub" id="header-sub">Sistema de Gestión Diaria de Frentes</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="badge-rol" id="badge-rol"></span>
+  <span class="badge-fecha" id="badge-fecha"></span>
+  <button class="btn-logout" onclick="cerrarSesion()">↩ Salir</button>
+</header>
+
+<!-- SESSION BAR (solo colaborador) -->
+<div id="session-bar" style="display:none">
+  <span style="font-weight:700;font-size:12px">FRENTE:</span>
+  <span id="lbl-frente" style="font-weight:600;font-size:13px"></span>
+  <span style="opacity:.5">|</span>
+  <span style="font-weight:700;font-size:12px">RESPONSABLE:</span>
+  <span id="lbl-resp" style="font-size:13px"></span>
+  <span style="opacity:.5">|</span>
+  <span id="lbl-fecha-bar" style="font-size:12px;opacity:.8"></span>
+  <span class="online-dot dot-off" id="sync-dot" title="Estado de sincronización"></span>
+  <span id="lbl-sync" style="font-size:11px;opacity:.8">Sin conexión</span>
+</div>
+
+<!-- NAV -->
+<nav id="nav-colab" style="display:none">
+  <button class="active" onclick="tab('dashboard')">📊 Dashboard</button>
+  <button onclick="tab('trabajadores')">👷 Trabajadores</button>
+  <button onclick="tab('actividades')">📋 Actividades</button>
+  <button onclick="tab('ausentismo')">🏥 Ausentismo</button>
+  <button onclick="tab('accidentes')">🚨 Accidentes AT</button>
+  <button onclick="tab('materiales')">📦 Materiales</button>
+  <button onclick="tab('seguridad')">🦺 Charlas SST</button>
+  <button onclick="tab('inspecciones')">🔍 Inspecciones</button>
+  <button onclick="tab('autoreporte')">💊 Autorreporte Salud</button>
+  <button onclick="tab('clima')">🌧 Clima</button>
+  <button onclick="tab('epp')">🥽 EPP</button>
+  <button onclick="tab('residuos')">♻ Residuos</button>
+  <button onclick="tab('fotos')">📷 Evidencias</button>
+</nav>
+
+<nav id="nav-admin" style="display:none">
+  <button class="active" onclick="tabAdmin('consolidado')">📊 Consolidado</button>
+  <button onclick="tabAdmin('frentes')">🗂 Todos los Frentes</button>
+  <button onclick="tabAdmin('accidentes-admin')">🚨 Accidentalidad</button>
+  <button onclick="tabAdmin('ausentismo-admin')">🏥 Ausentismo</button>
+  <button onclick="tabAdmin('autorreportes-admin')">💊 Salud</button>
+  <button onclick="tabAdmin('inspecciones-admin')">🔍 Inspecciones</button>
+  <button onclick="tabAdmin('informe-admin')">📄 Informe Diario</button>
+  <button onclick="tabAdmin('semanal-admin')">📅 Informe Semanal</button>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════ VISTAS COLABORADOR ══════════════════════════ -->
+<div id="vista-colab" style="display:none">
+
+<!-- DASHBOARD -->
+<div id="sec-dashboard" class="seccion activa">
+  <div class="section-header">
+    <h2>Resumen del Día</h2>
+    <button class="btn btn-secundario" onclick="refrescarDashboard()">↺ Actualizar</button>
+  </div>
+  <div class="alerta alerta-info" id="alerta-sesion-colab">✔ Sesión activa. Registra la información de tu frente de trabajo.</div>
+  <div id="alertas-salud-colab"></div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-num" id="st-trabajadores">0</div><div class="stat-label">Trabajadores</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-hh">0</div><div class="stat-label">Horas-Hombre</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-ausentismo">0</div><div class="stat-label">Ausentismo</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-actividades">0</div><div class="stat-label">Actividades</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-accidentes">0</div><div class="stat-label">Accidentes AT</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-charlas">0</div><div class="stat-label">Charlas SST</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-inspecciones">0</div><div class="stat-label">Inspecciones</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-autoreporte">0</div><div class="stat-label">Autorreportes</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-epp">0</div><div class="stat-label">EPP</div></div>
+    <div class="stat-card"><div class="stat-num" id="st-fotos">0</div><div class="stat-label">Evidencias</div></div>
+  </div>
+  <div class="card">
+    <div class="card-titulo">📈 Avance de Actividades</div>
+    <div id="avance-lista"><div class="texto-muted">Sin actividades registradas aún.</div></div>
+  </div>
+</div>
+
+<!-- TRABAJADORES -->
+<div id="sec-trabajadores" class="seccion">
+  <div class="section-header"><h2>Trabajadores del Frente</h2></div>
+
+  <!-- PANEL 1: ASISTENCIA DEL DÍA -->
+  <div class="card" style="border-left:4px solid var(--naranja)">
+    <div class="card-titulo">✅ Confirmar Asistencia del Día
+      <span id="conteo-t" class="badge badge-azul" style="font-size:12px;margin-left:8px">0 presentes</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--texto-muted)">Total HH: <strong id="total-hh" style="color:var(--naranja)">0</strong></span>
+    </div>
+    <div class="alerta alerta-info" style="margin-bottom:10px;font-size:12px">
+      👉 Marca la asistencia de cada trabajador. Los datos de perfil se completan una sola vez en "Planta del Frente".
+    </div>
+    <div id="lista-asistencia-dia">
+      <div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores en la planta del frente. Agrégalos abajo ↓</div>
+    </div>
+    <div class="btn-row" style="margin-top:10px">
+      <button class="btn btn-secundario" onclick="calcularHH()" style="font-size:12px">↺ Recalcular HH</button>
+      <button class="btn btn-verde" onclick="marcarTodosPresentes()" style="font-size:12px">✔ Todos presentes</button>
+    </div>
+  </div>
+
+  <!-- PANEL 2: PLANTA GLOBAL DEL FRENTE -->
+  <div class="card" style="border-left:4px solid var(--azul)">
+    <div class="card-titulo" style="cursor:pointer" onclick="togglePlanta()">
+      👷 Planta del Frente
+      <span id="conteo-planta" class="badge badge-gris" style="font-size:12px;margin-left:8px">0 registrados</span>
+      <span id="icono-planta" style="margin-left:auto;font-size:16px">▼</span>
+    </div>
+    <div id="panel-planta" style="display:none">
+      <!-- Formulario agregar nuevo trabajador -->
+      <div style="background:var(--gris-claro);border-radius:6px;padding:14px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--azul);margin-bottom:10px">➕ Agregar nuevo trabajador a la planta</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre completo</label><input id="t-nombre" type="text" placeholder="Nombres y apellidos"></div>
+          <div class="form-group"><label>Cédula</label><input id="t-cedula" type="text" inputmode="numeric"></div>
+          <div class="form-group"><label>Nivel / Rol SST</label>
+            <select id="t-nivel">
+              <option value="jefe">Jefe de Proyectos</option>
+              <option value="hse">Profesional HSE</option>
+              <option value="analistaSST">Analista SST</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="rescatista">Rescatista</option>
+              <option value="operativo" selected>Operativo</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Cargo específico</label><input id="t-cargo" type="text" placeholder="Ej: Electricista Oficial…"></div>
+          <div class="form-group"><label>Empresa / Contratista</label><input id="t-empresa" type="text"></div>
+          <div class="form-group"><label>Apto médico riesgo</label>
+            <select id="t-apto"><option value="si">Sí</option><option value="no">No</option><option value="pendiente">Pendiente</option></select>
+          </div>
+        </div>
+        <div class="form-group mt-8"><label>Observaciones del perfil</label><textarea id="t-obs" style="min-height:45px"></textarea></div>
+        <div class="btn-row">
+          <button class="btn btn-primario" onclick="agregarTrabajador()">➕ Agregar a la planta</button>
+        </div>
+      </div>
+      <!-- Tabla planta -->
+      <div class="tabla-wrap">
+        <table><thead><tr><th>#</th><th>Nombre</th><th>Cédula</th><th>Nivel</th><th>Cargo</th><th>Empresa</th><th>Apto</th><th>Estado</th><th>Retirar</th></tr></thead>
+        <tbody id="tbody-planta"></tbody></table>
+      </div>
+      <div class="alerta alerta-warn" style="margin-top:10px;font-size:11px">
+        ⚠ "Retirar" desactiva al trabajador para futuros días pero conserva su historial. No elimina registros anteriores.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVIDADES -->
+<div id="sec-actividades" class="seccion">
+  <div class="section-header"><h2>Control de Actividades</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Actividad</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Descripción</label><input id="a-desc" type="text" placeholder="Descripción detallada de la actividad"></div>
+      <div class="form-group"><label>Tipo de trabajo</label>
+        <select id="a-tipo">
+          <option>Tendido de cable</option><option>Instalación transformador</option>
+          <option>Construcción red MT</option><option>Construcción red BT</option>
+          <option>Mantenimiento preventivo</option><option>Mantenimiento correctivo</option>
+          <option>Conexiones / empalmes</option><option>Puesta a tierra</option>
+          <option>Obra civil (excavación)</option><option>Señalización / demarcación</option>
+          <option>Pruebas y comisionamiento</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Unidad</label><input id="a-unidad" type="text" placeholder="ml, m², UN…"></div>
+      <div class="form-group"><label>Cant. programada</label><input id="a-prog" type="number" min="0" step="0.01"></div>
+      <div class="form-group"><label>Cant. ejecutada</label><input id="a-ejec" type="number" min="0" step="0.01"></div>
+      <div class="form-group"><label>Ubicación / Tramo</label><input id="a-ubic" type="text"></div>
+      <div class="form-group"><label>Responsable</label><input id="a-resp" type="text"></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="a-estado"><option>En ejecución</option><option>Terminada</option><option>Suspendida</option><option>Pendiente</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="a-obs"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarActividad()">Guardar actividad</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Descripción</th><th>Tipo</th><th>Unidad</th><th>Prog.</th><th>Ejec.</th><th>Avance</th><th>Ubicación</th><th>Estado</th><th>✕</th></tr></thead>
+      <tbody id="tbody-a"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- AUSENTISMO -->
+<div id="sec-ausentismo" class="seccion">
+  <div class="section-header"><h2>Control de Ausentismo</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Ausentismo</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Trabajador</label><input id="au-nombre" type="text"></div>
+      <div class="form-group"><label>Cédula</label><input id="au-cedula" type="text"></div>
+      <div class="form-group"><label>Causa</label>
+        <select id="au-causa">
+          <option>Incapacidad médica EPS</option><option>Incapacidad ARL (accidente)</option>
+          <option>Enfermedad general (sin incapacidad)</option><option>Motivo personal</option>
+          <option>Calamidad doméstica</option><option>Licencia maternidad/paternidad</option>
+          <option>Permiso remunerado</option><option>Falla de transporte</option>
+          <option>Abandono de trabajo</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Días</label><input id="au-dias" type="number" min="1" value="1"></div>
+      <div class="form-group"><label>N° incapacidad</label><input id="au-num" type="text"></div>
+      <div class="form-group"><label>Reemplazado por</label><input id="au-reemplazo" type="text"></div>
+    </div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="au-obs"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarAusentismo()">Registrar ausentismo</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Trabajador</th><th>Cédula</th><th>Causa</th><th>Días</th><th>N° Inc.</th><th>Reemplazo</th><th>✕</th></tr></thead>
+      <tbody id="tbody-au"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- ACCIDENTES -->
+<div id="sec-accidentes" class="seccion">
+  <div class="section-header"><h2>Reporte Accidentes / Incidentes AT</h2></div>
+  <div class="alerta alerta-warn">⚠ Res. 1401/2007 – Reporte a ARL dentro de 2 días hábiles. Alimenta el FURAT.</div>
+  <div class="card" style="background:#FFF0F0;border-color:#F5B7B1">
+    <div class="card-titulo">🚨 Registrar Evento</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tipo de evento</label>
+        <select id="at-tipo">
+          <option>Accidente de trabajo con incapacidad</option>
+          <option>Accidente de trabajo sin incapacidad</option>
+          <option>Incidente (casi-accidente)</option>
+          <option>Enfermedad laboral (síntomas)</option>
+          <option>Accidente de tránsito en misión</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Fecha y hora</label><input id="at-fecha" type="datetime-local"></div>
+      <div class="form-group"><label>Nombre accidentado</label><input id="at-nombre" type="text"></div>
+      <div class="form-group"><label>Cédula</label><input id="at-cedula" type="text"></div>
+      <div class="form-group"><label>Cargo</label><input id="at-cargo" type="text"></div>
+      <div class="form-group"><label>ARL</label><input id="at-arl" type="text"></div>
+      <div class="form-group"><label>Parte del cuerpo</label>
+        <select id="at-parte"><option>Manos / dedos</option><option>Brazos</option><option>Pies / tobillos</option><option>Piernas</option><option>Cabeza</option><option>Ojos</option><option>Tronco / espalda</option><option>Múltiple</option><option>Sin lesión visible</option></select>
+      </div>
+      <div class="form-group"><label>Tipo de lesión</label>
+        <select id="at-lesion"><option>Quemadura eléctrica</option><option>Quemadura química</option><option>Herida cortante</option><option>Golpe / contusión</option><option>Fractura</option><option>Luxación</option><option>Esguince</option><option>Electrocución (sin paro)</option><option>Paro cardiorrespiratorio</option><option>Caída de altura</option><option>Sin lesión</option></select>
+      </div>
+      <div class="form-group"><label>Agente causante</label>
+        <select id="at-agente"><option>Energía eléctrica</option><option>Maquinaria / equipo</option><option>Herramienta manual</option><option>Caída mismo nivel</option><option>Caída diferente nivel</option><option>Vehículo</option><option>Condición del terreno</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Atención prestada</label>
+        <select id="at-atencion"><option>Primeros auxilios en sitio</option><option>Remitido a IPS/Clínica</option><option>Hospitalización</option><option>Solo seguimiento</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-8"><label>Descripción detallada del evento</label><textarea id="at-desc" placeholder="Qué, cómo, dónde, cuándo…"></textarea></div>
+    <div class="form-group mt-8"><label>Causas inmediatas</label><textarea id="at-causas-inm"></textarea></div>
+    <div class="form-group mt-8"><label>Causas básicas</label><textarea id="at-causas-bas"></textarea></div>
+    <div class="form-group mt-8"><label>Acciones correctivas / preventivas</label><textarea id="at-acciones"></textarea></div>
+    <div class="form-grid mt-8">
+      <div class="form-group"><label>Testigos</label><input id="at-testigos" type="text"></div>
+      <div class="form-group"><label>Reportado a ARL (fecha)</label><input id="at-reporte-arl" type="date"></div>
+      <div class="form-group"><label>N° FURAT</label><input id="at-furat" type="text"></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-rojo" style="font-size:13px;padding:8px 16px" onclick="agregarAccidente()">🚨 Guardar reporte</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Lesión</th><th>Agente</th><th>Atención</th><th>FURAT</th><th>✕</th></tr></thead>
+      <tbody id="tbody-at"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- MATERIALES -->
+<div id="sec-materiales" class="seccion">
+  <div class="section-header"><h2>Materiales, Equipos y Herramientas</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Ítem</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Categoría</label>
+        <select id="m-cat"><option>Material eléctrico</option><option>Conductor / Cable</option><option>Equipo de medición</option><option>Equipo de maniobra</option><option>Herramienta manual</option><option>Herramienta eléctrica</option><option>Maquinaria pesada</option><option>Consumible</option><option>EPP</option><option>Señalización</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Descripción</label><input id="m-desc" type="text"></div>
+      <div class="form-group"><label>Referencia</label><input id="m-ref" type="text"></div>
+      <div class="form-group"><label>Unidad</label><input id="m-unidad" type="text" placeholder="ml, UN, KG…"></div>
+      <div class="form-group"><label>Cant. utilizada</label><input id="m-cant" type="number" min="0" step="0.01"></div>
+      <div class="form-group"><label>Cant. disponible</label><input id="m-disp" type="number" min="0" step="0.01"></div>
+      <div class="form-group"><label>Estado equipo</label>
+        <select id="m-estado"><option>Bueno</option><option>Regular</option><option>Defectuoso</option><option>N/A (material)</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="m-obs"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarMaterial()">Guardar ítem</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Cat.</th><th>Descripción</th><th>Ref.</th><th>Unid.</th><th>Usado</th><th>Disp.</th><th>Estado</th><th>✕</th></tr></thead>
+      <tbody id="tbody-m"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- CHARLAS SST -->
+<div id="sec-seguridad" class="seccion">
+  <div class="section-header"><h2>Charlas de Seguridad SST</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Charla</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tema</label>
+        <select id="ch-tema"><option>Riesgo eléctrico – LOTO</option><option>Trabajo en alturas (Res. 4272/2021)</option><option>Espacios confinados</option><option>Arco eléctrico (NFPA 70E)</option><option>Uso correcto de EPP</option><option>Manejo de herramientas</option><option>Señalización y demarcación</option><option>Primeros auxilios</option><option>Gestión de residuos</option><option>Orden y aseo</option><option>Accidentalidad vial</option><option>Plan de emergencias</option><option>Prevención caída de objetos</option><option>Riesgo de incendio</option><option>Autorreporte condiciones de salud</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Tema personalizado</label><input id="ch-otro" type="text"></div>
+      <div class="form-group"><label>Hora inicio</label><input id="ch-ini" type="time"></div>
+      <div class="form-group"><label>Hora fin</label><input id="ch-fin" type="time"></div>
+      <div class="form-group"><label>Facilitador</label><input id="ch-facilitador" type="text"></div>
+      <div class="form-group"><label>N° asistentes</label><input id="ch-asistentes" type="number" min="0"></div>
+    </div>
+    <div class="form-group mt-8"><label>Contenido / resumen</label><textarea id="ch-contenido"></textarea></div>
+    <div style="margin:12px 0 8px;font-weight:700;font-size:12px;color:var(--azul)">📷 Foto de asistentes / formato firmado</div>
+    <div class="foto-zona" onclick="document.getElementById('inp-ch-foto').click()">
+      <div style="font-size:22px">📷</div><div style="font-size:13px;font-weight:600;margin-top:4px">Seleccionar fotos de la charla</div>
+      <input type="file" id="inp-ch-foto" class="input-file-hidden" accept="image/*" multiple onchange="cargarFotosModulo(this,'ch-prev','ch')">
+    </div>
+    <div id="ch-prev" class="foto-grid"></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarCharla()">Registrar charla</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Tema</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Facilitador</th><th>Asist.</th><th>Fotos</th><th>✕</th></tr></thead>
+      <tbody id="tbody-ch"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- INSPECCIONES -->
+<div id="sec-inspecciones" class="seccion">
+  <div class="section-header"><h2>Inspecciones de Seguridad en Campo</h2></div>
+  <div class="card card-inspeccion">
+    <div class="card-titulo" style="color:var(--morado)">🔍 Registrar Inspección</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tipo de inspección</label>
+        <select id="ins-tipo"><option>Inspección preoperacional de herramientas</option><option>Inspección de EPP</option><option>Inspección equipos trabajo en alturas</option><option>Inspección equipos eléctricos / LOTO</option><option>Inspección orden y aseo</option><option>Inspección señalización y demarcación</option><option>Inspección de frente de trabajo</option><option>Inspección de vehículos / maquinaria</option><option>Inspección instalaciones temporales</option><option>Inspección de residuos</option><option>Inspección gerencial / directiva</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Tipo personalizado</label><input id="ins-tipo-otro" type="text"></div>
+      <div class="form-group"><label>Inspector</label><input id="ins-inspector" type="text"></div>
+      <div class="form-group"><label>Nivel del inspector</label>
+        <select id="ins-nivel"><option value="hse">Profesional HSE</option><option value="analistaSST">Analista SST</option><option value="supervisor">Supervisor</option><option value="rescatista">Rescatista</option><option value="jefe">Jefe de Proyectos</option><option value="operativo">Operativo</option></select>
+      </div>
+      <div class="form-group"><label>Zona inspeccionada</label><input id="ins-zona" type="text"></div>
+      <div class="form-group"><label>Hora</label><input id="ins-hora" type="time"></div>
+      <div class="form-group"><label>Resultado general</label>
+        <select id="ins-resultado"><option value="conforme">Conforme ✔</option><option value="no-conforme">No conforme ✘</option><option value="parcial">Parcialmente conforme</option></select>
+      </div>
+    </div>
+    <div style="margin:12px 0 6px;font-weight:700;font-size:12px;color:var(--morado)">🔎 Ítems inspeccionados</div>
+    <div id="ins-items-lista"></div>
+    <div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap">
+      <input id="ins-item-desc" type="text" placeholder="Descripción del ítem" style="flex:1;border:1px solid var(--borde);border-radius:4px;padding:6px 9px;font-size:13px">
+      <select id="ins-item-est" style="border:1px solid var(--borde);border-radius:4px;padding:6px 9px;font-size:13px">
+        <option value="ok">Conforme</option><option value="nc">No conforme</option><option value="na">No aplica</option>
+      </select>
+      <button class="btn btn-secundario" style="padding:6px 12px" onclick="addInsItem()">+ Ítem</button>
+    </div>
+    <div class="form-group mt-8"><label>Hallazgos / Observaciones</label><textarea id="ins-hallazgos"></textarea></div>
+    <div class="form-group mt-8"><label>Acciones correctivas requeridas</label><textarea id="ins-acciones"></textarea></div>
+    <div class="form-group mt-8"><label>Responsable de cierre</label><input id="ins-resp-cierre" type="text"></div>
+    <div style="margin:12px 0 8px;font-weight:700;font-size:12px;color:var(--morado)">📷 Fotos de hallazgos</div>
+    <div class="foto-zona" onclick="document.getElementById('inp-ins-foto').click()">
+      <div style="font-size:22px">📷</div><div style="font-size:13px;font-weight:600;margin-top:4px">Fotos de condiciones encontradas</div>
+      <input type="file" id="inp-ins-foto" class="input-file-hidden" accept="image/*" multiple onchange="cargarFotosModulo(this,'ins-prev','ins')">
+    </div>
+    <div id="ins-prev" class="foto-grid"></div>
+    <div class="btn-row"><button class="btn btn-morado" onclick="agregarInspeccion()">💾 Guardar inspección</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Tipo</th><th>Inspector</th><th>Nivel</th><th>Zona</th><th>Hora</th><th>Resultado</th><th>Fotos</th><th>✕</th></tr></thead>
+      <tbody id="tbody-ins"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- AUTORREPORTE -->
+<div id="sec-autoreporte" class="seccion">
+  <div class="section-header"><h2>Autorreporte de Condiciones de Salud</h2></div>
+  <div class="alerta alerta-ok">✔ Resolución 1843 de 2025 – Diligencia tu autorreporte al inicio de cada jornada.</div>
+  <div class="card card-autoreporte">
+    <div class="card-titulo" style="color:var(--verde)">💊 Mi Autorreporte del Día</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre del trabajador</label><input id="ar-nombre" type="text"></div>
+      <div class="form-group"><label>Cédula</label><input id="ar-cedula" type="text"></div>
+      <div class="form-group"><label>Nivel / Rol</label>
+        <select id="ar-nivel"><option value="jefe">Jefe de Proyectos</option><option value="hse">Profesional HSE</option><option value="analistaSST">Analista SST</option><option value="supervisor">Supervisor</option><option value="rescatista">Rescatista</option><option value="operativo">Operativo</option></select>
+      </div>
+      <div class="form-group"><label>Cargo específico</label><input id="ar-cargo" type="text"></div>
+      <div class="form-group"><label>Hora del reporte</label><input id="ar-hora" type="time"></div>
+    </div>
+    <div style="margin:14px 0 10px;font-weight:700;font-size:13px;color:var(--azul)">¿Presenta alguna de las siguientes condiciones HOY?</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:7px">
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-1"> Dolor de cabeza intenso</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-2"> Mareos o vértigo</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-3"> Alteraciones de la visión</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-4"> Fiebre o temperatura elevada</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-5"> Náuseas o vómito</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-6"> Bajo efecto de medicamentos que alteran la atención</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-7"> Dolor en el pecho</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-8"> Dificultad para respirar</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-9"> Fatiga extrema / somnolencia</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-10"> Lesión músculo-esquelética activa</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px"><input type="checkbox" id="cs-11"> Estrés o alteración emocional severa</label>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;color:var(--verde);font-weight:600"><input type="checkbox" id="cs-ok"> ✔ Ninguna – Apto para todas las actividades</label>
+    </div>
+    <div class="form-group mt-8"><label>Otras condiciones o descripción adicional</label><textarea id="ar-otras"></textarea></div>
+    <div class="form-group mt-8"><label>Decisión del supervisor / HSE / Analista SST</label>
+      <select id="ar-decision"><option value="apto">Apto para todas las actividades</option><option value="restringido">Apto con restricciones (no alto riesgo)</option><option value="no-apto">No apto – no ingresa a actividades</option><option value="referido">Referido al médico / ARL</option></select>
+    </div>
+    <div class="form-group mt-8"><label>Nombre de quien valida</label><input id="ar-validador" type="text" placeholder="Supervisor, HSE o Analista SST"></div>
+    <div class="btn-row"><button class="btn btn-verde" onclick="agregarAutorreporte()">💾 Guardar autorreporte</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Trabajador</th><th>Cédula</th><th>Nivel/Cargo</th><th>Hora</th><th>Condiciones</th><th>Decisión</th><th>Validado por</th><th>✕</th></tr></thead>
+      <tbody id="tbody-ar"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- CLIMA -->
+<div id="sec-clima" class="seccion">
+  <div class="section-header"><h2>Estado del Tiempo</h2></div>
+  <div class="lluvia-banner" id="lluvia-banner">
+    🌧 LLUVIA EN CURSO – <span id="lluvia-timer">00:00:00</span> &nbsp;
+    <button class="btn btn-secundario" onclick="detenerLluvia()" style="font-size:11px;padding:4px 10px">⏹ Registrar fin</button>
+  </div>
+  <div class="card">
+    <div class="card-titulo">🌤 Condición General del Día</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Condición predominante</label>
+        <select id="cl-cond"><option>Soleado</option><option>Nublado</option><option>Parcialmente nublado</option><option>Lluvioso todo el día</option><option>Lluvia intermitente</option><option>Llovizna</option><option>Tormenta eléctrica</option></select>
+      </div>
+      <div class="form-group"><label>Temperatura (°C)</label><input id="cl-temp" type="number"></div>
+      <div class="form-group"><label>Impacto en obra</label>
+        <select id="cl-impacto"><option>Sin afectación</option><option>Suspensión parcial</option><option>Suspensión total</option><option>Solo labores interiores</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="cl-obs"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="guardarClima()">Guardar condición</button></div>
+  </div>
+  <div class="card">
+    <div class="card-titulo">🌧 Episodios de Lluvia</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Hora inicio</label><input id="cl-ini" type="time"></div>
+      <div class="form-group"><label>Hora fin</label><input id="cl-fin" type="time"></div>
+      <div class="form-group"><label>Intensidad</label>
+        <select id="cl-int"><option>Leve (llovizna)</option><option>Moderada</option><option>Fuerte</option><option>Tormenta eléctrica</option></select>
+      </div>
+    </div>
+    <div class="form-group mt-8"><label>Actividades suspendidas</label><textarea id="cl-obs2"></textarea></div>
+    <div class="btn-row">
+      <button class="btn btn-secundario" onclick="iniciarLluvia()">▶ Cronómetro lluvia</button>
+      <button class="btn btn-primario" onclick="agregarLluvia()">➕ Registrar episodio</button>
+    </div>
+    <div class="tabla-wrap mt-8">
+      <table><thead><tr><th>#</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Intensidad</th><th>Afectación</th><th>✕</th></tr></thead>
+      <tbody id="tbody-cl"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- EPP -->
+<div id="sec-epp" class="seccion">
+  <div class="section-header"><h2>Entrega de EPP</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Entrega EPP</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Trabajador</label><input id="epp-nombre" type="text"></div>
+      <div class="form-group"><label>Cédula</label><input id="epp-cedula" type="text"></div>
+      <div class="form-group"><label>Cargo</label><input id="epp-cargo" type="text"></div>
+      <div class="form-group"><label>EPP entregado</label>
+        <select id="epp-item"><option>Casco dieléctrico clase E</option><option>Gafas de seguridad</option><option>Careta facial</option><option>Careta arco eléctrico</option><option>Guantes dieléctricos</option><option>Guantes anticorte</option><option>Botas dieléctricas</option><option>Botas punta de acero</option><option>Protector auditivo</option><option>Respirador media cara</option><option>Arnés cuerpo completo</option><option>Eslingas de posicionamiento</option><option>Ropa de trabajo (overol)</option><option>Chaleco reflectivo</option><option>Bloqueador solar</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Ítem personalizado</label><input id="epp-otro" type="text"></div>
+      <div class="form-group"><label>Cantidad</label><input id="epp-cant" type="number" min="1" value="1"></div>
+      <div class="form-group"><label>Motivo</label>
+        <select id="epp-motivo"><option>Dotación inicial</option><option>Reposición por desgaste</option><option>Reposición por pérdida</option><option>Actividad específica</option><option>Reemplazo por daño</option></select>
+      </div>
+      <div class="form-group"><label>¿Recibido conforme?</label>
+        <select id="epp-conforme"><option>Sí</option><option>No</option></select>
+      </div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarEPP()">Registrar entrega EPP</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Trabajador</th><th>Cédula</th><th>Cargo</th><th>EPP</th><th>Cant.</th><th>Motivo</th><th>Conforme</th><th>✕</th></tr></thead>
+      <tbody id="tbody-epp"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- RESIDUOS -->
+<div id="sec-residuos" class="seccion">
+  <div class="section-header"><h2>Gestión de Residuos</h2></div>
+  <div class="card">
+    <div class="card-titulo">➕ Registrar Residuo</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tipo de residuo</label>
+        <select id="r-tipo"><option>Conductor / cable sobrante</option><option>Aislamiento PVC / plástico</option><option>Embalaje / cartón</option><option>Escombro / demolición</option><option>Aceite dieléctrico</option><option>Trapos impregnados</option><option>Residuo peligroso (RESPEL)</option><option>Metal ferroso</option><option>Madera</option><option>Ordinario / basura común</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Clasificación</label>
+        <select id="r-clase"><option>Aprovechable</option><option>No aprovechable</option><option>Peligroso (RESPEL)</option><option>Orgánico</option></select>
+      </div>
+      <div class="form-group"><label>Cantidad</label><input id="r-cant" type="number" min="0" step="0.1"></div>
+      <div class="form-group"><label>Unidad</label>
+        <select id="r-unidad"><option>Kg</option><option>Lt</option><option>m³</option><option>Sacos</option><option>UN</option></select>
+      </div>
+      <div class="form-group"><label>Punto de generación</label><input id="r-punto" type="text"></div>
+      <div class="form-group"><label>Disposición final</label>
+        <select id="r-disp"><option>Entrega a reciclador autorizado</option><option>Relleno sanitario</option><option>Empresa gestora RESPEL</option><option>Almacenamiento temporal</option><option>Retorno al proveedor</option></select>
+      </div>
+      <div class="form-group"><label>Responsable disposición</label><input id="r-resp" type="text"></div>
+    </div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="r-obs"></textarea></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="agregarResiduo()">Registrar residuo</button></div>
+  </div>
+  <div class="card">
+    <div class="tabla-wrap">
+      <table><thead><tr><th>#</th><th>Tipo</th><th>Clasificación</th><th>Cant.</th><th>Unid.</th><th>Disposición</th><th>Responsable</th><th>✕</th></tr></thead>
+      <tbody id="tbody-r"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- FOTOS GENERALES -->
+<div id="sec-fotos" class="seccion">
+  <div class="section-header"><h2>Evidencias Fotográficas</h2></div>
+  <div class="card">
+    <div class="card-titulo">📷 Cargar Evidencia</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Categoría</label>
+        <select id="f-cat"><option>Avance de obra</option><option>Accidente / Incidente</option><option>Charla de seguridad</option><option>Inspección de seguridad</option><option>Estado de materiales</option><option>No conformidad / Hallazgo SST</option><option>Uso de EPP</option><option>Residuos</option><option>Estado del sitio (antes/después)</option><option>Otro</option></select>
+      </div>
+      <div class="form-group"><label>Descripción / Pie de foto</label><input id="f-desc" type="text"></div>
+      <div class="form-group"><label>Tomada por</label><input id="f-autor" type="text"></div>
+    </div>
+    <div class="foto-zona" onclick="document.getElementById('inp-foto').click()">
+      <div style="font-size:28px">📷</div>
+      <div style="font-weight:600;margin-top:5px">Toca para seleccionar fotos</div>
+      <div class="texto-muted">JPG, PNG – Múltiples fotos permitidas</div>
+      <input type="file" id="inp-foto" class="input-file-hidden" accept="image/*" multiple onchange="cargarFotosGen(this)">
+    </div>
+    <div id="prev-fotos" class="foto-grid"></div>
+    <div class="btn-row"><button class="btn btn-primario" onclick="guardarFotos()">💾 Guardar evidencias</button></div>
+  </div>
+  <div class="card">
+    <div class="card-titulo">🖼 Galería del Frente</div>
+    <div id="galeria-fotos" class="foto-grid"></div>
+    <div id="sin-fotos" class="texto-muted" style="padding:16px;text-align:center">Sin evidencias cargadas.</div>
+  </div>
+</div>
+
+</div><!-- /vista-colab -->
+
+<!-- ══════════════════════════ VISTA ADMINISTRADOR ══════════════════════════ -->
+<div id="vista-admin" style="display:none">
+
+<div id="sec-admin-consolidado" class="seccion-admin activa">
+  <div class="section-header">
+    <h2>Panel de Control – Todos los Frentes</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="date" id="adm-fecha-filtro" style="border:1px solid var(--borde);border-radius:4px;padding:6px 10px;font-size:13px">
+      <button class="btn btn-primario" onclick="cargarTodosFrente()">🔄 Cargar datos</button>
+      <button class="btn btn-verde" onclick="exportarInformeAdmin()">⬇ Exportar informe PDF</button>
+    </div>
+  </div>
+  <div class="alerta alerta-info" id="adm-alerta-accidentes" style="display:none"></div>
+  <div class="alerta alerta-warn" id="adm-alerta-salud" style="display:none"></div>
+  <div class="stats-grid" id="adm-stats">
+    <div class="stat-card"><div class="stat-num" id="adm-st-frentes">0</div><div class="stat-label">Frentes activos</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-trabajadores">0</div><div class="stat-label">Total trabajadores</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-hh">0</div><div class="stat-label">Total HH</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-accidentes" style="color:var(--rojo)">0</div><div class="stat-label">Accidentes AT</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-ausentismo">0</div><div class="stat-label">Ausentismo</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-inspecciones">0</div><div class="stat-label">Inspecciones</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-salud-alerta" style="color:var(--rojo)">0</div><div class="stat-label">Alertas salud</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-charlas">0</div><div class="stat-label">Charlas SST</div></div>
+  </div>
+  <div id="adm-frentes-lista"></div>
+</div>
+
+<div id="sec-admin-frentes" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Detalle por Frente</h2></div>
+  <div id="adm-detalle-frentes"></div>
+</div>
+
+<div id="sec-admin-accidentes" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Accidentalidad – Todos los Frentes <span class="sensible-tag">INFORMACIÓN SENSIBLE</span></h2></div>
+  <div id="adm-tabla-accidentes"></div>
+</div>
+
+<div id="sec-admin-ausentismo" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Ausentismo – Todos los Frentes</h2></div>
+  <div id="adm-tabla-ausentismo"></div>
+</div>
+
+<div id="sec-admin-autorreportes" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Autorreportes de Salud – Todos los Frentes <span class="sensible-tag">INFORMACIÓN SENSIBLE</span></h2></div>
+  <div id="adm-tabla-autorreportes"></div>
+</div>
+
+<div id="sec-admin-inspecciones" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Inspecciones – Todos los Frentes</h2></div>
+  <div id="adm-tabla-inspecciones"></div>
+</div>
+
+<div id="sec-admin-informe" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>Informe Ejecutivo Consolidado</h2></div>
+  <div class="card card-admin">
+    <div class="card-titulo">📄 Generar Informe</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Tipo</label>
+        <select id="adm-inf-tipo"><option value="diario">Informe Diario</option><option value="semanal">Informe Semanal</option></select>
+      </div>
+      <div class="form-group"><label>Semana (si aplica)</label><input id="adm-inf-semana" type="week"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primario" onclick="previsualizarAdmin()">👁 Previsualizar</button>
+      <button class="btn btn-verde" onclick="exportarInformeAdmin()">⬇ Exportar PDF</button>
+      <button class="btn btn-amarillo" onclick="exportarJSONAdmin()">💾 Respaldo JSON</button>
+    </div>
+  </div>
+  <div class="card" id="adm-preview" style="display:none">
+    <div id="adm-preview-contenido"></div>
+  </div>
+</div>
+
+<!-- INFORME SEMANAL ADMIN -->
+<div id="sec-admin-semanal" class="seccion-admin" style="display:none">
+  <div class="section-header">
+    <h2>📅 Informe Semanal Consolidado</h2>
+  </div>
+  <div class="card card-admin">
+    <div class="card-titulo">⚙ Configurar Período</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Fecha inicio (Lunes)</label>
+        <input type="date" id="sem-inicio" style="border:1px solid var(--borde);border-radius:4px;padding:8px 10px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group">
+        <label>Fecha fin (Domingo)</label>
+        <input type="date" id="sem-fin" style="border:1px solid var(--borde);border-radius:4px;padding:8px 10px;font-size:14px;width:100%">
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-primario" onclick="setSemanaActual()">📅 Semana actual</button>
+      <button class="btn btn-secundario" onclick="cargarDatosSemana()">🔄 Cargar datos</button>
+      <button class="btn btn-verde" onclick="exportarXLSSemanal()">⬇ Exportar Excel (.xlsx)</button>
+    </div>
+  </div>
+  <!-- KPIs semanales -->
+  <div id="sem-kpis" style="display:none">
+    <div class="stats-grid" style="margin-top:14px">
+      <div class="stat-card"><div class="stat-num" id="sem-st-dias">0</div><div class="stat-label">Días con datos</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-frentes">0</div><div class="stat-label">Frentes activos</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-trabajadores">0</div><div class="stat-label">Trabajadores únicos</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-hh">0</div><div class="stat-label">Total HH semana</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-at" style="color:var(--rojo)">0</div><div class="stat-label">Accidentes AT</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-aus">0</div><div class="stat-label">Ausencias</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-charlas">0</div><div class="stat-label">Charlas SST</div></div>
+      <div class="stat-card"><div class="stat-num" id="sem-st-ins">0</div><div class="stat-label">Inspecciones</div></div>
+    </div>
+    <!-- Tabla resumen por frente/día -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-titulo">📊 HH por Frente y Día</div>
+      <div class="tabla-wrap"><div id="sem-tabla-hh"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-titulo">👷 Trazabilidad de Trabajadores en la Semana</div>
+      <div class="tabla-wrap"><div id="sem-tabla-trabajadores"></div></div>
+    </div>
+  </div>
+  <div id="sem-loading" style="display:none;text-align:center;padding:30px;color:var(--texto-muted);font-weight:600">
+    ⏳ Cargando datos de la semana…
+  </div>
+</div>
+
+</div><!-- /vista-admin -->
+</main>
+</div><!-- /app-shell -->
+
+<!-- MODAL FOTO -->
+<div class="modal-overlay" id="modal-foto">
+  <div class="modal-box" style="text-align:center">
+    <div class="modal-titulo" id="modal-foto-titulo">Evidencia</div>
+    <img id="modal-foto-img" src="" alt="" style="max-width:100%;max-height:65vh;border-radius:6px">
+    <div id="modal-foto-desc" class="texto-muted" style="margin-top:8px"></div>
+    <div class="btn-row" style="justify-content:center;margin-top:12px">
+      <button class="btn btn-secundario" onclick="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+<script>
+// ══════════════════════════════════════════════════════
+//  FIREBASE CONFIG  ←  Reemplaza con tu proyecto real
+// ══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+//  PASO 1: Reemplaza estos 4 valores con los de tu proyecto Firebase
+//  Ver guía completa al final del archivo (comentario GUIA FIREBASE)
+// ═══════════════════════════════════════════════════════════════
+const FB_CONFIG = {
+  apiKey:            "AIzaSyB9z8cmUgzoUTR5eHrriDfPd_ZX0Zh01hM",
+  authDomain:        "isis-gestion--frentes.firebaseapp.com",
+  databaseURL:       "https://isis-gestion--frentes-default-rtdb.firebaseio.com",
+  projectId:         "isis-gestion--frentes",
+  storageBucket:     "isis-gestion--frentes.firebasestorage.app",
+  messagingSenderId: "834427673321",
+  appId:             "1:834427673321:web:bd0e4f866ee08222556e78"
+};
+
+// ══════════════════════════════════════════════════════
+//  CREDENCIALES ADMINISTRADOR  ←  Cambia estas claves
+// ══════════════════════════════════════════════════════
+const ADMIN_USER = "admin.isis";      // ← CAMBIA ESTO: tu usuario administrador
+const ADMIN_PASS = "Isis2026*";  // ← CAMBIA ESTO: tu contraseña segura
+
+// ══════════════════════════════════════════════════════
+//  INIT FIREBASE
+// ══════════════════════════════════════════════════════
+let db = null, usandoFirebase = false;
+try {
+  if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+  db = firebase.database(); usandoFirebase = true;
+  console.log("Firebase conectado");
+} catch(e) { console.warn("Firebase no configurado – modo localStorage"); }
+
+// ══════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════════════════════
+let ROL = null; // 'colab' | 'admin'
+let SESION = { frente:"", responsable:"", fecha:"", activa:false };
+// DATA.planta = perfiles permanentes del frente (se crea una sola vez)
+// DATA.trabajadores = registros de asistencia diaria (entrada/salida/HH por fecha)
+let DATA = { planta:[], trabajadores:[], actividades:[], ausentismo:[], accidentes:[],
+  materiales:[], charlas:[], clima:{}, lluvias:[], epp:[], residuos:[],
+  fotos:[], inspecciones:[], autorreportes:[] };
+let todosFrente = {};
+let datosSemana = {}; // cache para informe semanal
+let lluviaTimer = null, lluviaInicio = null;
+let fotosPendientes = [], chFotos = [], insFotos = [];
+let insItemsTemp = [];
+let plantaVisible = false;
+
+const CS_LABELS = ["Dolor de cabeza intenso","Mareos / vértigo","Alteraciones de la visión",
+  "Fiebre","Náuseas / vómito","Bajo efecto de medicamentos","Dolor en el pecho",
+  "Dificultad respiratoria","Fatiga extrema / somnolencia","Lesión músculo-esquelética",
+  "Estrés / alteración emocional"];
+
+// Fecha hoy
+const HOY = new Date();
+const FECHA_HOY = HOY.toISOString().split("T")[0];
+document.getElementById("badge-fecha").textContent =
+  HOY.toLocaleDateString("es-CO",{weekday:"short",year:"numeric",month:"short",day:"numeric"}).toUpperCase();
+document.getElementById("c-fecha").value = FECHA_HOY;
+
+// ══════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════
+function selTab(t) {
+  document.querySelectorAll(".login-tab").forEach(b=>b.classList.remove("active"));
+  event.currentTarget.classList.add("active");
+  document.getElementById("form-colab").style.display = t==="colab"?"block":"none";
+  document.getElementById("form-admin").style.display = t==="admin"?"block":"none";
+}
+
+function entrarColab() {
+  const frente = document.getElementById("c-frente").value.trim();
+  const resp   = document.getElementById("c-responsable").value.trim();
+  const fecha  = document.getElementById("c-fecha").value;
+  if (!frente||!resp||!fecha) { mostrarErr("err-colab"); return; }
+  ROL = "colab";
+  SESION = { frente, responsable:resp, fecha, activa:true };
+  iniciarApp();
+}
+
+function entrarAdmin() {
+  const u = document.getElementById("a-usuario").value.trim();
+  const p = document.getElementById("a-clave").value;
+  if (u!==ADMIN_USER || p!==ADMIN_PASS) { mostrarErr("err-admin"); return; }
+  ROL = "admin";
+  iniciarApp();
+}
+
+function mostrarErr(id) {
+  const el = document.getElementById(id);
+  el.style.display="block";
+  setTimeout(()=>el.style.display="none", 3500);
+}
+
+function iniciarApp() {
+  document.getElementById("pantalla-login").style.display="none";
+  document.getElementById("app-shell").style.display="block";
+  if (ROL==="colab") {
+    document.getElementById("badge-rol").textContent = "👷 COLABORADOR – "+SESION.frente;
+    document.getElementById("badge-rol").className = "badge-rol badge-rol-colab";
+    document.getElementById("header-sub").textContent = SESION.frente+" | "+SESION.responsable;
+    document.getElementById("session-bar").style.display="flex";
+    document.getElementById("lbl-frente").textContent = SESION.frente;
+    document.getElementById("lbl-resp").textContent = SESION.responsable;
+    document.getElementById("lbl-fecha-bar").textContent = SESION.fecha;
+    document.getElementById("nav-colab").style.display="flex";
+    document.getElementById("vista-colab").style.display="block";
+    document.getElementById("nav-admin").style.display="none";
+    document.getElementById("vista-admin").style.display="none";
+    cargarDatos();
+  } else {
+    document.getElementById("badge-rol").textContent = "🔐 ADMINISTRADOR";
+    document.getElementById("badge-rol").className = "badge-rol badge-rol-admin";
+    document.getElementById("header-sub").textContent = "Panel de Control – Vista Ejecutiva";
+    document.getElementById("session-bar").style.display="none";
+    document.getElementById("nav-admin").style.display="flex";
+    document.getElementById("vista-admin").style.display="block";
+    document.getElementById("nav-colab").style.display="none";
+    document.getElementById("vista-colab").style.display="none";
+    document.getElementById("adm-fecha-filtro").value = FECHA_HOY;
+    cargarTodosFrente();
+  }
+}
+
+function cerrarSesion() {
+  if (!confirm("¿Cerrar sesión?")) return;
+  if (usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════
+//  FIREBASE / STORAGE
+// ══════════════════════════════════════════════════════
+function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_"); }
+
+function guardarDatos() {
+  if (!SESION.activa) return;
+  setSyncDot(false);
+  const payload = { sesion:SESION, data:DATA, ts:new Date().toISOString() };
+  if (usandoFirebase) {
+    db.ref("frentes/"+claveDB()).set(payload)
+      .then(()=>setSyncDot(true)).catch(()=>setSyncDot(false));
+  } else {
+    localStorage.setItem("isis_"+claveDB(), JSON.stringify(payload));
+    setSyncDot(true);
+  }
+}
+
+function cargarDatos() {
+  if (!SESION.activa) return;
+  if (usandoFirebase) {
+    setSyncDot(false);
+    db.ref("frentes/"+claveDB()).on("value", snap=>{
+      const v = snap.val();
+      if (v && v.data) { DATA = v.data; normalizarData(); }
+      setSyncDot(true); renderizarTodo();
+    }, ()=>setSyncDot(false));
+  } else {
+    const raw = localStorage.getItem("isis_"+claveDB());
+    if (raw) { const p=JSON.parse(raw); if(p.data){DATA=p.data;normalizarData();} }
+    setSyncDot(true); renderizarTodo();
+  }
+}
+
+function normalizarData() {
+  if(!DATA.planta) DATA.planta=[];
+  if(!DATA.trabajadores) DATA.trabajadores=[];
+  if(!DATA.inspecciones) DATA.inspecciones=[];
+  if(!DATA.autorreportes) DATA.autorreportes=[];
+  if(!DATA.lluvias) DATA.lluvias=[];
+  if(!DATA.fotos) DATA.fotos=[];
+}
+
+function setSyncDot(ok) {
+  const d=document.getElementById("sync-dot");
+  const l=document.getElementById("lbl-sync");
+  if(!d) return;
+  d.className="online-dot "+(ok?"dot-on":"dot-off");
+  l.textContent=ok?"Sincronizado":"Guardando…";
+}
+
+// Cargar TODOS los frentes para admin
+function cargarTodosFrente() {
+  const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
+  todosFrente = {};
+  if (usandoFirebase) {
+    db.ref("frentes").orderByKey().once("value", snap=>{
+      snap.forEach(child=>{
+        const v = child.val();
+        if (v && v.sesion && v.sesion.fecha === fecha) {
+          todosFrente[child.key] = v;
+        }
+      });
+      renderAdmin();
+    });
+  } else {
+    // localStorage: busca todas las keys que empiecen por la fecha
+    for (let i=0;i<localStorage.length;i++) {
+      const k=localStorage.key(i);
+      if (k&&k.startsWith("isis_"+fecha)) {
+        try { const v=JSON.parse(localStorage.getItem(k)); if(v&&v.sesion) todosFrente[k]=v; } catch(e){}
+      }
+    }
+    renderAdmin();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  NAVEGACIÓN COLABORADOR
+// ══════════════════════════════════════════════════════
+function tab(id) {
+  document.querySelectorAll("#vista-colab .seccion").forEach(s=>s.classList.remove("activa"));
+  document.querySelectorAll("#nav-colab button").forEach(b=>b.classList.remove("active"));
+  const sec=document.getElementById("sec-"+id);
+  if(sec) sec.classList.add("activa");
+  event.currentTarget.classList.add("active");
+}
+
+// NAVEGACIÓN ADMIN
+function tabAdmin(id) {
+  document.querySelectorAll(".seccion-admin").forEach(s=>s.style.display="none");
+  document.querySelectorAll("#nav-admin button").forEach(b=>b.classList.remove("active"));
+  const sec=document.getElementById("sec-admin-"+id);
+  if(sec) sec.style.display="block";
+  event.currentTarget.classList.add("active");
+  if(id==="semanal-admin") setSemanaActual();
+}
+
+// ══════════════════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════════════════
+function chk() { if(!SESION.activa){alert("Sesión no activa.");return false;} return true; }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function calcHH(ini,fin) {
+  if(!ini||!fin) return 0;
+  const [hi,mi]=ini.split(":").map(Number),[hf,mf]=fin.split(":").map(Number);
+  return Math.max(0,Math.round(((hf*60+mf)-(hi*60+mi))/60*100)/100);
+}
+// ══════════════════════════════════════════════════════
+//  TOAST HELPER
+// ══════════════════════════════════════════════════════
+function mostrarToast(msg, color="verde") {
+  const colores={verde:"var(--verde)",naranja:"var(--naranja)",rojo:"var(--rojo)",azul:"var(--azul)"};
+  const t=document.createElement("div");
+  t.style.cssText=`position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:${colores[color]||colores.verde};color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap`;
+  t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2500);
+}
+function diffTxt(ini,fin) {
+  if(!ini||!fin) return "—";
+  const [hi,mi]=ini.split(":").map(Number),[hf,mf]=fin.split(":").map(Number);
+  const m=(hf*60+mf)-(hi*60+mi); if(m<0) return "—";
+  return `${Math.floor(m/60)}h ${m%60}m`;
+}
+function nivelBadge(n) {
+  const m={jefe:"cargo-jefe",hse:"cargo-hse",analistaSST:"cargo-analistaSST",supervisor:"cargo-supervisor",operativo:"cargo-operativo",rescatista:"cargo-rescatista"};
+  const l={jefe:"Jefe Proy.",hse:"Prof. HSE",analistaSST:"Analista SST",supervisor:"Supervisor",operativo:"Operativo",rescatista:"Rescatista"};
+  return `<span class="cargo-badge ${m[n]||'cargo-operativo'}">${l[n]||n}</span>`;
+}
+function estadoBadge(e) {
+  const m={presente:"badge-verde","ausente-medico":"badge-rojo","ausente-personal":"badge-amarillo","ausente-calamidad":"badge-rojo",permiso:"badge-azul"};
+  return `<span class="badge ${m[e]||'badge-gris'}">${e.replace(/-/g," ")}</span>`;
+}
+function gv(id) { const el=document.getElementById(id); return el?el.value:""; }
+function sv(id,v) { const el=document.getElementById(id); if(el) el.value=v||""; }
+function cerrarModal() { document.getElementById("modal-foto").classList.remove("abierto"); }
+function eliminar(col,id) {
+  if(!confirm("¿Eliminar este registro?")) return;
+  DATA[col]=DATA[col].filter(x=>x.id!==id);
+  guardarDatos(); renderizarTodo();
+}
+function renderizarTodo() {
+  renderT(); renderA(); renderAu(); renderAt(); renderM(); renderCh();
+  renderIns(); renderAr(); renderCl(); renderEpp(); renderR(); renderF();
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  TRABAJADORES – PLANTA GLOBAL + ASISTENCIA DIARIA
+// ══════════════════════════════════════════════════════
+
+// Toggle visibilidad del panel planta
+function togglePlanta() {
+  plantaVisible = !plantaVisible;
+  document.getElementById("panel-planta").style.display = plantaVisible ? "block" : "none";
+  document.getElementById("icono-planta").textContent = plantaVisible ? "▲" : "▼";
+}
+
+// Agregar nuevo trabajador a la planta permanente del frente
+function agregarTrabajador() {
+  if(!chk()) return;
+  const nombre=gv("t-nombre").trim(), cedula=gv("t-cedula").trim();
+  if(!nombre||!cedula){alert("Nombre y cédula son obligatorios.");return;}
+  // Verificar duplicado por cédula
+  if(DATA.planta.find(p=>p.cedula===cedula)){
+    alert("Ya existe un trabajador con esa cédula en la planta.");return;
+  }
+  const p={id:uid(),nombre,cedula,nivel:gv("t-nivel"),cargo:gv("t-cargo"),
+    empresa:gv("t-empresa"),apto:gv("t-apto"),obs:gv("t-obs"),activo:true,
+    fechaIngreso:SESION.fecha};
+  DATA.planta.push(p);
+  // Crear registro de asistencia para hoy automáticamente
+  crearOActualizarAsistencia(p.id, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
+  guardarDatos(); renderT();
+  ["t-nombre","t-cedula","t-cargo","t-empresa","t-obs"].forEach(id=>sv(id,""));
+  mostrarToast("✔ Trabajador agregado a la planta","verde");
+}
+
+// Crear o actualizar el registro de asistencia del día para un trabajador
+function crearOActualizarAsistencia(plantaId, campos) {
+  const fecha = SESION.fecha;
+  const idx = DATA.trabajadores.findIndex(t=>t.plantaId===plantaId && t.fecha===fecha);
+  if(idx>=0) {
+    DATA.trabajadores[idx] = {...DATA.trabajadores[idx], ...campos};
+  } else {
+    DATA.trabajadores.push({id:uid(), plantaId, fecha, ...campos});
+  }
+}
+
+// Obtener registro de asistencia de hoy para un trabajador de planta
+function getAsistenciaHoy(plantaId) {
+  return DATA.trabajadores.find(t=>t.plantaId===plantaId && t.fecha===SESION.fecha) || null;
+}
+
+// Retirar trabajador (desactivar para futuros días, conserva historial)
+function retirarTrabajador(plantaId) {
+  if(!confirm("¿Retirar este trabajador de la planta activa?\nConservará su historial de asistencia previo.")) return;
+  const p = DATA.planta.find(x=>x.id===plantaId);
+  if(p){ p.activo=false; p.fechaRetiro=SESION.fecha; }
+  guardarDatos(); renderT();
+  mostrarToast("Trabajador retirado de la planta activa","naranja");
+}
+
+// Reactivar trabajador retirado
+function reactivarTrabajador(plantaId) {
+  const p = DATA.planta.find(x=>x.id===plantaId);
+  if(p){ p.activo=true; delete p.fechaRetiro; }
+  crearOActualizarAsistencia(plantaId, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
+  guardarDatos(); renderT();
+  mostrarToast("✔ Trabajador reactivado","verde");
+}
+
+// Marcar todos los activos como presentes
+function marcarTodosPresentes() {
+  if(!chk()) return;
+  DATA.planta.filter(p=>p.activo).forEach(p=>{
+    crearOActualizarAsistencia(p.id, {asistencia:"presente"});
+  });
+  guardarDatos(); renderT();
+  mostrarToast("✔ Todos marcados como presentes","verde");
+}
+
+// Recalcular HH de los registros del día actual
+function calcularHH(){
+  DATA.trabajadores.filter(t=>t.fecha===SESION.fecha).forEach(t=>{
+    t.hh=calcHH(t.entrada,t.salida);
+  });
+  guardarDatos(); renderT();
+  mostrarToast("✔ HH recalculadas","verde");
+}
+
+// Render principal: panel asistencia del día + tabla planta
+function renderT() {
+  const fecha = SESION.fecha;
+  const plantaActiva = DATA.planta.filter(p=>p.activo);
+  const plantaTodos  = DATA.planta;
+
+  // ── Panel asistencia del día ──────────────────────────
+  let hhTotal=0, presentes=0;
+  const asistenciaHTML = plantaActiva.length===0
+    ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores activos en la planta. Agrégalos abajo ↓</div>`
+    : plantaActiva.map(p=>{
+        const a = getAsistenciaHoy(p.id) || {asistencia:"presente",entrada:"",salida:"",hh:0};
+        hhTotal += (a.hh||0);
+        if(a.asistencia==="presente") presentes++;
+        const abApto = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+        const hhColor = (a.hh||0)>0?"color:var(--naranja)":"color:var(--texto-muted)";
+        return `<div style="background:${a.asistencia==='presente'?'#F0FFF4':'#FFF8F0'};border:1px solid ${a.asistencia==='presente'?'#82E0AA':'#FAD7A0'};border-radius:6px;padding:10px 12px;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <div style="font-weight:700;font-size:13px">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
+              <div style="font-size:11px;color:var(--texto-muted)">${nivelBadge(p.nivel)} ${p.cargo||""} · ${p.empresa||"—"}</div>
+            </div>
+            <select style="font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','asistencia',this.value)">
+              <option value="presente" ${a.asistencia==='presente'?'selected':''}>✅ Presente</option>
+              <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}>🏥 Ausente – Médico</option>
+              <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}>🏠 Ausente – Personal</option>
+              <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}>⚠ Ausente – Calamidad</option>
+              <option value="permiso" ${a.asistencia==='permiso'?'selected':''}>📋 Permiso</option>
+            </select>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <input type="time" value="${a.entrada||''}" placeholder="Entrada"
+                style="width:100px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
+                onchange="setAsistencia('${p.id}','entrada',this.value)">
+              <input type="time" value="${a.salida||''}" placeholder="Salida"
+                style="width:100px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
+                onchange="setAsistencia('${p.id}','salida',this.value)">
+              <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:50px;${hhColor}">${(a.hh||0)} HH</span>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+
+  document.getElementById("lista-asistencia-dia").innerHTML = asistenciaHTML;
+  document.getElementById("conteo-t").textContent = `${presentes} presentes`;
+  document.getElementById("total-hh").textContent = Math.round(hhTotal*100)/100;
+
+  // ── Tabla planta (todos, activos e inactivos) ─────────
+  document.getElementById("tbody-planta").innerHTML = plantaTodos.map((p,i)=>{
+    const ab = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+    const estado = p.activo
+      ? `<span class="badge badge-verde">Activo</span>`
+      : `<span class="badge badge-rojo">Retirado ${p.fechaRetiro||""}</span>`;
+    const accion = p.activo
+      ? `<button class="btn btn-rojo" onclick="retirarTrabajador('${p.id}')">Retirar</button>`
+      : `<button class="btn btn-secundario" style="font-size:11px;padding:4px 8px" onclick="reactivarTrabajador('${p.id}')">Reactivar</button>`;
+    return `<tr style="${p.activo?'':'opacity:.6'}">
+      <td>${i+1}</td><td>${p.nombre}</td><td>${p.cedula}</td>
+      <td>${nivelBadge(p.nivel)}</td><td>${p.cargo||"—"}</td><td>${p.empresa||"—"}</td>
+      <td><span class="badge ${ab}">${p.apto}</span></td>
+      <td>${estado}</td><td>${accion}</td></tr>`;
+  }).join("");
+  document.getElementById("conteo-planta").textContent = `${plantaTodos.length} registrados`;
+  refrescarDashboard();
+}
+
+// Actualizar campo de asistencia y recalcular HH si aplica
+function setAsistencia(plantaId, campo, valor) {
+  const fecha = SESION.fecha;
+  let reg = DATA.trabajadores.find(t=>t.plantaId===plantaId && t.fecha===fecha);
+  if(!reg){
+    reg = {id:uid(), plantaId, fecha, asistencia:"presente", entrada:"", salida:"", hh:0};
+    DATA.trabajadores.push(reg);
+  }
+  reg[campo] = valor;
+  if(campo==="entrada"||campo==="salida"){
+    reg.hh = calcHH(reg.entrada, reg.salida);
+    const cel = document.getElementById("hh-row-"+plantaId);
+    if(cel){
+      cel.textContent = reg.hh+" HH";
+      cel.style.color = reg.hh>0?"var(--naranja)":"var(--texto-muted)";
+    }
+    // Actualizar total HH
+    const tot = DATA.trabajadores.filter(t=>t.fecha===fecha).reduce((s,t)=>s+(t.hh||0),0);
+    document.getElementById("total-hh").textContent = Math.round(tot*100)/100;
+  }
+  guardarDatos();
+  if(campo==="asistencia") renderT(); // re-render para cambiar color de fila
+  else refrescarDashboard();
+}
+
+// Helpers HH form (mantenido por compatibilidad con otras partes)
+function actualizarHHForm(){}
+function editarHoraTrabajador(){}
+function eliminar(col,id){
+  if(!confirm("¿Eliminar este registro?")) return;
+  DATA[col]=DATA[col].filter(x=>x.id!==id);
+  guardarDatos(); renderizarTodo();
+}
+
+// ══════════════════════════════════════════════════════
+//  ACTIVIDADES
+// ══════════════════════════════════════════════════════
+function agregarActividad() {
+  if(!chk()) return;
+  const prog=parseFloat(gv("a-prog"))||0, ejec=parseFloat(gv("a-ejec"))||0;
+  const a={id:uid(),desc:gv("a-desc"),tipo:gv("a-tipo"),unidad:gv("a-unidad"),prog,ejec,
+    avance:prog>0?Math.min(100,Math.round(ejec/prog*100)):0,
+    ubic:gv("a-ubic"),resp:gv("a-resp"),estado:gv("a-estado"),obs:gv("a-obs")};
+  if(!a.desc){alert("Descripción obligatoria.");return;}
+  DATA.actividades.push(a); guardarDatos(); renderA();
+  ["a-desc","a-unidad","a-prog","a-ejec","a-ubic","a-resp","a-obs"].forEach(id=>sv(id,""));
+}
+function renderA() {
+  const ec={"Terminada":"badge-verde","En ejecución":"badge-azul","Suspendida":"badge-rojo","Pendiente":"badge-amarillo"};
+  document.getElementById("tbody-a").innerHTML=DATA.actividades.map((a,i)=>`<tr>
+    <td>${i+1}</td><td>${a.desc}</td><td>${a.tipo}</td><td>${a.unidad}</td>
+    <td>${a.prog}</td><td>${a.ejec}</td>
+    <td><div class="progreso-bar-wrap" style="min-width:70px"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
+    <div style="font-size:10px;text-align:center">${a.avance}%</div></td>
+    <td>${a.ubic||"—"}</td><td><span class="badge ${ec[a.estado]||'badge-gris'}">${a.estado}</span></td>
+    <td><button class="btn btn-rojo" onclick="eliminar('actividades','${a.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  AUSENTISMO
+// ══════════════════════════════════════════════════════
+function agregarAusentismo() {
+  if(!chk()) return;
+  const a={id:uid(),nombre:gv("au-nombre"),cedula:gv("au-cedula"),causa:gv("au-causa"),
+    dias:gv("au-dias"),numInc:gv("au-num"),reemplazo:gv("au-reemplazo"),obs:gv("au-obs")};
+  if(!a.nombre){alert("Nombre obligatorio.");return;}
+  DATA.ausentismo.push(a); guardarDatos(); renderAu();
+  ["au-nombre","au-cedula","au-num","au-reemplazo","au-obs"].forEach(id=>sv(id,""));
+}
+function renderAu() {
+  document.getElementById("tbody-au").innerHTML=DATA.ausentismo.map((a,i)=>`<tr>
+    <td>${i+1}</td><td>${a.nombre}</td><td>${a.cedula}</td><td>${a.causa}</td>
+    <td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('ausentismo','${a.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  ACCIDENTES
+// ══════════════════════════════════════════════════════
+function agregarAccidente() {
+  if(!chk()) return;
+  const a={id:uid(),tipo:gv("at-tipo"),fecha:gv("at-fecha"),nombre:gv("at-nombre"),cedula:gv("at-cedula"),
+    cargo:gv("at-cargo"),arl:gv("at-arl"),parte:gv("at-parte"),lesion:gv("at-lesion"),agente:gv("at-agente"),
+    atencion:gv("at-atencion"),desc:gv("at-desc"),causasInm:gv("at-causas-inm"),causasBas:gv("at-causas-bas"),
+    acciones:gv("at-acciones"),testigos:gv("at-testigos"),reporteArl:gv("at-reporte-arl"),furat:gv("at-furat")};
+  if(!a.nombre||!a.desc){alert("Nombre y descripción obligatorios.");return;}
+  DATA.accidentes.push(a); guardarDatos(); renderAt();
+}
+function renderAt() {
+  document.getElementById("tbody-at").innerHTML=DATA.accidentes.map((a,i)=>`<tr>
+    <td>${i+1}</td><td>${a.fecha||"—"}</td><td><span class="badge badge-rojo">${a.tipo.slice(0,20)}…</span></td>
+    <td>${a.nombre}</td><td>${a.lesion}</td><td>${a.agente}</td><td>${a.atencion}</td>
+    <td>${a.furat||"Pendiente"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('accidentes','${a.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  MATERIALES
+// ══════════════════════════════════════════════════════
+function agregarMaterial() {
+  if(!chk()) return;
+  const m={id:uid(),cat:gv("m-cat"),desc:gv("m-desc"),ref:gv("m-ref"),unidad:gv("m-unidad"),
+    cant:gv("m-cant"),disp:gv("m-disp"),estado:gv("m-estado"),obs:gv("m-obs")};
+  if(!m.desc){alert("Descripción obligatoria.");return;}
+  DATA.materiales.push(m); guardarDatos(); renderM();
+  ["m-desc","m-ref","m-unidad","m-cant","m-disp","m-obs"].forEach(id=>sv(id,""));
+}
+function renderM() {
+  const ec={"Bueno":"badge-verde","Regular":"badge-amarillo","Defectuoso":"badge-rojo","N/A (material)":"badge-gris"};
+  document.getElementById("tbody-m").innerHTML=DATA.materiales.map((m,i)=>`<tr>
+    <td>${i+1}</td><td><span class="badge badge-azul">${m.cat}</span></td><td>${m.desc}</td>
+    <td>${m.ref||"—"}</td><td>${m.unidad||"—"}</td><td>${m.cant||0}</td><td>${m.disp||0}</td>
+    <td><span class="badge ${ec[m.estado]||'badge-gris'}">${m.estado}</span></td>
+    <td><button class="btn btn-rojo" onclick="eliminar('materiales','${m.id}')">✕</button></td></tr>`).join("");
+}
+
+// ══════════════════════════════════════════════════════
+//  CHARLAS SST
+// ══════════════════════════════════════════════════════
+function agregarCharla() {
+  if(!chk()) return;
+  const temaB=gv("ch-tema"), temaO=gv("ch-otro").trim();
+  const c={id:uid(),tema:temaB==="Otro"?temaO:temaB,inicio:gv("ch-ini"),fin:gv("ch-fin"),
+    facilitador:gv("ch-facilitador"),asistentes:gv("ch-asistentes"),contenido:gv("ch-contenido"),
+    fotos:[...chFotos]};
+  if(!c.tema){alert("Tema obligatorio.");return;}
+  chFotos=[]; document.getElementById("ch-prev").innerHTML=""; sv("inp-ch-foto","");
+  DATA.charlas.push(c); guardarDatos(); renderCh();
+  ["ch-otro","ch-ini","ch-fin","ch-facilitador","ch-asistentes","ch-contenido"].forEach(id=>sv(id,""));
+}
+function renderCh() {
+  document.getElementById("tbody-ch").innerHTML=DATA.charlas.map((c,i)=>`<tr>
+    <td>${i+1}</td><td>${c.tema}</td><td>${c.inicio||"—"}</td><td>${c.fin||"—"}</td>
+    <td>${diffTxt(c.inicio,c.fin)}</td><td>${c.facilitador||"—"}</td><td>${c.asistentes||"—"}</td>
+    <td>${(c.fotos&&c.fotos.length)?`<span class="badge badge-verde">${c.fotos.length}📷</span>`:"—"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('charlas','${c.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  INSPECCIONES
+// ══════════════════════════════════════════════════════
+function addInsItem() {
+  const desc=document.getElementById("ins-item-desc").value.trim();
+  const est=gv("ins-item-est");
+  if(!desc) return;
+  insItemsTemp.push({desc,est});
+  document.getElementById("ins-item-desc").value="";
+  renderInsItems();
+}
+function renderInsItems() {
+  const c=document.getElementById("ins-items-lista");
+  c.innerHTML=insItemsTemp.map((it,i)=>`<div class="ins-item">
+    <span>${it.desc}</span>
+    <div style="display:flex;align-items:center;gap:7px">
+      <span class="badge ${it.est==="ok"?"badge-verde":it.est==="nc"?"badge-rojo":"badge-gris"}">${it.est==="ok"?"Conforme":it.est==="nc"?"No conforme":"N/A"}</span>
+      <button class="btn btn-rojo" onclick="insItemsTemp.splice(${i},1);renderInsItems()">✕</button>
+    </div></div>`).join("");
+}
+function agregarInspeccion() {
+  if(!chk()) return;
+  const tB=gv("ins-tipo"),tO=gv("ins-tipo-otro").trim();
+  const ins={id:uid(),tipo:tB==="Otro"?tO:tB,inspector:gv("ins-inspector"),nivel:gv("ins-nivel"),
+    zona:gv("ins-zona"),hora:gv("ins-hora"),resultado:gv("ins-resultado"),
+    items:[...insItemsTemp],hallazgos:gv("ins-hallazgos"),acciones:gv("ins-acciones"),
+    respCierre:gv("ins-resp-cierre"),fotos:[...insFotos]};
+  if(!ins.inspector){alert("Inspector obligatorio.");return;}
+  insItemsTemp=[]; insFotos=[];
+  document.getElementById("ins-items-lista").innerHTML="";
+  document.getElementById("ins-prev").innerHTML=""; sv("inp-ins-foto","");
+  DATA.inspecciones.push(ins); guardarDatos(); renderIns();
+  ["ins-tipo-otro","ins-inspector","ins-zona","ins-hora","ins-hallazgos","ins-acciones","ins-resp-cierre"].forEach(id=>sv(id,""));
+}
+function renderIns() {
+  const rc={"conforme":"badge-verde","no-conforme":"badge-rojo","parcial":"badge-amarillo"};
+  const rt={"conforme":"Conforme ✔","no-conforme":"No conforme ✘","parcial":"Parcial"};
+  document.getElementById("tbody-ins").innerHTML=(DATA.inspecciones||[]).map((ins,i)=>`<tr>
+    <td>${i+1}</td><td>${ins.tipo}</td><td>${ins.inspector}</td><td>${nivelBadge(ins.nivel)}</td>
+    <td>${ins.zona||"—"}</td><td>${ins.hora||"—"}</td>
+    <td><span class="badge ${rc[ins.resultado]||'badge-gris'}">${rt[ins.resultado]||ins.resultado}</span></td>
+    <td>${(ins.fotos&&ins.fotos.length)?`<span class="badge badge-morado">${ins.fotos.length}📷</span>`:"—"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('inspecciones','${ins.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  AUTORREPORTE SALUD
+// ══════════════════════════════════════════════════════
+function agregarAutorreporte() {
+  if(!chk()) return;
+  const conds=[];
+  for(let i=1;i<=11;i++){const el=document.getElementById("cs-"+i);if(el&&el.checked)conds.push(CS_LABELS[i-1]);}
+  const okEl=document.getElementById("cs-ok");
+  if(okEl&&okEl.checked) conds.push("Ninguna (apto)");
+  const ar={id:uid(),nombre:gv("ar-nombre"),cedula:gv("ar-cedula"),nivel:gv("ar-nivel"),
+    cargo:gv("ar-cargo"),hora:gv("ar-hora"),condiciones:conds,otras:gv("ar-otras"),
+    decision:gv("ar-decision"),validador:gv("ar-validador")};
+  if(!ar.nombre){alert("Nombre obligatorio.");return;}
+  for(let i=1;i<=11;i++){const el=document.getElementById("cs-"+i);if(el)el.checked=false;}
+  if(okEl)okEl.checked=false;
+  DATA.autorreportes.push(ar); guardarDatos(); renderAr();
+  ["ar-nombre","ar-cedula","ar-cargo","ar-hora","ar-otras","ar-validador"].forEach(id=>sv(id,""));
+}
+function renderAr() {
+  const dc={"apto":"badge-verde","restringido":"badge-amarillo","no-apto":"badge-rojo","referido":"badge-morado"};
+  const dl={"apto":"Apto","restringido":"Con restricciones","no-apto":"No apto","referido":"Referido"};
+  document.getElementById("tbody-ar").innerHTML=(DATA.autorreportes||[]).map((ar,i)=>{
+    const alerta=ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
+    return `<tr style="${alerta?"background:#FFF3F0":""}">
+      <td>${i+1}</td><td>${ar.nombre}${alerta?" 🔴":""}</td><td>${ar.cedula}</td>
+      <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||"—"}</td>
+      <td style="font-size:11px">${ar.condiciones.join(", ")||"—"}</td>
+      <td><span class="badge ${dc[ar.decision]||'badge-gris'}">${dl[ar.decision]||ar.decision}</span></td>
+      <td>${ar.validador||"—"}</td>
+      <td><button class="btn btn-rojo" onclick="eliminar('autorreportes','${ar.id}')">✕</button></td></tr>`;
+  }).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  CLIMA / LLUVIA
+// ══════════════════════════════════════════════════════
+function guardarClima() {
+  if(!chk()) return;
+  DATA.clima={cond:gv("cl-cond"),temp:gv("cl-temp"),impacto:gv("cl-impacto"),obs:gv("cl-obs")};
+  guardarDatos(); alert("Condición climática guardada.");
+}
+function iniciarLluvia() {
+  if(!chk()) return;
+  if(lluviaTimer){alert("Lluvia ya en curso.");return;}
+  lluviaInicio=new Date();
+  sv("cl-ini",lluviaInicio.toTimeString().slice(0,5));
+  document.getElementById("lluvia-banner").style.display="block";
+  lluviaTimer=setInterval(()=>{
+    const e=Math.floor((new Date()-lluviaInicio)/1000);
+    document.getElementById("lluvia-timer").textContent=
+      `${String(Math.floor(e/3600)).padStart(2,"0")}:${String(Math.floor((e%3600)/60)).padStart(2,"0")}:${String(e%60).padStart(2,"0")}`;
+  },1000);
+}
+function detenerLluvia() {
+  if(!lluviaTimer) return;
+  clearInterval(lluviaTimer); lluviaTimer=null;
+  sv("cl-fin",new Date().toTimeString().slice(0,5));
+  document.getElementById("lluvia-banner").style.display="none";
+  agregarLluvia();
+}
+function agregarLluvia() {
+  if(!chk()) return;
+  const ini=gv("cl-ini"),fin=gv("cl-fin");
+  if(!ini){alert("Hora de inicio obligatoria.");return;}
+  DATA.lluvias.push({id:uid(),ini,fin,duracion:diffTxt(ini,fin),intensidad:gv("cl-int"),obs:gv("cl-obs2")});
+  guardarDatos(); renderCl();
+  ["cl-ini","cl-fin","cl-obs2"].forEach(id=>sv(id,""));
+}
+function renderCl() {
+  document.getElementById("tbody-cl").innerHTML=(DATA.lluvias||[]).map((l,i)=>`<tr>
+    <td>${i+1}</td><td>${l.ini}</td><td>${l.fin||"En curso"}</td><td>${l.duracion}</td>
+    <td><span class="badge badge-azul">${l.intensidad}</span></td><td>${l.obs||"—"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('lluvias','${l.id}')">✕</button></td></tr>`).join("");
+}
+
+// ══════════════════════════════════════════════════════
+//  EPP
+// ══════════════════════════════════════════════════════
+function agregarEPP() {
+  if(!chk()) return;
+  const iB=gv("epp-item"),iO=gv("epp-otro").trim();
+  const e={id:uid(),nombre:gv("epp-nombre"),cedula:gv("epp-cedula"),cargo:gv("epp-cargo"),
+    item:iB==="Otro"?iO:iB,cant:gv("epp-cant"),motivo:gv("epp-motivo"),conforme:gv("epp-conforme")};
+  if(!e.nombre||!e.item){alert("Nombre y EPP obligatorios.");return;}
+  DATA.epp.push(e); guardarDatos(); renderEpp();
+  ["epp-nombre","epp-cedula","epp-cargo","epp-otro"].forEach(id=>sv(id,""));
+}
+function renderEpp() {
+  document.getElementById("tbody-epp").innerHTML=DATA.epp.map((e,i)=>`<tr>
+    <td>${i+1}</td><td>${e.nombre}</td><td>${e.cedula}</td><td>${e.cargo||"—"}</td>
+    <td>${e.item}</td><td>${e.cant}</td><td>${e.motivo}</td>
+    <td><span class="badge ${e.conforme==="Sí"?"badge-verde":"badge-rojo"}">${e.conforme}</span></td>
+    <td><button class="btn btn-rojo" onclick="eliminar('epp','${e.id}')">✕</button></td></tr>`).join("");
+  refrescarDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  RESIDUOS
+// ══════════════════════════════════════════════════════
+function agregarResiduo() {
+  if(!chk()) return;
+  const r={id:uid(),tipo:gv("r-tipo"),clase:gv("r-clase"),cant:gv("r-cant"),
+    unidad:gv("r-unidad"),punto:gv("r-punto"),disp:gv("r-disp"),resp:gv("r-resp"),obs:gv("r-obs")};
+  DATA.residuos.push(r); guardarDatos(); renderR();
+  ["r-cant","r-punto","r-resp","r-obs"].forEach(id=>sv(id,""));
+}
+function renderR() {
+  const cc={"Aprovechable":"badge-verde","No aprovechable":"badge-gris","Peligroso (RESPEL)":"badge-rojo","Orgánico":"badge-amarillo"};
+  document.getElementById("tbody-r").innerHTML=DATA.residuos.map((r,i)=>`<tr>
+    <td>${i+1}</td><td>${r.tipo}</td><td><span class="badge ${cc[r.clase]||'badge-gris'}">${r.clase}</span></td>
+    <td>${r.cant}</td><td>${r.unidad}</td><td>${r.disp}</td><td>${r.resp||"—"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('residuos','${r.id}')">✕</button></td></tr>`).join("");
+}
+
+// ══════════════════════════════════════════════════════
+//  FOTOS
+// ══════════════════════════════════════════════════════
+function cargarFotosModulo(input,prevId,dest) {
+  document.getElementById(prevId).innerHTML="";
+  if(dest==="ch") chFotos=[];
+  else insFotos=[];
+  Array.from(input.files).forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      if(dest==="ch") chFotos.push(e.target.result);
+      else insFotos.push(e.target.result);
+      const img=document.createElement("img");
+      img.src=e.target.result; img.className="foto-thumb";
+      document.getElementById(prevId).appendChild(img);
+    };
+    r.readAsDataURL(file);
+  });
+}
+function cargarFotosGen(input) {
+  fotosPendientes=[];
+  document.getElementById("prev-fotos").innerHTML="";
+  Array.from(input.files).forEach(file=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      fotosPendientes.push({data:e.target.result,nombre:file.name});
+      const img=document.createElement("img");
+      img.src=e.target.result; img.className="foto-thumb";
+      document.getElementById("prev-fotos").appendChild(img);
+    };
+    r.readAsDataURL(file);
+  });
+}
+function guardarFotos() {
+  if(!chk()) return;
+  if(!fotosPendientes.length){alert("Selecciona al menos una foto.");return;}
+  fotosPendientes.forEach(fp=>{
+    DATA.fotos.push({id:uid(),cat:gv("f-cat"),desc:gv("f-desc"),autor:gv("f-autor"),
+      data:fp.data,nombre:fp.nombre,ts:new Date().toISOString()});
+  });
+  fotosPendientes=[];
+  document.getElementById("prev-fotos").innerHTML="";
+  sv("inp-foto",""); guardarDatos(); renderF(); alert("Evidencias guardadas.");
+}
+function renderF() {
+  const g=document.getElementById("galeria-fotos");
+  const sf=document.getElementById("sin-fotos");
+  if(!DATA.fotos.length){g.innerHTML="";sf.style.display="block";return;}
+  sf.style.display="none";
+  g.innerHTML=DATA.fotos.map(f=>`<div style="text-align:center;width:90px">
+    <img src="${f.data}" class="foto-thumb" onclick="verFoto('${f.id}')" title="${f.desc||''}">
+    <div style="font-size:9px;color:var(--texto-muted);margin-top:2px">${f.cat}</div>
+  </div>`).join("");
+  refrescarDashboard();
+}
+function verFoto(id) {
+  const f=DATA.fotos.find(x=>x.id===id); if(!f) return;
+  document.getElementById("modal-foto-img").src=f.data;
+  document.getElementById("modal-foto-titulo").textContent=(f.desc||f.nombre||"Evidencia");
+  document.getElementById("modal-foto-desc").textContent=`Por: ${f.autor||"—"} | ${new Date(f.ts).toLocaleString("es-CO")}`;
+  document.getElementById("modal-foto").classList.add("abierto");
+}
+
+// ══════════════════════════════════════════════════════
+//  DASHBOARD COLABORADOR
+// ══════════════════════════════════════════════════════
+function refrescarDashboard() {
+  if(ROL!=="colab") return;
+  const fecha = SESION.fecha;
+  const asistenciaHoy = DATA.trabajadores.filter(t=>t.fecha===fecha);
+  const pres = asistenciaHoy.filter(t=>t.asistencia==="presente").length;
+  const hh   = asistenciaHoy.reduce((s,t)=>s+(t.hh||0),0);
+  document.getElementById("st-trabajadores").textContent=pres;
+  document.getElementById("st-hh").textContent=Math.round(hh*100)/100;
+  document.getElementById("st-ausentismo").textContent=DATA.ausentismo.length;
+  document.getElementById("st-actividades").textContent=DATA.actividades.length;
+  document.getElementById("st-accidentes").textContent=DATA.accidentes.length;
+  document.getElementById("st-charlas").textContent=DATA.charlas.length;
+  document.getElementById("st-inspecciones").textContent=(DATA.inspecciones||[]).length;
+  document.getElementById("st-autoreporte").textContent=(DATA.autorreportes||[]).length;
+  document.getElementById("st-epp").textContent=DATA.epp.length;
+  document.getElementById("st-fotos").textContent=DATA.fotos.length;
+  // Alertas salud
+  const enAlerta=(DATA.autorreportes||[]).filter(ar=>ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
+  const alertaEl=document.getElementById("alertas-salud-colab");
+  if(alertaEl) alertaEl.innerHTML=enAlerta.map(ar=>
+    `<div class="alerta alerta-err">🔴 <strong>${ar.nombre}</strong> – ${ar.condiciones.join(", ")} | Decisión: ${ar.decision}</div>`).join("");
+  // Avance actividades
+  const av=document.getElementById("avance-lista");
+  if(!DATA.actividades.length){av.innerHTML='<div class="texto-muted">Sin actividades.</div>';return;}
+  av.innerHTML=DATA.actividades.map(a=>`<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600">${a.desc}</span>
+    <span style="color:var(--naranja);font-weight:700;font-size:13px">${a.avance}%</span></div>
+    <div class="progreso-bar-wrap"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
+    <div class="texto-muted" style="margin-top:2px">${a.ejec}/${a.prog} ${a.unidad} – ${a.estado}</div>
+  </div>`).join("");
+}
+
+// ══════════════════════════════════════════════════════
+//  VISTA ADMINISTRADOR – RENDER
+// ══════════════════════════════════════════════════════
+function renderAdmin() {
+  const frentes = Object.values(todosFrente);
+  const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
+  let totTrab=0,totHH=0,totAT=0,totAu=0,totIns=0,totSalud=0,totCharlas=0;
+  frentes.forEach(f=>{
+    const d=f.data||{};
+    // Soporte para modelo nuevo (planta+trabajadores) y modelo legacy
+    const asistHoy = (d.trabajadores||[]).filter(t=>t.fecha===fecha || !t.fecha);
+    totTrab += asistHoy.filter(t=>t.asistencia==="presente").length;
+    totHH   += asistHoy.reduce((s,t)=>s+(t.hh||0),0);
+    totAT+=(d.accidentes||[]).length;
+    totAu+=(d.ausentismo||[]).length;
+    totIns+=(d.inspecciones||[]).length;
+    totCharlas+=(d.charlas||[]).length;
+    totSalud+=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)")).length;
+  });
+  document.getElementById("adm-st-frentes").textContent=frentes.length;
+  document.getElementById("adm-st-trabajadores").textContent=totTrab;
+  document.getElementById("adm-st-hh").textContent=Math.round(totHH*100)/100;
+  document.getElementById("adm-st-accidentes").textContent=totAT;
+  document.getElementById("adm-st-ausentismo").textContent=totAu;
+  document.getElementById("adm-st-inspecciones").textContent=totIns;
+  document.getElementById("adm-st-salud-alerta").textContent=totSalud;
+  document.getElementById("adm-st-charlas").textContent=totCharlas;
+  const alertaAT=document.getElementById("adm-alerta-accidentes");
+  const alertaSalud=document.getElementById("adm-alerta-salud");
+  if(totAT>0){alertaAT.style.display="block";alertaAT.className="alerta alerta-err";alertaAT.textContent=`🚨 ${totAT} accidente(s) de trabajo reportados en ${fecha}.`;}
+  else{alertaAT.style.display="none";}
+  if(totSalud>0){alertaSalud.style.display="block";alertaSalud.textContent=`⚠ ${totSalud} trabajador(es) con condiciones de salud restrictivas.`;}
+  else{alertaSalud.style.display="none";}
+  const lista=document.getElementById("adm-frentes-lista");
+  if(!frentes.length){lista.innerHTML='<div class="alerta alerta-warn">Sin frentes registrados para esta fecha.</div>';return;}
+  lista.innerHTML=frentes.map((f,i)=>{
+    const d=f.data||{}, s=f.sesion||{};
+    const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+    const pres=asistHoy.filter(t=>t.asistencia==="presente").length;
+    const hh=asistHoy.reduce((acc,t)=>acc+(t.hh||0),0);
+    const alertasSaludF=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
+    const atF=(d.accidentes||[]).length;
+    const key="frente_"+i;
+    return `<div class="admin-frente-card">
+      <div class="admin-frente-header" onclick="toggleFrenteAdmin('${key}')">
+        <div>
+          <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${s.fecha||"—"}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${atF>0?`<span class="badge badge-rojo">🚨 ${atF} AT</span>`:""}
+          ${alertasSaludF.length>0?`<span class="badge badge-amarillo">⚠ ${alertasSaludF.length} salud</span>`:""}
+          <span class="badge badge-azul">${pres} presentes</span>
+          <span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>
+          <span style="color:var(--amarillo);font-size:18px">▼</span>
+        </div>
+      </div>
+      <div class="admin-frente-body" id="${key}">
+        <div class="admin-kpi-row">
+          <div class="admin-kpi"><div class="admin-kpi-num">${pres}</div><div class="admin-kpi-label">Presentes</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${Math.round(hh*100)/100}</div><div class="admin-kpi-label">HH</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${(d.ausentismo||[]).length}</div><div class="admin-kpi-label">Ausentismo</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${(d.actividades||[]).length}</div><div class="admin-kpi-label">Actividades</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num" style="color:var(--rojo)">${atF}</div><div class="admin-kpi-label">Accidentes AT</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${(d.charlas||[]).length}</div><div class="admin-kpi-label">Charlas SST</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${(d.inspecciones||[]).length}</div><div class="admin-kpi-label">Inspecciones</div></div>
+          <div class="admin-kpi"><div class="admin-kpi-num">${(d.epp||[]).length}</div><div class="admin-kpi-label">EPP</div></div>
+        </div>
+        ${renderFrenteDetalleAdmin(d)}
+      </div>
+    </div>`;
+  }).join("");
+  renderAdmTablaAccidentes(frentes);
+  renderAdmTablaAusentismo(frentes);
+  renderAdmTablaAutorreportes(frentes);
+  renderAdmTablaInspecciones(frentes);
+}
+
+function toggleFrenteAdmin(id) {
+  const b=document.getElementById(id);
+  if(b) b.classList.toggle("abierto");
+}
+
+function renderFrenteDetalleAdmin(d) {
+  let html="";
+  // Actividades
+  if((d.actividades||[]).length) {
+    html+=`<div style="margin-top:12px"><strong style="font-size:12px;color:var(--azul)">ACTIVIDADES</strong>`;
+    html+=d.actividades.map(a=>`<div style="margin-top:6px">
+      <div style="display:flex;justify-content:space-between;font-size:12px"><span>${a.desc}</span><span style="color:var(--naranja);font-weight:700">${a.avance}%</span></div>
+      <div class="progreso-bar-wrap"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
+      <div class="texto-muted">${a.ejec}/${a.prog} ${a.unidad} – ${a.estado}</div>
+    </div>`).join("");
+    html+="</div>";
+  }
+  // Clima
+  if(d.clima&&d.clima.cond) {
+    html+=`<div style="margin-top:10px;font-size:12px"><strong style="color:var(--azul)">CLIMA:</strong> ${d.clima.cond}${d.clima.temp?" | "+d.clima.temp+"°C":""} | ${d.clima.impacto}</div>`;
+  }
+  // Notas charlas
+  if((d.charlas||[]).length) {
+    html+=`<div style="margin-top:10px;font-size:12px"><strong style="color:var(--azul)">CHARLAS SST:</strong> `;
+    html+=d.charlas.map(c=>`${c.tema} (${diffTxt(c.inicio,c.fin)})`).join(" · ");
+    html+="</div>";
+  }
+  return html;
+}
+
+function renderAdmTablaAccidentes(frentes) {
+  let rows="";
+  frentes.forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    (d.accidentes||[]).forEach((a,i)=>{
+      rows+=`<tr><td>${s.frente||"—"}</td><td>${a.fecha||"—"}</td>
+        <td><span class="badge badge-rojo">${a.tipo}</span></td>
+        <td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.cargo||"—"}</td>
+        <td>${a.lesion}</td><td>${a.agente}</td><td>${a.atencion}</td>
+        <td>${a.furat||"Pendiente"}</td><td>${a.desc?a.desc.slice(0,80)+"…":"—"}</td></tr>`;
+    });
+  });
+  document.getElementById("adm-tabla-accidentes").innerHTML=!rows?
+    '<div class="alerta alerta-ok">✔ Sin accidentes de trabajo registrados en esta fecha.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Cédula</th><th>Cargo</th><th>Lesión</th><th>Agente</th><th>Atención</th><th>FURAT</th><th>Descripción</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderAdmTablaAusentismo(frentes) {
+  let rows="";
+  frentes.forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    (d.ausentismo||[]).forEach(a=>{
+      rows+=`<tr><td>${s.frente||"—"}</td><td>${a.nombre}</td><td>${a.cedula||"—"}</td>
+        <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td></tr>`;
+    });
+  });
+  document.getElementById("adm-tabla-ausentismo").innerHTML=!rows?
+    '<div class="alerta alerta-ok">✔ Sin ausentismo registrado.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cédula</th><th>Causa</th><th>Días</th><th>N° Inc.</th><th>Reemplazo</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderAdmTablaAutorreportes(frentes) {
+  const dc={"apto":"badge-verde","restringido":"badge-amarillo","no-apto":"badge-rojo","referido":"badge-morado"};
+  const dl={"apto":"Apto","restringido":"Restricciones","no-apto":"No apto","referido":"Referido"};
+  let rows="";
+  frentes.forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    (d.autorreportes||[]).forEach(ar=>{
+      const alerta=ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
+      rows+=`<tr style="${alerta?"background:#FFF3F0":""}">
+        <td>${s.frente||"—"}</td><td>${ar.nombre}${alerta?" 🔴":""}</td><td>${ar.cedula||"—"}</td>
+        <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||"—"}</td>
+        <td style="font-size:11px">${ar.condiciones.join(", ")||"—"}</td>
+        <td><span class="badge ${dc[ar.decision]||'badge-gris'}">${dl[ar.decision]||ar.decision}</span></td>
+        <td>${ar.validador||"—"}</td></tr>`;
+    });
+  });
+  document.getElementById("adm-tabla-autorreportes").innerHTML=!rows?
+    '<div class="alerta alerta-ok">✔ Sin autorreportes registrados.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cédula</th><th>Nivel/Cargo</th><th>Hora</th><th>Condiciones reportadas</th><th>Decisión</th><th>Validado por</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function renderAdmTablaInspecciones(frentes) {
+  const rc={"conforme":"badge-verde","no-conforme":"badge-rojo","parcial":"badge-amarillo"};
+  const rt={"conforme":"Conforme ✔","no-conforme":"No conforme ✘","parcial":"Parcial"};
+  let rows="";
+  frentes.forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    (d.inspecciones||[]).forEach(ins=>{
+      rows+=`<tr><td>${s.frente||"—"}</td><td>${ins.tipo}</td><td>${ins.inspector}</td>
+        <td>${nivelBadge(ins.nivel)}</td><td>${ins.zona||"—"}</td><td>${ins.hora||"—"}</td>
+        <td><span class="badge ${rc[ins.resultado]||'badge-gris'}">${rt[ins.resultado]||ins.resultado}</span></td>
+        <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+"…":"—"}</td></tr>`;
+    });
+  });
+  document.getElementById("adm-tabla-inspecciones").innerHTML=!rows?
+    '<div class="alerta alerta-ok">✔ Sin inspecciones registradas.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Tipo</th><th>Inspector</th><th>Nivel</th><th>Zona</th><th>Hora</th><th>Resultado</th><th>Hallazgos</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  INFORME EJECUTIVO ADMIN
+// ══════════════════════════════════════════════════════
+function previsualizarAdmin() {
+  const frentes=Object.values(todosFrente);
+  const fecha=document.getElementById("adm-fecha-filtro").value||FECHA_HOY;
+  let totTrab=0,totHH=0,totAT=0,totAu=0,totCharlas=0,totIns=0;
+  frentes.forEach(f=>{const d=f.data||{};
+    totTrab+=(d.trabajadores||[]).filter(t=>t.asistencia==="presente").length;
+    totHH+=(d.trabajadores||[]).reduce((s,t)=>s+(t.hh||0),0);
+    totAT+=(d.accidentes||[]).length;
+    totAu+=(d.ausentismo||[]).length;
+    totCharlas+=(d.charlas||[]).length;
+    totIns+=(d.inspecciones||[]).length;
+  });
+
+  let html=`<div style="border-bottom:3px solid var(--naranja);padding-bottom:12px;margin-bottom:20px">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--azul-oscuro)">ISIS PROYECTOS DE INGENIERÍA</div>
+    <div style="font-size:18px;font-weight:600;color:var(--naranja)">INFORME EJECUTIVO CONSOLIDADO</div>
+    <div style="font-size:13px;margin-top:6px;display:flex;gap:20px;flex-wrap:wrap">
+      <span><strong>Fecha:</strong> ${fecha}</span>
+      <span><strong>Frentes:</strong> ${frentes.length}</span>
+      <span><strong>Generado:</strong> ${new Date().toLocaleString("es-CO")}</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px">
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totTrab}</div><div style="font-size:11px;color:var(--texto-muted)">TOTAL TRABAJADORES</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${Math.round(totHH*100)/100}</div><div style="font-size:11px;color:var(--texto-muted)">TOTAL HORAS-HOMBRE</div></div>
+    <div style="background:${totAT>0?"#FDDEDE":"#D5F0E0"};border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:${totAT>0?"#C0392B":"#1A7A4A"}">${totAT}</div><div style="font-size:11px;color:var(--texto-muted)">ACCIDENTES AT</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totAu}</div><div style="font-size:11px;color:var(--texto-muted)">AUSENTISMO</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totCharlas}</div><div style="font-size:11px;color:var(--texto-muted)">CHARLAS SST</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totIns}</div><div style="font-size:11px;color:var(--texto-muted)">INSPECCIONES</div></div>
+  </div>`;
+
+  frentes.forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    const hhF=(d.trabajadores||[]).reduce((acc,t)=>acc+(t.hh||0),0);
+    html+=`<div style="border-left:4px solid var(--naranja);padding-left:12px;margin-bottom:18px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--azul)">${s.frente||"—"}</div>
+      <div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">Responsable: ${s.responsable||"—"}</div>
+      <p style="font-size:13px">Presentes: <strong>${(d.trabajadores||[]).filter(t=>t.asistencia==="presente").length}</strong> | HH: <strong>${Math.round(hhF*100)/100}</strong> | Ausentismo: <strong>${(d.ausentismo||[]).length}</strong></p>`;
+    if((d.actividades||[]).length) {
+      html+=`<p style="font-size:12px;margin-top:6px"><strong>Actividades:</strong> `;
+      html+=d.actividades.map(a=>`${a.desc} (${a.avance}%)`).join(" · ");
+      html+="</p>";
+    }
+    if((d.accidentes||[]).length) {
+      html+=`<div style="background:#FDDEDE;padding:8px 10px;border-radius:4px;margin-top:8px;font-size:12px">🚨 `;
+      html+=d.accidentes.map(a=>`AT: ${a.nombre} – ${a.lesion} – ${a.atencion}`).join(" | ");
+      html+="</div>";
+    }
+    if((d.charlas||[]).length) html+=`<p style="font-size:12px;margin-top:6px"><strong>Charlas:</strong> ${d.charlas.map(c=>c.tema).join(", ")}</p>`;
+    if((d.inspecciones||[]).length) {
+      const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
+      html+=`<p style="font-size:12px;margin-top:4px"><strong>Inspecciones:</strong> ${(d.inspecciones||[]).length} realizadas${nc>0?` | <span style="color:var(--rojo)">${nc} no conformes</span>`:" ✔"}</p>`;
+    }
+    if(d.clima&&d.clima.cond) html+=`<p style="font-size:12px;margin-top:4px"><strong>Clima:</strong> ${d.clima.cond}${d.clima.temp?" – "+d.clima.temp+"°C":""} | ${d.clima.impacto}</p>`;
+    html+="</div>";
+  });
+  html+=`<div style="margin-top:20px;border-top:1px solid var(--borde);padding-top:12px;font-size:11px;color:var(--texto-muted)">
+    Generado por: Administrador ISIS Proyectos de Ingeniería | ${new Date().toLocaleString("es-CO")}
+  </div>`;
+  document.getElementById("adm-preview-contenido").innerHTML=html;
+  document.getElementById("adm-preview").style.display="block";
+  tabAdmin("informe-admin");
+}
+
+function exportarInformeAdmin() {
+  previsualizarAdmin();
+  setTimeout(()=>{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"letter"});
+    doc.html(document.getElementById("adm-preview-contenido"),{
+      callback:d=>d.save(`Informe_Ejecutivo_ISIS_${document.getElementById("adm-fecha-filtro").value||FECHA_HOY}.pdf`),
+      x:30,y:30,width:530,windowWidth:680,autoPaging:"text"
+    });
+  },700);
+}
+function exportarJSONAdmin() {
+  const blob=new Blob([JSON.stringify(todosFrente,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;
+  a.download=`Backup_Admin_${document.getElementById("adm-fecha-filtro").value||FECHA_HOY}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// Modal cierre
+document.getElementById("modal-foto").addEventListener("click",function(e){if(e.target===this)cerrarModal();});
+
+// ══════════════════════════════════════════════════════
+//  INFORME SEMANAL
+// ══════════════════════════════════════════════════════
+
+function setSemanaActual() {
+  const hoy = new Date();
+  const dia = hoy.getDay(); // 0=dom
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - (dia===0?6:dia-1));
+  const domingo = new Date(lunes);
+  domingo.setDate(lunes.getDate()+6);
+  document.getElementById("sem-inicio").value = lunes.toISOString().split("T")[0];
+  document.getElementById("sem-fin").value = domingo.toISOString().split("T")[0];
+}
+
+// Genera array de fechas entre inicio y fin (inclusive)
+function rangoFechas(inicio, fin) {
+  const fechas=[], cur=new Date(inicio+"T00:00:00");
+  const finD=new Date(fin+"T00:00:00");
+  while(cur<=finD){ fechas.push(cur.toISOString().split("T")[0]); cur.setDate(cur.getDate()+1); }
+  return fechas;
+}
+
+async function cargarDatosSemana() {
+  const inicio=document.getElementById("sem-inicio").value;
+  const fin=document.getElementById("sem-fin").value;
+  if(!inicio||!fin){alert("Selecciona el rango de fechas.");return;}
+  const fechas=rangoFechas(inicio,fin);
+  document.getElementById("sem-loading").style.display="block";
+  document.getElementById("sem-kpis").style.display="none";
+  datosSemana={};
+
+  if(usandoFirebase){
+    await new Promise(resolve=>{
+      db.ref("frentes").once("value",snap=>{
+        snap.forEach(child=>{
+          const v=child.val();
+          if(v&&v.sesion&&fechas.includes(v.sesion.fecha)){
+            if(!datosSemana[v.sesion.fecha]) datosSemana[v.sesion.fecha]={};
+            datosSemana[v.sesion.fecha][v.sesion.frente||child.key]=v;
+          }
+        });
+        resolve();
+      });
+    });
+  } else {
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("isis_")){
+        try{
+          const v=JSON.parse(localStorage.getItem(k));
+          if(v&&v.sesion&&fechas.includes(v.sesion.fecha)){
+            if(!datosSemana[v.sesion.fecha]) datosSemana[v.sesion.fecha]={};
+            datosSemana[v.sesion.fecha][v.sesion.frente||k]=v;
+          }
+        }catch(e){}
+      }
+    }
+  }
+  document.getElementById("sem-loading").style.display="none";
+  renderResumenSemanal(fechas);
+}
+
+function renderResumenSemanal(fechas) {
+  const dias=fechas.filter(f=>datosSemana[f]);
+  // KPIs globales
+  let totHH=0, totAT=0, totAus=0, totCharlas=0, totIns=0;
+  const frentesSet=new Set(), trabajadoresSet=new Set();
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const d=fr.data||{}, s=fr.sesion||{};
+      frentesSet.add(s.frente||"?");
+      const asist=(d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha);
+      asist.forEach(t=>{ totHH+=(t.hh||0); if(t.plantaId) trabajadoresSet.add(t.plantaId); });
+      (d.planta||[]).forEach(p=>trabajadoresSet.add(p.cedula||p.id));
+      totAT+=(d.accidentes||[]).length;
+      totAus+=(d.ausentismo||[]).length;
+      totCharlas+=(d.charlas||[]).length;
+      totIns+=(d.inspecciones||[]).length;
+    });
+  });
+  document.getElementById("sem-st-dias").textContent=dias.length;
+  document.getElementById("sem-st-frentes").textContent=frentesSet.size;
+  document.getElementById("sem-st-trabajadores").textContent=trabajadoresSet.size;
+  document.getElementById("sem-st-hh").textContent=Math.round(totHH*100)/100;
+  document.getElementById("sem-st-at").textContent=totAT;
+  document.getElementById("sem-st-aus").textContent=totAus;
+  document.getElementById("sem-st-charlas").textContent=totCharlas;
+  document.getElementById("sem-st-ins").textContent=totIns;
+
+  // Tabla HH por frente x día
+  const frentesArr=[...frentesSet].sort();
+  let tablaHH=`<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--azul-oscuro);color:#fff"><th style="padding:7px 9px;text-align:left">Frente</th>`;
+  fechas.forEach(f=>{
+    const d=new Date(f+"T00:00:00");
+    tablaHH+=`<th style="padding:7px 9px;text-align:center">${d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit"})}</th>`;
+  });
+  tablaHH+=`<th style="padding:7px 9px;text-align:center">TOTAL</th></tr></thead><tbody>`;
+  frentesArr.forEach((frente,ri)=>{
+    let totalFila=0;
+    tablaHH+=`<tr style="background:${ri%2===0?'#fff':'#F9FAFB'}"><td style="padding:6px 9px;font-weight:600">${frente}</td>`;
+    fechas.forEach(f=>{
+      const fr=Object.values(datosSemana[f]||{}).find(x=>(x.sesion||{}).frente===frente);
+      const hhDia=fr ? (fr.data?.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).reduce((s,t)=>s+(t.hh||0),0) : 0;
+      totalFila+=hhDia;
+      const bg=hhDia>0?"background:#F0FFF4":"color:#ccc";
+      tablaHH+=`<td style="padding:6px 9px;text-align:center;${bg}">${hhDia>0?Math.round(hhDia*10)/10:"—"}</td>`;
+    });
+    tablaHH+=`<td style="padding:6px 9px;text-align:center;font-weight:700;color:var(--naranja)">${Math.round(totalFila*10)/10}</td></tr>`;
+  });
+  // Fila totales
+  tablaHH+=`<tr style="background:var(--azul-oscuro);color:#fff"><td style="padding:7px 9px;font-weight:700">TOTAL DÍA</td>`;
+  fechas.forEach(f=>{
+    const hhD=Object.values(datosSemana[f]||{}).reduce((s,fr)=>
+      s+(fr.data?.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).reduce((a,t)=>a+(t.hh||0),0),0);
+    tablaHH+=`<td style="padding:7px 9px;text-align:center;font-weight:700;color:var(--amarillo)">${Math.round(hhD*10)/10}</td>`;
+  });
+  tablaHH+=`<td style="padding:7px 9px;text-align:center;font-weight:700;color:var(--amarillo)">${Math.round(totHH*10)/10}</td></tr>`;
+  tablaHH+="</tbody></table>";
+  document.getElementById("sem-tabla-hh").innerHTML=tablaHH;
+
+  // Tabla trazabilidad trabajadores
+  const trabajadoresMap={}; // cedula -> {nombre, dias:[{fecha,frente,hh}]}
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const d=fr.data||{}, s=fr.sesion||{};
+      const planta=d.planta||[];
+      const asist=(d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha);
+      asist.forEach(a=>{
+        const perfil=planta.find(p=>p.id===a.plantaId)||{};
+        const ced=perfil.cedula||a.cedula||a.plantaId||"?";
+        const nom=perfil.nombre||a.nombre||"Sin nombre";
+        if(!trabajadoresMap[ced]) trabajadoresMap[ced]={nombre:nom,cedula:ced,cargo:perfil.cargo||a.cargo||"",empresa:perfil.empresa||a.empresa||"",dias:{}};
+        trabajadoresMap[ced].dias[f]={frente:s.frente||"?",asistencia:a.asistencia||"presente",hh:a.hh||0};
+      });
+    });
+  });
+  const trabArr=Object.values(trabajadoresMap).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  let tablaT=`<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--azul-oscuro);color:#fff">
+      <th style="padding:6px 8px">Trabajador</th><th style="padding:6px 8px">Cédula</th><th style="padding:6px 8px">Cargo</th>`;
+  fechas.forEach(f=>{
+    const d=new Date(f+"T00:00:00");
+    tablaT+=`<th style="padding:6px 8px;text-align:center">${d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit"})}</th>`;
+  });
+  tablaT+=`<th style="padding:6px 8px;text-align:center">HH Total</th></tr></thead><tbody>`;
+  trabArr.forEach((t,ri)=>{
+    let totalHH=0;
+    tablaT+=`<tr style="background:${ri%2===0?'#fff':'#F9FAFB'}">
+      <td style="padding:5px 8px;font-weight:600">${t.nombre}</td>
+      <td style="padding:5px 8px">${t.cedula}</td>
+      <td style="padding:5px 8px">${t.cargo}</td>`;
+    fechas.forEach(f=>{
+      const dia=t.dias[f];
+      if(dia){
+        totalHH+=dia.hh;
+        const color=dia.asistencia==="presente"?"#1A7A4A":dia.asistencia.includes("ausente")?"#C0392B":"#9A6A00";
+        tablaT+=`<td style="padding:5px 8px;text-align:center;font-size:10px"><span style="color:${color};font-weight:600">${dia.frente}</span><br><span style="color:#5D6D7E">${dia.hh>0?dia.hh+" HH":"—"}</span></td>`;
+      } else {
+        tablaT+=`<td style="padding:5px 8px;text-align:center;color:#ccc">—</td>`;
+      }
+    });
+    tablaT+=`<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--naranja)">${Math.round(totalHH*10)/10}</td></tr>`;
+  });
+  tablaT+="</tbody></table>";
+  document.getElementById("sem-tabla-trabajadores").innerHTML=tablaT;
+  document.getElementById("sem-kpis").style.display="block";
+}
+
+// ── Exportar Excel semanal ─────────────────────────────
+async function exportarXLSSemanal() {
+  const inicio=document.getElementById("sem-inicio").value;
+  const fin=document.getElementById("sem-fin").value;
+  if(!inicio||!fin||Object.keys(datosSemana).length===0){
+    alert("Primero carga los datos de la semana.");return;
+  }
+  const fechas=rangoFechas(inicio,fin);
+  const WB=XLSX.utils.book_new();
+  const estiloHead={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"0D1B2A"}},alignment:{horizontal:"center"}};
+  const estiloSub ={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1B4F72"}},alignment:{horizontal:"center"}};
+  const estiloNum ={font:{bold:true,color:{rgb:"E8610A"}},alignment:{horizontal:"center"}};
+
+  // ── HOJA 1: RESUMEN GENERAL ──────────────────────────
+  const resumenRows=[];
+  resumenRows.push(["ISIS PROYECTOS DE INGENIERÍA – INFORME SEMANAL SST"]);
+  resumenRows.push([`Período: ${inicio} al ${fin}`]);
+  resumenRows.push([`Generado: ${new Date().toLocaleString("es-CO")}`]);
+  resumenRows.push([]);
+  resumenRows.push(["KPI","Valor"]);
+  const frentesSet=new Set(), trabSet=new Set();
+  let totHH=0,totAT=0,totAus=0,totCh=0,totIns=0,totEPP=0,totRes=0;
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const d=fr.data||{}, s=fr.sesion||{};
+      frentesSet.add(s.frente||"?");
+      (d.planta||[]).forEach(p=>trabSet.add(p.cedula||p.id));
+      (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(t=>{
+        totHH+=(t.hh||0);
+        if(t.plantaId) trabSet.add(t.plantaId);
+      });
+      totAT+=(d.accidentes||[]).length;
+      totAus+=(d.ausentismo||[]).length;
+      totCh+=(d.charlas||[]).length;
+      totIns+=(d.inspecciones||[]).length;
+      totEPP+=(d.epp||[]).length;
+      totRes+=(d.residuos||[]).length;
+    });
+  });
+  resumenRows.push(["Frentes activos en la semana", frentesSet.size]);
+  resumenRows.push(["Trabajadores únicos", trabSet.size]);
+  resumenRows.push(["Total Horas-Hombre (HH)", Math.round(totHH*100)/100]);
+  resumenRows.push(["Accidentes de trabajo (AT)", totAT]);
+  resumenRows.push(["Ausencias registradas", totAus]);
+  resumenRows.push(["Charlas SST realizadas", totCh]);
+  resumenRows.push(["Inspecciones de seguridad", totIns]);
+  resumenRows.push(["EPP entregados", totEPP]);
+  resumenRows.push(["Registros de residuos", totRes]);
+  const ws1=XLSX.utils.aoa_to_sheet(resumenRows);
+  ws1["!cols"]=[{wch:40},{wch:20}];
+  XLSX.utils.book_append_sheet(WB, ws1, "Resumen General");
+
+  // ── HOJA 2: HH POR FRENTE Y DÍA ────────────────────
+  const hhRows=[];
+  const frentesArr=[...frentesSet].sort();
+  const diasHeader=fechas.map(f=>{const d=new Date(f+"T00:00:00");return d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit",month:"2-digit"});});
+  hhRows.push(["Frente",...diasHeader,"TOTAL HH"]);
+  frentesArr.forEach(frente=>{
+    const fila=[frente];
+    let totalFila=0;
+    fechas.forEach(f=>{
+      const fr=Object.values(datosSemana[f]||{}).find(x=>(x.sesion||{}).frente===frente);
+      const hh=fr?(fr.data?.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).reduce((s,t)=>s+(t.hh||0),0):0;
+      totalFila+=hh;
+      fila.push(hh>0?Math.round(hh*10)/10:0);
+    });
+    fila.push(Math.round(totalFila*10)/10);
+    hhRows.push(fila);
+  });
+  // Fila totales
+  const totDia=["TOTAL"];
+  let granTotal=0;
+  fechas.forEach(f=>{
+    const hh=Object.values(datosSemana[f]||{}).reduce((s,fr)=>s+(fr.data?.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).reduce((a,t)=>a+(t.hh||0),0),0);
+    granTotal+=hh; totDia.push(Math.round(hh*10)/10);
+  });
+  totDia.push(Math.round(granTotal*10)/10);
+  hhRows.push(totDia);
+  const ws2=XLSX.utils.aoa_to_sheet(hhRows);
+  ws2["!cols"]=[{wch:30},...fechas.map(()=>({wch:12})),{wch:12}];
+  XLSX.utils.book_append_sheet(WB, ws2, "HH por Frente");
+
+  // ── HOJA 3: TRAZABILIDAD TRABAJADORES ───────────────
+  const trabMap={};
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const d=fr.data||{}, s=fr.sesion||{};
+      const planta=d.planta||[];
+      (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(a=>{
+        const perf=planta.find(p=>p.id===a.plantaId)||{};
+        const ced=perf.cedula||a.cedula||a.plantaId||"?";
+        if(!trabMap[ced]) trabMap[ced]={nombre:perf.nombre||a.nombre||"?",cedula:ced,nivel:perf.nivel||"",cargo:perf.cargo||a.cargo||"",empresa:perf.empresa||a.empresa||"",dias:{}};
+        trabMap[ced].dias[f]={frente:s.frente||"?",asistencia:a.asistencia||"presente",hh:a.hh||0};
+      });
+    });
+  });
+  const trabRows=[["Trabajador","Cédula","Nivel","Cargo","Empresa",...diasHeader,"HH TOTAL SEMANA"]];
+  Object.values(trabMap).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(t=>{
+    const fila=[t.nombre,t.cedula,t.nivel,t.cargo,t.empresa];
+    let sumHH=0;
+    fechas.forEach(f=>{
+      const dia=t.dias[f];
+      if(dia){ fila.push(`${dia.frente} (${dia.asistencia}/${dia.hh}HH)`); sumHH+=dia.hh; }
+      else fila.push("");
+    });
+    fila.push(Math.round(sumHH*10)/10);
+    trabRows.push(fila);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(trabRows);
+  ws3["!cols"]=[{wch:28},{wch:14},{wch:14},{wch:22},{wch:22},...fechas.map(()=>({wch:24})),{wch:16}];
+  XLSX.utils.book_append_sheet(WB, ws3, "Trazabilidad Trabajadores");
+
+  // ── HOJA 4: ACCIDENTES ──────────────────────────────
+  const atRows=[["Fecha","Frente","Tipo","Nombre","Cédula","Cargo","ARL","Parte afectada","Lesión","Agente","Atención","N° FURAT","Descripción"]];
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const s=fr.sesion||{};
+      (fr.data?.accidentes||[]).forEach(a=>{
+        atRows.push([f,s.frente||"",a.tipo||"",a.nombre||"",a.cedula||"",a.cargo||"",a.arl||"",a.parte||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]);
+      });
+    });
+  });
+  const ws4=XLSX.utils.aoa_to_sheet(atRows);
+  ws4["!cols"]=[{wch:12},{wch:24},{wch:30},{wch:28},{wch:14},{wch:20},{wch:16},{wch:18},{wch:20},{wch:20},{wch:22},{wch:12},{wch:50}];
+  XLSX.utils.book_append_sheet(WB, ws4, "Accidentes AT");
+
+  // ── HOJA 5: AUSENTISMO ──────────────────────────────
+  const ausRows=[["Fecha","Frente","Trabajador","Cédula","Causa","Días","N° Incapacidad","Reemplazado por","Observaciones"]];
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const s=fr.sesion||{};
+      (fr.data?.ausentismo||[]).forEach(a=>{
+        ausRows.push([f,s.frente||"",a.nombre||"",a.cedula||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||"",a.obs||""]);
+      });
+    });
+  });
+  const ws5=XLSX.utils.aoa_to_sheet(ausRows);
+  ws5["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:14},{wch:30},{wch:8},{wch:16},{wch:24},{wch:40}];
+  XLSX.utils.book_append_sheet(WB, ws5, "Ausentismo");
+
+  // ── HOJA 6: CHARLAS SST ─────────────────────────────
+  const chRows=[["Fecha","Frente","Tema","Inicio","Fin","Facilitador","N° Asistentes","Contenido"]];
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const s=fr.sesion||{};
+      (fr.data?.charlas||[]).forEach(c=>{
+        chRows.push([f,s.frente||"",c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||"",c.contenido||""]);
+      });
+    });
+  });
+  const ws6=XLSX.utils.aoa_to_sheet(chRows);
+  ws6["!cols"]=[{wch:12},{wch:24},{wch:40},{wch:10},{wch:10},{wch:24},{wch:14},{wch:50}];
+  XLSX.utils.book_append_sheet(WB, ws6, "Charlas SST");
+
+  // ── HOJA 7: INSPECCIONES ────────────────────────────
+  const insRows=[["Fecha","Frente","Tipo","Inspector","Zona","Hora","Resultado","Hallazgos","Acciones","Resp. Cierre"]];
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const s=fr.sesion||{};
+      (fr.data?.inspecciones||[]).forEach(ins=>{
+        insRows.push([f,s.frente||"",ins.tipo||"",ins.inspector||"",ins.zona||"",ins.hora||"",ins.resultado||"",ins.hallazgos||"",ins.acciones||"",ins.respCierre||""]);
+      });
+    });
+  });
+  const ws7=XLSX.utils.aoa_to_sheet(insRows);
+  ws7["!cols"]=[{wch:12},{wch:24},{wch:30},{wch:24},{wch:20},{wch:10},{wch:16},{wch:40},{wch:40},{wch:24}];
+  XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
+
+  // ── HOJA 8: EPP ─────────────────────────────────────
+  const eppRows=[["Fecha","Frente","Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const s=fr.sesion||{};
+      (fr.data?.epp||[]).forEach(e=>{
+        eppRows.push([f,s.frente||"",e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||"",e.motivo||"",e.conforme||""]);
+      });
+    });
+  });
+  const ws8=XLSX.utils.aoa_to_sheet(eppRows);
+  ws8["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:14},{wch:20},{wch:30},{wch:10},{wch:20},{wch:10}];
+  XLSX.utils.book_append_sheet(WB, ws8, "EPP");
+
+  // Exportar
+  const nombre=`Informe_Semanal_ISIS_${inicio}_${fin}.xlsx`;
+  XLSX.writeFile(WB, nombre);
+  mostrarToast("✔ Excel exportado correctamente","verde");
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   GUIA FIREBASE – CÓMO ACTIVAR LA SINCRONIZACIÓN ENTRE EQUIPOS
+   ════════════════════════════════════════════════════════════════════
+
+   SIN FIREBASE: La app funciona en modo local (un solo equipo).
+   CON FIREBASE: Todos los frentes sincronizan en tiempo real.
+
+   PASOS:
+   1. Ve a https://console.firebase.google.com
+      → Inicia sesión con una cuenta Google (puede ser la corporativa).
+
+   2. Clic en "Agregar proyecto"
+      → Nombre: isis-gestion-frentes
+      → Desactiva Google Analytics (no es necesario)
+      → Clic en "Crear proyecto"
+
+   3. En el menú lateral: Compilación → Realtime Database
+      → Clic en "Crear base de datos"
+      → Región: us-central1
+      → Modo: "Comenzar en modo de prueba" → Siguiente → Listo
+
+   4. Obtener las credenciales:
+      → Clic en ⚙ (rueda) → Configuración del proyecto
+      → Pestaña "General" → baja hasta "Tus apps"
+      → Clic en el ícono </> (Web)
+      → Nombre de la app: frentes-obra → Registrar app
+      → Aparecerá un bloque como este:
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyABC123...",
+          authDomain: "isis-gestion-frentes.firebaseapp.com",
+          databaseURL: "https://isis-gestion-frentes-default-rtdb.firebaseio.com",
+          projectId: "isis-gestion-frentes",
+          ...
+        };
+
+      → Copia los 4 valores: apiKey, authDomain, databaseURL, projectId
+      → Pégalos en la sección FB_CONFIG al inicio del script (arriba ↑)
+
+   5. Reglas de seguridad (Realtime Database → Reglas):
+      Reemplaza el contenido con esto y publica:
+
+      {
+        "rules": {
+          "frentes": {
+            ".read": true,
+            ".write": true
+          }
+        }
+      }
+
+   6. Distribuir la app a los frentes:
+      OPCIÓN A (más simple): Sube el archivo a Google Drive
+        → En Drive: clic derecho → "Obtener enlace" → "Cualquier persona con el enlace"
+        → Comparte ese enlace con cada frente
+        → Cada responsable lo abre en su celular o computador
+
+      OPCIÓN B (profesional): Sube el archivo a un hosting gratuito
+        → Ve a https://tiiny.host
+        → Arrastra el archivo HTML → obtienes una URL tipo:
+          https://isis-frentes.tiiny.site
+        → Comparte esa URL con todos los frentes
+
+   NOTA IMPORTANTE:
+   - Cada frente debe escribir el mismo nombre exacto del frente
+     para que el administrador pueda ver sus datos consolidados.
+   - Se recomienda definir los nombres de frente por escrito y
+     distribuirlos antes de iniciar operaciones:
+     Ej: "F1-Subestación Norte", "F2-Red MT Km3", "F3-Planta Bavaria"
+
+════════════════════════════════════════════════════════════════════ */
+</script>
+</body>
+</html>
