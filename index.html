@@ -430,32 +430,18 @@ html { scroll-behavior: smooth; }
   <div class="card">
     <div class="card-titulo">➕ Registrar Actividad</div>
     <div class="form-grid">
-      <div class="form-group"><label>Descripción</label><input id="a-desc" type="text" placeholder="Descripción detallada de la actividad"></div>
-      <div class="form-group"><label>Tipo de trabajo</label>
-        <select id="a-tipo">
-          <option>Tendido de cable</option><option>Instalación transformador</option>
-          <option>Construcción red MT</option><option>Construcción red BT</option>
-          <option>Mantenimiento preventivo</option><option>Mantenimiento correctivo</option>
-          <option>Conexiones / empalmes</option><option>Puesta a tierra</option>
-          <option>Obra civil (excavación)</option><option>Señalización / demarcación</option>
-          <option>Pruebas y comisionamiento</option><option>Otro</option>
-        </select>
-      </div>
-      <div class="form-group"><label>Unidad</label><input id="a-unidad" type="text" placeholder="ml, m², UN…"></div>
-      <div class="form-group"><label>Cant. programada</label><input id="a-prog" type="number" min="0" step="0.01"></div>
-      <div class="form-group"><label>Cant. ejecutada</label><input id="a-ejec" type="number" min="0" step="0.01"></div>
-      <div class="form-group"><label>Ubicación / Tramo</label><input id="a-ubic" type="text"></div>
-      <div class="form-group"><label>Responsable</label><input id="a-resp" type="text"></div>
-      <div class="form-group"><label>Estado</label>
-        <select id="a-estado"><option>En ejecución</option><option>Terminada</option><option>Suspendida</option><option>Pendiente</option></select>
-      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Actividad realizada</label><input id="a-desc" type="text" placeholder="Describa la actividad ejecutada en el día…"></div>
+      <div class="form-group"><label>Unidad de medida</label><input id="a-unidad" type="text" placeholder="ml, m², UN, KG…"></div>
+      <div class="form-group"><label>Cant. programada</label><input id="a-prog" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div class="form-group"><label>Cant. ejecutada</label><input id="a-ejec" type="number" min="0" step="0.01" placeholder="0"></div>
+      <div class="form-group"><label>Ubicación / Tramo</label><input id="a-ubic" type="text" placeholder="Sector, tramo, coordenada…"></div>
     </div>
-    <div class="form-group mt-8"><label>Observaciones</label><textarea id="a-obs"></textarea></div>
+    <div class="form-group mt-8"><label>Observaciones</label><textarea id="a-obs" placeholder="Novedades, restricciones, condiciones del sitio…"></textarea></div>
     <div class="btn-row"><button class="btn btn-primario" onclick="agregarActividad()">Guardar actividad</button></div>
   </div>
   <div class="card">
     <div class="tabla-wrap">
-      <table><thead><tr><th>#</th><th>Descripción</th><th>Tipo</th><th>Unidad</th><th>Prog.</th><th>Ejec.</th><th>Avance</th><th>Ubicación</th><th>Estado</th><th>✕</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Actividad</th><th>Unidad</th><th>Prog.</th><th>Ejec.</th><th>Avance</th><th>Ubicación</th><th>Observaciones</th><th>✕</th></tr></thead>
       <tbody id="tbody-a"></tbody></table>
     </div>
   </div>
@@ -467,8 +453,14 @@ html { scroll-behavior: smooth; }
   <div class="card">
     <div class="card-titulo">➕ Registrar Ausentismo</div>
     <div class="form-grid">
-      <div class="form-group"><label>Trabajador</label><input id="au-nombre" type="text"></div>
-      <div class="form-group"><label>Cédula</label><input id="au-cedula" type="text"></div>
+      <div class="form-group"><label>Trabajador</label>
+        <select id="au-trabajador" onchange="autoFillDesdePlanta('au')">
+          <option value="">— Seleccione —</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cédula</label><input id="au-cedula" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Cargo</label><input id="au-cargo" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Empresa</label><input id="au-empresa" type="text" readonly style="background:#f5f5f5"></div>
       <div class="form-group"><label>Causa</label>
         <select id="au-causa">
           <option>Incapacidad médica EPS</option><option>Incapacidad ARL (accidente)</option>
@@ -487,7 +479,7 @@ html { scroll-behavior: smooth; }
   </div>
   <div class="card">
     <div class="tabla-wrap">
-      <table><thead><tr><th>#</th><th>Trabajador</th><th>Cédula</th><th>Causa</th><th>Días</th><th>N° Inc.</th><th>Reemplazo</th><th>✕</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Trabajador</th><th>Cédula</th><th>Cargo</th><th>Causa</th><th>Días</th><th>N° Inc.</th><th>Reemplazo</th><th>✕</th></tr></thead>
       <tbody id="tbody-au"></tbody></table>
     </div>
   </div>
@@ -510,9 +502,14 @@ html { scroll-behavior: smooth; }
         </select>
       </div>
       <div class="form-group"><label>Fecha y hora</label><input id="at-fecha" type="datetime-local"></div>
-      <div class="form-group"><label>Nombre accidentado</label><input id="at-nombre" type="text"></div>
-      <div class="form-group"><label>Cédula</label><input id="at-cedula" type="text"></div>
-      <div class="form-group"><label>Cargo</label><input id="at-cargo" type="text"></div>
+      <div class="form-group"><label>Trabajador accidentado</label>
+        <select id="at-trabajador" onchange="autoFillDesdePlanta('at')">
+          <option value="">— Seleccione —</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cédula</label><input id="at-cedula" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Cargo</label><input id="at-cargo" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Empresa</label><input id="at-empresa" type="text" readonly style="background:#f5f5f5"></div>
       <div class="form-group"><label>ARL</label><input id="at-arl" type="text"></div>
       <div class="form-group"><label>Parte del cuerpo</label>
         <select id="at-parte"><option>Manos / dedos</option><option>Brazos</option><option>Pies / tobillos</option><option>Piernas</option><option>Cabeza</option><option>Ojos</option><option>Tronco / espalda</option><option>Múltiple</option><option>Sin lesión visible</option></select>
@@ -540,7 +537,7 @@ html { scroll-behavior: smooth; }
   </div>
   <div class="card">
     <div class="tabla-wrap">
-      <table><thead><tr><th>#</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Lesión</th><th>Agente</th><th>Atención</th><th>FURAT</th><th>✕</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Cédula</th><th>Lesión</th><th>Agente</th><th>Atención</th><th>FURAT</th><th>✕</th></tr></thead>
       <tbody id="tbody-at"></tbody></table>
     </div>
   </div>
@@ -662,12 +659,16 @@ html { scroll-behavior: smooth; }
   <div class="card card-autoreporte">
     <div class="card-titulo" style="color:var(--verde)">💊 Mi Autorreporte del Día</div>
     <div class="form-grid">
-      <div class="form-group"><label>Nombre del trabajador</label><input id="ar-nombre" type="text"></div>
-      <div class="form-group"><label>Cédula</label><input id="ar-cedula" type="text"></div>
+      <div class="form-group"><label>Trabajador</label>
+        <select id="ar-trabajador" onchange="autoFillDesdePlanta('ar')">
+          <option value="">— Seleccione —</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cédula</label><input id="ar-cedula" type="text" readonly style="background:#f5f5f5"></div>
       <div class="form-group"><label>Nivel / Rol</label>
         <select id="ar-nivel"><option value="jefe">Jefe de Proyectos</option><option value="hse">Profesional HSE</option><option value="analistaSST">Analista SST</option><option value="supervisor">Supervisor</option><option value="rescatista">Rescatista</option><option value="operativo">Operativo</option></select>
       </div>
-      <div class="form-group"><label>Cargo específico</label><input id="ar-cargo" type="text"></div>
+      <div class="form-group"><label>Cargo específico</label><input id="ar-cargo" type="text" readonly style="background:#f5f5f5"></div>
       <div class="form-group"><label>Hora del reporte</label><input id="ar-hora" type="time"></div>
     </div>
     <div style="margin:14px 0 10px;font-weight:700;font-size:13px;color:var(--azul)">¿Presenta alguna de las siguientes condiciones HOY?</div>
@@ -699,7 +700,6 @@ html { scroll-behavior: smooth; }
     </div>
   </div>
 </div>
-
 <!-- CLIMA -->
 <div id="sec-clima" class="seccion">
   <div class="section-header"><h2>Estado del Tiempo</h2></div>
@@ -748,13 +748,18 @@ html { scroll-behavior: smooth; }
   <div class="card">
     <div class="card-titulo">➕ Registrar Entrega EPP</div>
     <div class="form-grid">
-      <div class="form-group"><label>Trabajador</label><input id="epp-nombre" type="text"></div>
-      <div class="form-group"><label>Cédula</label><input id="epp-cedula" type="text"></div>
-      <div class="form-group"><label>Cargo</label><input id="epp-cargo" type="text"></div>
+      <div class="form-group"><label>Trabajador</label>
+        <select id="epp-trabajador" onchange="autoFillDesdePlanta('epp')">
+          <option value="">— Seleccione —</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cédula</label><input id="epp-cedula" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Cargo</label><input id="epp-cargo" type="text" readonly style="background:#f5f5f5"></div>
+      <div class="form-group"><label>Empresa</label><input id="epp-empresa" type="text" readonly style="background:#f5f5f5"></div>
       <div class="form-group"><label>EPP entregado</label>
         <select id="epp-item"><option>Casco dieléctrico clase E</option><option>Gafas de seguridad</option><option>Careta facial</option><option>Careta arco eléctrico</option><option>Guantes dieléctricos</option><option>Guantes anticorte</option><option>Botas dieléctricas</option><option>Botas punta de acero</option><option>Protector auditivo</option><option>Respirador media cara</option><option>Arnés cuerpo completo</option><option>Eslingas de posicionamiento</option><option>Ropa de trabajo (overol)</option><option>Chaleco reflectivo</option><option>Bloqueador solar</option><option>Otro</option></select>
       </div>
-      <div class="form-group"><label>Ítem personalizado</label><input id="epp-otro" type="text"></div>
+      <div class="form-group"><label>Ítem personalizado</label><input id="epp-otro" type="text" placeholder="Si seleccionó 'Otro'…"></div>
       <div class="form-group"><label>Cantidad</label><input id="epp-cant" type="number" min="1" value="1"></div>
       <div class="form-group"><label>Motivo</label>
         <select id="epp-motivo"><option>Dotación inicial</option><option>Reposición por desgaste</option><option>Reposición por pérdida</option><option>Actividad específica</option><option>Reemplazo por daño</option></select>
@@ -1013,8 +1018,6 @@ try {
 // ══════════════════════════════════════════════════════
 let ROL = null; // 'colab' | 'admin'
 let SESION = { frente:"", responsable:"", fecha:"", activa:false };
-// DATA.planta = perfiles permanentes del frente (se crea una sola vez)
-// DATA.trabajadores = registros de asistencia diaria (entrada/salida/HH por fecha)
 let DATA = { planta:[], trabajadores:[], actividades:[], ausentismo:[], accidentes:[],
   materiales:[], charlas:[], clima:{}, lluvias:[], epp:[], residuos:[],
   fotos:[], inspecciones:[], autorreportes:[] };
@@ -1142,12 +1145,20 @@ function cargarDatos() {
 }
 
 function normalizarData() {
-  if(!DATA.planta) DATA.planta=[];
-  if(!DATA.trabajadores) DATA.trabajadores=[];
-  if(!DATA.inspecciones) DATA.inspecciones=[];
+  if(!DATA.planta)        DATA.planta=[];
+  if(!DATA.trabajadores)  DATA.trabajadores=[];
+  if(!DATA.actividades)   DATA.actividades=[];
+  if(!DATA.ausentismo)    DATA.ausentismo=[];
+  if(!DATA.accidentes)    DATA.accidentes=[];
+  if(!DATA.materiales)    DATA.materiales=[];
+  if(!DATA.charlas)       DATA.charlas=[];
+  if(!DATA.epp)           DATA.epp=[];
+  if(!DATA.residuos)      DATA.residuos=[];
+  if(!DATA.inspecciones)  DATA.inspecciones=[];
   if(!DATA.autorreportes) DATA.autorreportes=[];
-  if(!DATA.lluvias) DATA.lluvias=[];
-  if(!DATA.fotos) DATA.fotos=[];
+  if(!DATA.lluvias)       DATA.lluvias=[];
+  if(!DATA.fotos)         DATA.fotos=[];
+  if(!DATA.clima)         DATA.clima={};
 }
 
 function setSyncDot(ok) {
@@ -1216,8 +1227,52 @@ function calcHH(ini,fin) {
   return Math.max(0,Math.round(((hf*60+mf)-(hi*60+mi))/60*100)/100);
 }
 // ══════════════════════════════════════════════════════
-//  TOAST HELPER
+//  AUTOFILL DESDE PLANTA — rellena campos de formularios
+//  al seleccionar trabajador en los selectores
 // ══════════════════════════════════════════════════════
+
+// Pobla todos los selectores de trabajadores con la planta activa
+function poblarSelectoresPlanta() {
+  const ids=["au-trabajador","at-trabajador","epp-trabajador","ar-trabajador"];
+  const opts = `<option value="">— Seleccione —</option>` +
+    DATA.planta.filter(p=>p.activo).map(p=>
+      `<option value="${p.id}">${p.nombre} – ${p.cargo||p.nivel||""}</option>`
+    ).join("");
+  ids.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=opts;
+  });
+}
+
+// Mapeo de prefijos a campos del formulario
+const PREFIJO_MAP = {
+  au:  { sel:"au-trabajador",  cedula:"au-cedula",  cargo:"au-cargo",  empresa:"au-empresa",  nivel:null },
+  at:  { sel:"at-trabajador",  cedula:"at-cedula",  cargo:"at-cargo",  empresa:"at-empresa",  nivel:null },
+  epp: { sel:"epp-trabajador", cedula:"epp-cedula", cargo:"epp-cargo", empresa:"epp-empresa", nivel:null },
+  ar:  { sel:"ar-trabajador",  cedula:"ar-cedula",  cargo:"ar-cargo",  empresa:null,          nivel:"ar-nivel" },
+};
+
+function autoFillDesdePlanta(prefijo) {
+  const m = PREFIJO_MAP[prefijo]; if(!m) return;
+  const plantaId = document.getElementById(m.sel).value;
+  const p = DATA.planta.find(x=>x.id===plantaId);
+  if(!p) return;
+  if(m.cedula)  sv(m.cedula,  p.cedula||"");
+  if(m.cargo)   sv(m.cargo,   p.cargo||"");
+  if(m.empresa) sv(m.empresa, p.empresa||"");
+  if(m.nivel) {
+    const el=document.getElementById(m.nivel);
+    if(el) el.value=p.nivel||"operativo";
+  }
+}
+
+// Helper para obtener nombre del trabajador desde planta por ID selector
+function getNombrePlanta(prefijo) {
+  const m = PREFIJO_MAP[prefijo]; if(!m) return "";
+  const el = document.getElementById(m.sel); if(!el) return "";
+  const p = DATA.planta.find(x=>x.id===el.value);
+  return p ? p.nombre : "";
+}
 function mostrarToast(msg, color="verde") {
   const colores={verde:"var(--verde)",naranja:"var(--naranja)",rojo:"var(--rojo)",azul:"var(--azul)"};
   const t=document.createElement("div");
@@ -1400,6 +1455,7 @@ function renderT() {
       <td>${estado}</td><td>${accion}</td></tr>`;
   }).join("");
   document.getElementById("conteo-planta").textContent = `${plantaTodos.length} registrados`;
+  poblarSelectoresPlanta();
   refrescarDashboard();
 }
 
@@ -1431,11 +1487,6 @@ function setAsistencia(plantaId, campo, valor) {
 // Helpers HH form (mantenido por compatibilidad con otras partes)
 function actualizarHHForm(){}
 function editarHoraTrabajador(){}
-function eliminar(col,id){
-  if(!confirm("¿Eliminar este registro?")) return;
-  DATA[col]=DATA[col].filter(x=>x.id!==id);
-  guardarDatos(); renderizarTodo();
-}
 
 // ══════════════════════════════════════════════════════
 //  ACTIVIDADES
@@ -1443,21 +1494,20 @@ function eliminar(col,id){
 function agregarActividad() {
   if(!chk()) return;
   const prog=parseFloat(gv("a-prog"))||0, ejec=parseFloat(gv("a-ejec"))||0;
-  const a={id:uid(),desc:gv("a-desc"),tipo:gv("a-tipo"),unidad:gv("a-unidad"),prog,ejec,
+  const a={id:uid(),desc:gv("a-desc"),unidad:gv("a-unidad"),prog,ejec,
     avance:prog>0?Math.min(100,Math.round(ejec/prog*100)):0,
-    ubic:gv("a-ubic"),resp:gv("a-resp"),estado:gv("a-estado"),obs:gv("a-obs")};
-  if(!a.desc){alert("Descripción obligatoria.");return;}
+    ubic:gv("a-ubic"),obs:gv("a-obs")};
+  if(!a.desc){alert("La descripción de la actividad es obligatoria.");return;}
   DATA.actividades.push(a); guardarDatos(); renderA();
-  ["a-desc","a-unidad","a-prog","a-ejec","a-ubic","a-resp","a-obs"].forEach(id=>sv(id,""));
+  ["a-desc","a-unidad","a-prog","a-ejec","a-ubic","a-obs"].forEach(id=>sv(id,""));
 }
 function renderA() {
-  const ec={"Terminada":"badge-verde","En ejecución":"badge-azul","Suspendida":"badge-rojo","Pendiente":"badge-amarillo"};
   document.getElementById("tbody-a").innerHTML=DATA.actividades.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.desc}</td><td>${a.tipo}</td><td>${a.unidad}</td>
-    <td>${a.prog}</td><td>${a.ejec}</td>
-    <td><div class="progreso-bar-wrap" style="min-width:70px"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
-    <div style="font-size:10px;text-align:center">${a.avance}%</div></td>
-    <td>${a.ubic||"—"}</td><td><span class="badge ${ec[a.estado]||'badge-gris'}">${a.estado}</span></td>
+    <td>${i+1}</td><td>${a.desc}</td><td>${a.unidad||"—"}</td>
+    <td>${a.prog||0}</td><td>${a.ejec||0}</td>
+    <td><div class="progreso-bar-wrap" style="min-width:70px"><div class="progreso-bar" style="width:${a.avance||0}%"></div></div>
+    <div style="font-size:10px;text-align:center">${a.avance||0}%</div></td>
+    <td>${a.ubic||"—"}</td><td style="font-size:11px;max-width:150px">${a.obs||"—"}</td>
     <td><button class="btn btn-rojo" onclick="eliminar('actividades','${a.id}')">✕</button></td></tr>`).join("");
   refrescarDashboard();
 }
@@ -1467,16 +1517,18 @@ function renderA() {
 // ══════════════════════════════════════════════════════
 function agregarAusentismo() {
   if(!chk()) return;
-  const a={id:uid(),nombre:gv("au-nombre"),cedula:gv("au-cedula"),causa:gv("au-causa"),
-    dias:gv("au-dias"),numInc:gv("au-num"),reemplazo:gv("au-reemplazo"),obs:gv("au-obs")};
-  if(!a.nombre){alert("Nombre obligatorio.");return;}
+  const nombre=getNombrePlanta("au");
+  if(!nombre){alert("Selecciona un trabajador.");return;}
+  const a={id:uid(),nombre,cedula:gv("au-cedula"),cargo:gv("au-cargo"),empresa:gv("au-empresa"),
+    causa:gv("au-causa"),dias:gv("au-dias"),numInc:gv("au-num"),reemplazo:gv("au-reemplazo"),obs:gv("au-obs")};
   DATA.ausentismo.push(a); guardarDatos(); renderAu();
-  ["au-nombre","au-cedula","au-num","au-reemplazo","au-obs"].forEach(id=>sv(id,""));
+  sv("au-trabajador",""); sv("au-cedula",""); sv("au-cargo",""); sv("au-empresa","");
+  sv("au-num",""); sv("au-reemplazo",""); sv("au-obs","");
 }
 function renderAu() {
   document.getElementById("tbody-au").innerHTML=DATA.ausentismo.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.nombre}</td><td>${a.cedula}</td><td>${a.causa}</td>
-    <td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td>
+    <td>${i+1}</td><td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.cargo||"—"}</td>
+    <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td>
     <td><button class="btn btn-rojo" onclick="eliminar('ausentismo','${a.id}')">✕</button></td></tr>`).join("");
   refrescarDashboard();
 }
@@ -1486,18 +1538,22 @@ function renderAu() {
 // ══════════════════════════════════════════════════════
 function agregarAccidente() {
   if(!chk()) return;
-  const a={id:uid(),tipo:gv("at-tipo"),fecha:gv("at-fecha"),nombre:gv("at-nombre"),cedula:gv("at-cedula"),
-    cargo:gv("at-cargo"),arl:gv("at-arl"),parte:gv("at-parte"),lesion:gv("at-lesion"),agente:gv("at-agente"),
-    atencion:gv("at-atencion"),desc:gv("at-desc"),causasInm:gv("at-causas-inm"),causasBas:gv("at-causas-bas"),
-    acciones:gv("at-acciones"),testigos:gv("at-testigos"),reporteArl:gv("at-reporte-arl"),furat:gv("at-furat")};
-  if(!a.nombre||!a.desc){alert("Nombre y descripción obligatorios.");return;}
+  const nombre=getNombrePlanta("at");
+  if(!nombre){alert("Selecciona el trabajador accidentado.");return;}
+  const a={id:uid(),tipo:gv("at-tipo"),fecha:gv("at-fecha"),nombre,
+    cedula:gv("at-cedula"),cargo:gv("at-cargo"),empresa:gv("at-empresa"),arl:gv("at-arl"),
+    parte:gv("at-parte"),lesion:gv("at-lesion"),agente:gv("at-agente"),
+    atencion:gv("at-atencion"),desc:gv("at-desc"),causasInm:gv("at-causas-inm"),
+    causasBas:gv("at-causas-bas"),acciones:gv("at-acciones"),testigos:gv("at-testigos"),
+    reporteArl:gv("at-reporte-arl"),furat:gv("at-furat")};
+  if(!a.desc){alert("La descripción del evento es obligatoria.");return;}
   DATA.accidentes.push(a); guardarDatos(); renderAt();
 }
 function renderAt() {
   document.getElementById("tbody-at").innerHTML=DATA.accidentes.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.fecha||"—"}</td><td><span class="badge badge-rojo">${a.tipo.slice(0,20)}…</span></td>
-    <td>${a.nombre}</td><td>${a.lesion}</td><td>${a.agente}</td><td>${a.atencion}</td>
-    <td>${a.furat||"Pendiente"}</td>
+    <td>${i+1}</td><td>${a.fecha||"—"}</td><td><span class="badge badge-rojo" style="font-size:10px">${(a.tipo||"").slice(0,22)}…</span></td>
+    <td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.lesion||"—"}</td><td>${a.agente||"—"}</td>
+    <td>${a.atencion||"—"}</td><td>${a.furat||"Pendiente"}</td>
     <td><button class="btn btn-rojo" onclick="eliminar('accidentes','${a.id}')">✕</button></td></tr>`).join("");
   refrescarDashboard();
 }
@@ -1596,18 +1652,19 @@ function renderIns() {
 // ══════════════════════════════════════════════════════
 function agregarAutorreporte() {
   if(!chk()) return;
+  const nombre=getNombrePlanta("ar");
+  if(!nombre){alert("Selecciona un trabajador.");return;}
   const conds=[];
   for(let i=1;i<=11;i++){const el=document.getElementById("cs-"+i);if(el&&el.checked)conds.push(CS_LABELS[i-1]);}
   const okEl=document.getElementById("cs-ok");
   if(okEl&&okEl.checked) conds.push("Ninguna (apto)");
-  const ar={id:uid(),nombre:gv("ar-nombre"),cedula:gv("ar-cedula"),nivel:gv("ar-nivel"),
+  const ar={id:uid(),nombre,cedula:gv("ar-cedula"),nivel:gv("ar-nivel"),
     cargo:gv("ar-cargo"),hora:gv("ar-hora"),condiciones:conds,otras:gv("ar-otras"),
     decision:gv("ar-decision"),validador:gv("ar-validador")};
-  if(!ar.nombre){alert("Nombre obligatorio.");return;}
   for(let i=1;i<=11;i++){const el=document.getElementById("cs-"+i);if(el)el.checked=false;}
   if(okEl)okEl.checked=false;
   DATA.autorreportes.push(ar); guardarDatos(); renderAr();
-  ["ar-nombre","ar-cedula","ar-cargo","ar-hora","ar-otras","ar-validador"].forEach(id=>sv(id,""));
+  sv("ar-trabajador",""); sv("ar-cedula",""); sv("ar-cargo",""); sv("ar-hora",""); sv("ar-otras",""); sv("ar-validador","");
 }
 function renderAr() {
   const dc={"apto":"badge-verde","restringido":"badge-amarillo","no-apto":"badge-rojo","referido":"badge-morado"};
@@ -1672,12 +1729,14 @@ function renderCl() {
 // ══════════════════════════════════════════════════════
 function agregarEPP() {
   if(!chk()) return;
+  const nombre=getNombrePlanta("epp");
+  if(!nombre){alert("Selecciona un trabajador.");return;}
   const iB=gv("epp-item"),iO=gv("epp-otro").trim();
-  const e={id:uid(),nombre:gv("epp-nombre"),cedula:gv("epp-cedula"),cargo:gv("epp-cargo"),
-    item:iB==="Otro"?iO:iB,cant:gv("epp-cant"),motivo:gv("epp-motivo"),conforme:gv("epp-conforme")};
-  if(!e.nombre||!e.item){alert("Nombre y EPP obligatorios.");return;}
+  const e={id:uid(),nombre,cedula:gv("epp-cedula"),cargo:gv("epp-cargo"),empresa:gv("epp-empresa"),
+    item:iB==="Otro"&&iO?iO:iB,cant:gv("epp-cant"),motivo:gv("epp-motivo"),conforme:gv("epp-conforme")};
+  if(!e.item){alert("Selecciona el EPP entregado.");return;}
   DATA.epp.push(e); guardarDatos(); renderEpp();
-  ["epp-nombre","epp-cedula","epp-cargo","epp-otro"].forEach(id=>sv(id,""));
+  sv("epp-trabajador",""); sv("epp-cedula",""); sv("epp-cargo",""); sv("epp-empresa",""); sv("epp-otro","");
 }
 function renderEpp() {
   document.getElementById("tbody-epp").innerHTML=DATA.epp.map((e,i)=>`<tr>
