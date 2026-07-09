@@ -2304,9 +2304,20 @@ function renderResumenSemanal(fechas) {
 async function exportarXLSSemanal() {
   const inicio=document.getElementById("sem-inicio").value;
   const fin=document.getElementById("sem-fin").value;
-  if(!inicio||!fin||Object.keys(datosSemana).length===0){
-    alert("Primero carga los datos de la semana.");return;
+  if(!inicio||!fin){
+    mostrarToast("⚠ Selecciona el rango de fechas primero","naranja"); return;
   }
+  if(Object.keys(datosSemana).length===0){
+    mostrarToast("⚠ Primero toca 'Cargar datos' para traer la información","naranja"); return;
+  }
+  // Verificar que hay al menos un registro
+  const fechas=rangoFechas(inicio,fin);
+  let totalRegistros=0;
+  fechas.forEach(f=>{ totalRegistros+=Object.keys(datosSemana[f]||{}).length; });
+  if(totalRegistros===0){
+    mostrarToast("⚠ No hay datos registrados en este período","naranja"); return;
+  }
+  try {
   const fechas=rangoFechas(inicio,fin);
   const WB=XLSX.utils.book_new();
   const estiloHead={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"0D1B2A"}},alignment:{horizontal:"center"}};
@@ -2486,6 +2497,10 @@ async function exportarXLSSemanal() {
   const nombre=`Informe_Semanal_ISIS_${inicio}_${fin}.xlsx`;
   XLSX.writeFile(WB, nombre);
   mostrarToast("✔ Excel exportado correctamente","verde");
+  } catch(err) {
+    console.error("Error exportando Excel:", err);
+    mostrarToast("⚠ Error al exportar. Verifica que haya datos cargados.","rojo");
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
