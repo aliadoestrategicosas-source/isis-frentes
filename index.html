@@ -276,13 +276,34 @@ button, .btn, select, input { touch-action: manipulation; }
 
     <!-- FORM COLABORADOR -->
     <div id="form-colab">
-      <div style="font-size:13px;color:var(--texto-muted);margin-bottom:14px">Ingresa los datos de tu frente para comenzar el registro del día.</div>
-      <input class="login-field" id="c-frente" type="text" placeholder="Nombre del frente de trabajo (Ej: Frente Subestación Norte)">
-      <input class="login-field" id="c-responsable" type="text" placeholder="Tu nombre completo (responsable del reporte)">
-      <input class="login-field" id="c-fecha" type="date">
-      <button class="login-btn login-btn-colab" onclick="entrarColab()">▶ Ingresar al frente</button>
-      <div class="login-error" id="err-colab">Complete todos los campos para continuar.</div>
-      <div class="login-hint">Solo tienes acceso al registro de tu frente asignado.</div>
+      <!-- Vista: frente guardado -->
+      <div id="login-frente-guardado" style="display:none;margin-bottom:14px">
+        <div style="background:#F0FFF4;border:1.5px solid #82E0AA;border-radius:8px;padding:14px 16px;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--verde);letter-spacing:.5px;margin-bottom:4px">📍 TU FRENTE ASIGNADO</div>
+          <div id="lbl-frente-guardado" style="font-size:18px;font-weight:700;color:var(--azul-oscuro)"></div>
+          <div id="lbl-resp-guardado" style="font-size:12px;color:#666;margin-top:3px"></div>
+        </div>
+        <div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">Confirma la fecha del día:</div>
+        <input class="login-field" id="c-fecha" type="date">
+        <button class="login-btn login-btn-colab" onclick="entrarColabGuardado()">▶ Entrar al frente de hoy</button>
+        <button onclick="cambiarFrente()" style="width:100%;margin-top:8px;background:none;border:1px solid var(--borde);border-radius:6px;padding:10px;font-size:13px;color:var(--texto-muted);cursor:pointer">
+          🔑 Ingresar con otras credenciales
+        </button>
+      </div>
+      <!-- Vista: login con credenciales -->
+      <div id="login-frente-nuevo">
+        <div style="font-size:13px;color:var(--texto-muted);margin-bottom:14px">Ingresa las credenciales que te envió la administradora.</div>
+        <input class="login-field" id="c-frente" type="text" placeholder="Nombre del frente (tal como te lo enviaron)" autocomplete="off">
+        <input class="login-field" id="c-clave-frente" type="password" placeholder="Clave del frente" autocomplete="off">
+        <input class="login-field" id="c-responsable" type="text" placeholder="Tu nombre completo" autocomplete="off">
+        <input class="login-field" id="c-fecha2" type="date">
+        <div style="display:flex;gap:8px">
+          <button class="login-btn login-btn-colab" onclick="entrarColab()" style="flex:2">▶ Ingresar al frente</button>
+          <button id="btn-cancelar-nuevo" onclick="cancelarNuevoFrente()" style="display:none;flex:1;background:none;border:1px solid var(--borde);border-radius:6px;padding:10px;font-size:12px;color:var(--texto-muted);cursor:pointer">✕ Cancelar</button>
+        </div>
+      </div>
+      <div class="login-error" id="err-colab">Credenciales incorrectas o campos incompletos.</div>
+      <div class="login-hint">Contacta a la coordinadora SST si no tienes tus credenciales.</div>
     </div>
 
     <!-- FORM ADMIN -->
@@ -311,7 +332,9 @@ button, .btn, select, input { touch-action: manipulation; }
   <div class="spacer"></div>
   <span class="badge-rol" id="badge-rol"></span>
   <span class="badge-fecha" id="badge-fecha"></span>
-  <button class="btn-logout" onclick="cerrarSesion()" style="margin-left:8px;padding:6px 14px;font-size:11px;border-radius:20px;opacity:.7">↩ Salir</button>
+  <button class="btn-logout" onclick="cerrarSesion()" 
+    style="margin-left:12px;padding:6px 16px;font-size:11px;border-radius:20px;opacity:.65;border:1px solid rgba(255,255,255,.3);letter-spacing:.3px"
+    title="Cerrar sesión">↩ Salir</button>
 </header>
 
 <!-- SESSION BAR (solo colaborador) -->
@@ -347,6 +370,7 @@ button, .btn, select, input { touch-action: manipulation; }
 <nav id="nav-admin" style="display:none">
   <button class="active" onclick="tabAdmin('consolidado')">📊 Consolidado</button>
   <button onclick="tabAdmin('frentes')">🗂 Todos los Frentes</button>
+  <button onclick="tabAdmin('gestion-frentes')">⚙ Gestión Frentes</button>
   <button onclick="tabAdmin('accidentes-admin')">🚨 Accidentalidad</button>
   <button onclick="tabAdmin('ausentismo-admin')">🏥 Ausentismo</button>
   <button onclick="tabAdmin('autorreportes-admin')">💊 Salud</button>
@@ -948,6 +972,71 @@ button, .btn, select, input { touch-action: manipulation; }
   </div>
 </div>
 
+<!-- GESTIÓN DE FRENTES ADMIN -->
+<div id="sec-admin-gestion-frentes" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>⚙ Gestión de Frentes de Trabajo</h2></div>
+
+  <!-- CREAR NUEVO FRENTE -->
+  <div class="card card-admin" style="border-left:4px solid var(--naranja)">
+    <div class="card-titulo">➕ Crear Nuevo Frente</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del frente</label>
+        <input type="text" id="gf-nombre" placeholder="Ej: F1-Subestación Norte Bavaria" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group">
+        <label>Clave de acceso para el campo</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="gf-clave" placeholder="Ej: ISIS2026" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;flex:1;font-weight:700;letter-spacing:1px">
+          <button onclick="generarClave()" style="background:var(--gris-claro);border:1px solid var(--borde);border-radius:6px;padding:10px 14px;font-size:12px;cursor:pointer;white-space:nowrap">🎲 Generar</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Responsable del frente</label>
+        <input type="text" id="gf-resp" placeholder="Nombre del analista SST o supervisor" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group">
+        <label>Proyecto / Cliente</label>
+        <input type="text" id="gf-proyecto" placeholder="Ej: Holcim Colombia – Planta Nobsa" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group">
+        <label>Fecha de inicio</label>
+        <input type="date" id="gf-inicio" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primario" onclick="crearFrenteAdmin()">➕ Crear frente</button>
+    </div>
+    <!-- Preview de credenciales a enviar -->
+    <div id="gf-credenciales-preview" style="display:none;margin-top:16px;background:#F0FFF4;border:1.5px solid #82E0AA;border-radius:8px;padding:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--verde);margin-bottom:10px">✅ FRENTE CREADO — Credenciales para enviar al campo:</div>
+      <div id="gf-credenciales-texto" style="font-family:monospace;font-size:13px;line-height:1.8;background:#fff;padding:12px;border-radius:6px;border:1px solid #ccc"></div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-verde" onclick="copiarCredenciales()">📋 Copiar mensaje</button>
+        <button class="btn btn-secundario" onclick="document.getElementById('gf-credenciales-preview').style.display='none'">✕ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA DE FRENTES -->
+  <div class="card card-admin" style="margin-top:14px">
+    <div class="card-titulo">🗂 Frentes Registrados
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <input type="text" id="gf-buscar" placeholder="Buscar…" oninput="renderGestionFrente()"
+          style="border:1px solid var(--borde);border-radius:6px;padding:6px 10px;font-size:13px;width:160px">
+        <select id="gf-filtro" onchange="renderGestionFrente()" style="border:1px solid var(--borde);border-radius:6px;padding:6px 10px;font-size:13px">
+          <option value="todos">Todos</option>
+          <option value="activo">Activos</option>
+          <option value="cerrado">Cerrados</option>
+        </select>
+      </div>
+    </div>
+    <div id="gf-lista">
+      <div style="text-align:center;padding:30px;color:var(--texto-muted)">⏳ Cargando frentes…</div>
+    </div>
+  </div>
+</div>
+
 <!-- INFORME SEMANAL ADMIN -->
 <div id="sec-admin-semanal" class="seccion-admin" style="display:none">
   <div class="section-header">
@@ -1072,7 +1161,31 @@ const HOY = new Date();
 const FECHA_HOY = HOY.toISOString().split("T")[0];
 document.getElementById("badge-fecha").textContent =
   HOY.toLocaleDateString("es-CO",{weekday:"short",year:"numeric",month:"short",day:"numeric"}).toUpperCase();
-document.getElementById("c-fecha").value = FECHA_HOY;
+
+// ── Cargar frente guardado en este dispositivo ──────
+const FRENTE_KEY = "isis_frente_config";
+function cargarFrenteGuardado() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem(FRENTE_KEY)||"null");
+    if(cfg && cfg.frente && cfg.responsable) {
+      // Mostrar panel de frente guardado
+      document.getElementById("login-frente-guardado").style.display="block";
+      document.getElementById("login-frente-nuevo").style.display="none";
+      document.getElementById("lbl-frente-guardado").textContent = cfg.frente;
+      document.getElementById("lbl-resp-guardado").textContent = "👤 "+cfg.responsable;
+      document.getElementById("c-fecha").value = FECHA_HOY;
+    } else {
+      // Primera vez — mostrar formulario completo
+      document.getElementById("login-frente-guardado").style.display="none";
+      document.getElementById("login-frente-nuevo").style.display="block";
+      document.getElementById("c-fecha2").value = FECHA_HOY;
+    }
+  } catch(e) {
+    document.getElementById("login-frente-nuevo").style.display="block";
+    document.getElementById("c-fecha2").value = FECHA_HOY;
+  }
+}
+cargarFrenteGuardado();
 
 // ══════════════════════════════════════════════════════
 //  LOGIN
@@ -1085,13 +1198,70 @@ function selTab(t) {
 }
 
 function entrarColab() {
-  const frente = document.getElementById("c-frente").value.trim();
-  const resp   = document.getElementById("c-responsable").value.trim();
-  const fecha  = document.getElementById("c-fecha").value;
-  if (!frente||!resp||!fecha) { mostrarErr("err-colab"); return; }
-  ROL = "colab";
-  SESION = { frente, responsable:resp, fecha, activa:true };
-  iniciarApp();
+  const frente   = document.getElementById("c-frente").value.trim();
+  const clave    = document.getElementById("c-clave-frente").value.trim();
+  const resp     = document.getElementById("c-responsable").value.trim();
+  const fecha    = document.getElementById("c-fecha2").value;
+  if(!frente||!clave||!resp||!fecha){ mostrarErr("err-colab"); return; }
+
+  // Validar contra frentes_config en Firebase o localStorage
+  const verificar = (cfg) => {
+    const key = _fKey(frente);
+    // Buscar por nombre exacto o aproximado
+    const match = Object.values(cfg||{}).find(f=>
+      f.nombre && f.nombre.trim().toLowerCase()===frente.toLowerCase() && f.clave===clave
+    );
+    if(!match){ mostrarErr("err-colab"); return; }
+    if((match.estado||"activo")==="cerrado"){
+      alert("Este frente está cerrado y ya no acepta nuevos registros.\nContacta a la coordinadora SST.");
+      return;
+    }
+    // Guardar en dispositivo
+    localStorage.setItem(FRENTE_KEY, JSON.stringify({frente:match.nombre, responsable:resp, clave}));
+    ROL="colab";
+    SESION={frente:match.nombre, responsable:resp, fecha, activa:true};
+    iniciarApp();
+  };
+
+  if(usandoFirebase){
+    db.ref("frentes_config").once("value", snap=>{ verificar(snap.val()||{}); });
+  } else {
+    // Sin Firebase: aceptar cualquier frente (modo local)
+    localStorage.setItem(FRENTE_KEY, JSON.stringify({frente, responsable:resp, clave}));
+    ROL="colab"; SESION={frente, responsable:resp, fecha, activa:true}; iniciarApp();
+  }
+}
+
+// Entrar con frente guardado — solo cambia la fecha
+function entrarColabGuardado() {
+  const fecha = document.getElementById("c-fecha").value;
+  if(!fecha){ mostrarErr("err-colab"); return; }
+  try {
+    const cfg = JSON.parse(localStorage.getItem(FRENTE_KEY)||"null");
+    if(!cfg||!cfg.frente){ cambiarFrente(); return; }
+    ROL="colab";
+    SESION={frente:cfg.frente, responsable:cfg.responsable, fecha, activa:true};
+    iniciarApp();
+  } catch(e){ cambiarFrente(); }
+}
+
+// Mostrar formulario de credenciales
+function cambiarFrente() {
+  document.getElementById("login-frente-guardado").style.display="none";
+  document.getElementById("login-frente-nuevo").style.display="block";
+  document.getElementById("btn-cancelar-nuevo").style.display="block";
+  document.getElementById("c-fecha2").value=FECHA_HOY;
+  document.getElementById("c-frente").value="";
+  document.getElementById("c-clave-frente").value="";
+  document.getElementById("c-responsable").value="";
+  document.getElementById("c-frente").focus();
+}
+
+function crearNuevoFrente(){ cambiarFrente(); }
+
+function cancelarNuevoFrente() {
+  document.getElementById("login-frente-nuevo").style.display="none";
+  document.getElementById("login-frente-guardado").style.display="block";
 }
 
 function entrarAdmin() {
@@ -1134,6 +1304,12 @@ function iniciarApp() {
     document.getElementById("nav-colab").style.display="none";
     document.getElementById("vista-colab").style.display="none";
     document.getElementById("adm-fecha-filtro").value = FECHA_HOY;
+    document.getElementById("adm-frentes-lista").innerHTML = `
+      <div style="text-align:center;padding:40px;color:var(--texto-muted)">
+        <div style="font-size:32px;margin-bottom:12px">⏳</div>
+        <div style="font-weight:700;font-size:15px">Cargando datos de Firebase…</div>
+        <div style="font-size:12px;margin-top:6px">Esto puede tardar unos segundos</div>
+      </div>`;
     cargarTodosFrente();
   }
 }
@@ -1207,6 +1383,12 @@ function setSyncDot(ok) {
 function cargarTodosFrente() {
   const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
   todosFrente = {};
+  document.getElementById("adm-frentes-lista").innerHTML = `
+    <div style="text-align:center;padding:40px;color:var(--texto-muted)">
+      <div style="font-size:32px;margin-bottom:12px">⏳</div>
+      <div style="font-weight:700;font-size:15px">Cargando datos del ${fecha}…</div>
+      <div style="font-size:12px;margin-top:6px">Conectando con Firebase</div>
+    </div>`;
   if (usandoFirebase) {
     db.ref("frentes").orderByKey().once("value", snap=>{
       snap.forEach(child=>{
@@ -1215,15 +1397,39 @@ function cargarTodosFrente() {
           todosFrente[child.key] = v;
         }
       });
-      renderAdmin();
+      if(Object.keys(todosFrente).length===0) {
+        document.getElementById("adm-frentes-lista").innerHTML = `
+          <div style="text-align:center;padding:40px;color:var(--texto-muted)">
+            <div style="font-size:32px;margin-bottom:12px">📭</div>
+            <div style="font-weight:700;font-size:15px">Sin datos para el ${fecha}</div>
+            <div style="font-size:12px;margin-top:6px">Verifica que los colaboradores hayan iniciado sesión con esta fecha exacta</div>
+          </div>`;
+        // Aún renderizar los KPIs en cero
+        renderAdmin();
+      } else {
+        renderAdmin();
+      }
+    }, err=>{
+      document.getElementById("adm-frentes-lista").innerHTML = `
+        <div class="alerta alerta-err">
+          ⚠ Error al conectar con Firebase: ${err.message}<br>
+          <small>Verifica tu conexión a internet y recarga la página.</small>
+        </div>`;
     });
   } else {
-    // localStorage: busca todas las keys que empiecen por la fecha
     for (let i=0;i<localStorage.length;i++) {
       const k=localStorage.key(i);
       if (k&&k.startsWith("isis_"+fecha)) {
         try { const v=JSON.parse(localStorage.getItem(k)); if(v&&v.sesion) todosFrente[k]=v; } catch(e){}
       }
+    }
+    if(Object.keys(todosFrente).length===0) {
+      document.getElementById("adm-frentes-lista").innerHTML = `
+        <div style="text-align:center;padding:40px;color:var(--texto-muted)">
+          <div style="font-size:32px;margin-bottom:12px">📭</div>
+          <div style="font-weight:700;font-size:15px">Sin datos para el ${fecha}</div>
+          <div style="font-size:12px;margin-top:6px">No hay registros guardados localmente para esta fecha</div>
+        </div>`;
     }
     renderAdmin();
   }
@@ -1248,6 +1454,7 @@ function tabAdmin(id) {
   if(sec) sec.style.display="block";
   event.currentTarget.classList.add("active");
   if(id==="semanal-admin") setSemanaActual();
+  if(id==="gestion-frentes") cargarGestionFrente();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1981,27 +2188,174 @@ function toggleFrenteAdmin(id) {
 }
 
 function renderFrenteDetalleAdmin(d) {
-  let html="";
-  // Actividades
+  const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
+  let html = "";
+
+  // ── TRABAJADORES Y HH ──────────────────────────────
+  const asistHoy = (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+  const presentes = asistHoy.filter(t=>t.asistencia==="presente");
+  const ausentes  = asistHoy.filter(t=>t.asistencia&&t.asistencia!=="presente");
+  const totalHH   = presentes.reduce((s,t)=>s+(t.hh||0),0);
+  if(asistHoy.length) {
+    html+=`<div class="resumen-bloque" style="background:#F0F7FF;border-left:3px solid var(--azul);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">👷 PERSONAL DEL DÍA</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
+        <span>✅ Presentes: <strong>${presentes.length}</strong></span>
+        <span>❌ Ausentes: <strong>${ausentes.length}</strong></span>
+        <span>⏱ HH totales: <strong style="color:var(--naranja)">${Math.round(totalHH*100)/100}</strong></span>
+      </div>`;
+    if(presentes.length) {
+      html+=`<div style="margin-top:6px;font-size:11px;color:#555">`;
+      html+=presentes.map(t=>`<span style="display:inline-block;margin:2px 4px 2px 0;background:#E8F4FD;padding:2px 8px;border-radius:10px">${t.nombre||"—"} <span style="color:var(--naranja);font-weight:700">${t.hh||0}HH</span></span>`).join("");
+      html+=`</div>`;
+    }
+    if(ausentes.length) {
+      html+=`<div style="margin-top:4px;font-size:11px;color:var(--rojo)">`;
+      html+=ausentes.map(t=>{
+        const p=(d.planta||[]).find(x=>x.id===t.plantaId)||{};
+        return `<span style="display:inline-block;margin:2px 4px 2px 0;background:#FFF0F0;padding:2px 8px;border-radius:10px">${p.nombre||t.nombre||"—"} (${t.asistencia})</span>`;
+      }).join("");
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
+
+  // ── ACTIVIDADES ────────────────────────────────────
   if((d.actividades||[]).length) {
-    html+=`<div style="margin-top:12px"><strong style="font-size:12px;color:var(--azul)">ACTIVIDADES</strong>`;
-    html+=d.actividades.map(a=>`<div style="margin-top:6px">
-      <div style="display:flex;justify-content:space-between;font-size:12px"><span>${a.desc}</span><span style="color:var(--naranja);font-weight:700">${a.avance}%</span></div>
-      <div class="progreso-bar-wrap"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
-      <div class="texto-muted">${a.ejec}/${a.prog} ${a.unidad} – ${a.estado}</div>
-    </div>`).join("");
-    html+="</div>";
+    html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid var(--naranja);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">⚙ ACTIVIDADES (${d.actividades.length})</div>`;
+    html+=d.actividades.map(a=>`
+      <div style="margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
+          <span style="font-weight:600">${a.desc}</span>
+          <span style="color:var(--naranja);font-weight:700;white-space:nowrap;margin-left:8px">${a.avance||0}%</span>
+        </div>
+        <div class="progreso-bar-wrap" style="margin:3px 0"><div class="progreso-bar" style="width:${a.avance||0}%"></div></div>
+        <div style="font-size:11px;color:#666">${a.ejec||0}/${a.prog||0} ${a.unidad||""} ${a.ubic?'· 📍'+a.ubic:""} ${a.obs?'· '+a.obs:""}</div>
+      </div>`).join("");
+    html+=`</div>`;
   }
-  // Clima
+
+  // ── CLIMA Y TIEMPOS MUERTOS ────────────────────────
+  const lluvias = d.lluvias||[];
+  const totalMinLluvia = lluvias.reduce((s,l)=>{
+    if(!l.ini||!l.fin) return s;
+    const [hi,mi]=l.ini.split(":").map(Number), [hf,mf]=l.fin.split(":").map(Number);
+    return s+Math.max(0,(hf*60+mf)-(hi*60+mi));
+  },0);
+  const hhMuertas = Math.round(totalMinLluvia/60*presentes.length*100)/100;
+
+  html+=`<div class="resumen-bloque" style="background:#F0F8FF;border-left:3px solid #1B6FA8;border-radius:4px;padding:10px 12px;margin-top:10px">
+    <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🌤 CLIMA Y TIEMPOS MUERTOS</div>`;
   if(d.clima&&d.clima.cond) {
-    html+=`<div style="margin-top:10px;font-size:12px"><strong style="color:var(--azul)">CLIMA:</strong> ${d.clima.cond}${d.clima.temp?" | "+d.clima.temp+"°C":""} | ${d.clima.impacto}</div>`;
+    const impColor = d.clima.impacto==="Sin impacto"?"#1A7A4A":d.clima.impacto==="Suspensión total"?"#C0392B":"#E67E22";
+    html+=`<div style="font-size:12px;margin-bottom:4px">
+      Condición: <strong>${d.clima.cond}</strong>
+      ${d.clima.temp?`· <strong>${d.clima.temp}°C</strong>`:""}
+      · Impacto: <strong style="color:${impColor}">${d.clima.impacto||"—"}</strong>
+    </div>`;
+    if(d.clima.obs) html+=`<div style="font-size:11px;color:#666;margin-bottom:4px">📝 ${d.clima.obs}</div>`;
   }
-  // Notas charlas
+  if(lluvias.length) {
+    html+=`<div style="margin-top:6px">`;
+    html+=lluvias.map(l=>`<div style="font-size:11px;background:#E8F4FF;padding:4px 8px;border-radius:4px;margin-bottom:3px">
+      🌧 <strong>${l.intensidad||"Lluvia"}</strong> · ${l.ini||"?"} – ${l.fin||"?"} · Duración: <strong>${l.duracion||"—"}</strong>
+      ${l.obs?`<span style="color:#666"> · ${l.obs}</span>`:""}
+    </div>`).join("");
+    html+=`</div>`;
+    html+=`<div style="margin-top:6px;padding:6px 10px;background:#FFF3E0;border-radius:4px;font-size:12px">
+      ⏱ Tiempo total lluvia: <strong style="color:var(--rojo)">${totalMinLluvia} min</strong>
+      ${presentes.length?`· HH no ejecutadas por clima: <strong style="color:var(--rojo)">${hhMuertas} HH</strong> (${presentes.length} trabajadores × ${Math.round(totalMinLluvia/60*100)/100}h)`:""}
+    </div>`;
+  } else if(!d.clima||!d.clima.cond) {
+    html+=`<div style="font-size:11px;color:var(--texto-muted)">Sin registro de clima para este día.</div>`;
+  } else {
+    html+=`<div style="font-size:11px;color:var(--verde)">✅ Sin eventos de lluvia registrados.</div>`;
+  }
+  html+=`</div>`;
+
+  // ── CHARLAS SST ────────────────────────────────────
   if((d.charlas||[]).length) {
-    html+=`<div style="margin-top:10px;font-size:12px"><strong style="color:var(--azul)">CHARLAS SST:</strong> `;
-    html+=d.charlas.map(c=>`${c.tema} (${diffTxt(c.inicio,c.fin)})`).join(" · ");
-    html+="</div>";
+    html+=`<div class="resumen-bloque" style="background:#F5F0FF;border-left:3px solid var(--morado);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📢 CHARLAS SST (${d.charlas.length})</div>`;
+    html+=d.charlas.map(c=>`<div style="font-size:12px;margin-bottom:4px">
+      📌 <strong>${c.tema}</strong> · ${c.inicio||""}–${c.fin||""} · Facilitador: ${c.facilitador||"—"} · <strong>${c.asistentes||0} asistentes</strong>
+    </div>`).join("");
+    html+=`</div>`;
   }
+
+  // ── EPP ────────────────────────────────────────────
+  if((d.epp||[]).length) {
+    html+=`<div class="resumen-bloque" style="background:#F0FFF4;border-left:3px solid var(--verde);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🦺 EPP ENTREGADO (${d.epp.length} entregas)</div>`;
+    html+=d.epp.map(e=>`<div style="font-size:12px;margin-bottom:3px">
+      • ${e.nombre} – <strong>${e.item}</strong> ×${e.cant} · ${e.motivo}
+    </div>`).join("");
+    html+=`</div>`;
+  }
+
+  // ── AUSENTISMO ─────────────────────────────────────
+  if((d.ausentismo||[]).length) {
+    html+=`<div class="resumen-bloque" style="background:#FFF8F0;border-left:3px solid var(--amarillo);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🏥 AUSENTISMO (${d.ausentismo.length})</div>`;
+    html+=d.ausentismo.map(a=>`<div style="font-size:12px;margin-bottom:3px">
+      • <strong>${a.nombre}</strong> – ${a.causa} · ${a.dias} día(s) ${a.numInc?'· Inc. '+a.numInc:""}
+    </div>`).join("");
+    html+=`</div>`;
+  }
+
+  // ── ACCIDENTES ─────────────────────────────────────
+  if((d.accidentes||[]).length) {
+    html+=`<div class="resumen-bloque" style="background:#FFF0F0;border-left:3px solid var(--rojo);border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--rojo);margin-bottom:6px">🚨 ACCIDENTES / INCIDENTES (${d.accidentes.length})</div>`;
+    html+=d.accidentes.map(a=>`<div style="font-size:12px;margin-bottom:4px;padding:6px;background:#FFF5F5;border-radius:4px">
+      <strong>${a.tipo}</strong> · ${a.fecha||"—"}<br>
+      Accidentado: <strong>${a.nombre}</strong> · Lesión: ${a.lesion||"—"} · Agente: ${a.agente||"—"}<br>
+      Atención: ${a.atencion||"—"} · FURAT: <strong>${a.furat||"Pendiente"}</strong>
+    </div>`).join("");
+    html+=`</div>`;
+  }
+
+  // ── INSPECCIONES ───────────────────────────────────
+  if((d.inspecciones||[]).length) {
+    const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
+    html+=`<div class="resumen-bloque" style="background:#F8F9FA;border-left:3px solid #5D6D7E;border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🔍 INSPECCIONES (${d.inspecciones.length}) ${nc?`<span style="color:var(--rojo)">· ${nc} no conforme(s)</span>`:""}</div>`;
+    html+=d.inspecciones.map(ins=>{
+      const rc={"conforme":"#1A7A4A","no-conforme":"#C0392B","parcial":"#E67E22"};
+      return `<div style="font-size:12px;margin-bottom:3px">
+        • <strong>${ins.tipo}</strong> · ${ins.zona||"—"} · Inspector: ${ins.inspector||"—"}
+        · <span style="color:${rc[ins.resultado]||'#666'};font-weight:700">${ins.resultado||"—"}</span>
+        ${ins.hallazgos?`<br><span style="font-size:11px;color:#666;margin-left:8px">⚠ ${ins.hallazgos.slice(0,100)}</span>`:""}
+      </div>`;
+    }).join("");
+    html+=`</div>`;
+  }
+
+  // ── AUTORREPORTES SALUD ────────────────────────────
+  const arConAlerta=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
+  if((d.autorreportes||[]).length) {
+    html+=`<div class="resumen-bloque" style="background:${arConAlerta.length?"#FFF0F0":"#F0FFF4"};border-left:3px solid ${arConAlerta.length?"var(--rojo)":"var(--verde)"};border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">💊 AUTORREPORTE SALUD (${d.autorreportes.length}) ${arConAlerta.length?`<span style="color:var(--rojo)">· ⚠ ${arConAlerta.length} con restricciones</span>`:""}</div>`;
+    html+=(d.autorreportes||[]).map(ar=>{
+      const alerta=ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
+      return `<div style="font-size:12px;margin-bottom:3px${alerta?";color:var(--rojo)":""}">
+        ${alerta?"🔴":"✅"} <strong>${ar.nombre}</strong> · ${ar.decision||"—"}
+        ${alerta?`<br><span style="font-size:11px;margin-left:12px">${(ar.condiciones||[]).join(", ")}</span>`:""}
+      </div>`;
+    }).join("");
+    html+=`</div>`;
+  }
+
+  // ── MATERIALES ─────────────────────────────────────
+  if((d.materiales||[]).length) {
+    html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid #888;border-radius:4px;padding:10px 12px;margin-top:10px">
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📦 MATERIALES (${d.materiales.length})</div>`;
+    html+=d.materiales.map(m=>`<div style="font-size:12px;margin-bottom:3px">• ${m.nombre} – ${m.cant||0} ${m.unidad||""} · ${m.estado||""}</div>`).join("");
+    html+=`</div>`;
+  }
+
+  if(!html) html=`<div style="font-size:12px;color:var(--texto-muted);padding:8px">Sin registros adicionales para este frente.</div>`;
   return html;
 }
 
@@ -2163,6 +2517,187 @@ function exportarJSONAdmin() {
 
 // Modal cierre
 document.getElementById("modal-foto").addEventListener("click",function(e){if(e.target===this)cerrarModal();});
+
+// ══════════════════════════════════════════════════════
+//  GESTIÓN DE FRENTES (ADMIN)
+// ══════════════════════════════════════════════════════
+const FRENTES_CONFIG_KEY = "isis_frentes_config";
+let frentesConfig = {};
+
+function _fKey(nombre){ return (nombre||"").replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_").slice(0,60); }
+
+function generarClave() {
+  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let clave="ISIS";
+  for(let i=0;i<4;i++) clave+=chars[Math.floor(Math.random()*chars.length)];
+  document.getElementById("gf-clave").value=clave;
+}
+
+async function crearFrenteAdmin() {
+  const nombre  = (document.getElementById("gf-nombre").value||"").trim();
+  const clave   = (document.getElementById("gf-clave").value||"").trim().toUpperCase();
+  const resp    = (document.getElementById("gf-resp").value||"").trim();
+  const proyecto= (document.getElementById("gf-proyecto").value||"").trim();
+  const inicio  = document.getElementById("gf-inicio").value;
+  if(!nombre||!clave){ alert("Nombre del frente y clave son obligatorios."); return; }
+  const key=_fKey(nombre);
+  const nuevo={nombre,clave,responsable:resp,proyecto,fechaInicio:inicio,estado:"activo",fechaCreacion:FECHA_HOY,ultimoRegistro:"—"};
+  frentesConfig[key]=nuevo;
+  if(usandoFirebase) await db.ref("frentes_config/"+key).set(nuevo);
+  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+
+  // Mostrar preview de credenciales
+  const url="https://aliadoestrategicosas-source.github.io/isis-frentes";
+  const msg=`📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n👤 *Responsable:* ${resp||"(escribe tu nombre al ingresar)"}\n\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.`;
+  document.getElementById("gf-credenciales-texto").innerText=msg;
+  document.getElementById("gf-credenciales-preview").style.display="block";
+
+  // Limpiar formulario
+  ["gf-nombre","gf-clave","gf-resp","gf-proyecto","gf-inicio"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  renderGestionFrente();
+  mostrarToast(`✅ Frente "${nombre}" creado`,"verde");
+}
+
+let _credMsg="";
+function copiarCredenciales() {
+  const txt=document.getElementById("gf-credenciales-texto").innerText;
+  navigator.clipboard.writeText(txt).then(()=>mostrarToast("✔ Mensaje copiado — pégalo en WhatsApp","verde"))
+    .catch(()=>{ alert("Copia este mensaje:\n\n"+txt); });
+}
+
+async function cargarGestionFrente() {
+  document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando…</div>`;
+  frentesConfig={};
+  if(usandoFirebase){
+    const snap=await db.ref("frentes_config").once("value");
+    frentesConfig=snap.val()||{};
+    // Descubrir último registro de cada frente
+    const snap2=await db.ref("frentes").once("value");
+    snap2.forEach(child=>{
+      const v=child.val();
+      if(v&&v.sesion&&v.sesion.frente){
+        const k=_fKey(v.sesion.frente);
+        if(frentesConfig[k]){
+          const ult=frentesConfig[k].ultimoRegistro||"";
+          if((v.sesion.fecha||"")>ult) frentesConfig[k].ultimoRegistro=v.sesion.fecha;
+        }
+      }
+    });
+  } else {
+    try{ frentesConfig=JSON.parse(localStorage.getItem(FRENTES_CONFIG_KEY)||"{}"); }catch(e){}
+  }
+  // Poner fecha de inicio del formulario
+  document.getElementById("gf-inicio").value=FECHA_HOY;
+  renderGestionFrente();
+}
+
+function renderGestionFrente() {
+  const buscar=(document.getElementById("gf-buscar")||{}).value?.toLowerCase()||"";
+  const filtro=(document.getElementById("gf-filtro")||{}).value||"todos";
+  const lista=Object.values(frentesConfig);
+  if(!lista.length){
+    document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)">📭 No hay frentes creados aún. Crea el primero arriba ↑</div>`;
+    return;
+  }
+  const filtrados=lista.filter(f=>{
+    const matchB=!buscar||(f.nombre||"").toLowerCase().includes(buscar)||(f.proyecto||"").toLowerCase().includes(buscar);
+    const matchE=filtro==="todos"||(f.estado||"activo")===filtro;
+    return matchB&&matchE;
+  }).sort((a,b)=>{
+    if((a.estado||"activo")==="cerrado"&&(b.estado||"activo")!=="cerrado") return 1;
+    if((a.estado||"activo")!=="cerrado"&&(b.estado||"activo")==="cerrado") return -1;
+    return (a.nombre||"").localeCompare(b.nombre||"");
+  });
+
+  if(!filtrados.length){
+    document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:20px;color:var(--texto-muted)">Sin resultados.</div>`;
+    return;
+  }
+
+  document.getElementById("gf-lista").innerHTML=filtrados.map(f=>{
+    const activo=(f.estado||"activo")==="activo";
+    const key=_fKey(f.nombre||"");
+    const url="https://aliadoestrategicosas-source.github.io/isis-frentes";
+    return `<div style="border:1px solid ${activo?"#AED6F1":"#F5B7B1"};border-radius:8px;padding:14px 16px;margin-bottom:10px;background:${activo?"#F4F9FF":"#FFF5F5"}">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="font-weight:700;font-size:15px;color:var(--azul-oscuro)">${f.nombre||"—"}</span>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${activo?"#1A7A4A":"#C0392B"};color:#fff">${activo?"✅ ACTIVO":"🔴 CERRADO"}</span>
+          </div>
+          ${f.proyecto?`<div style="font-size:12px;color:#555;margin-bottom:3px">📋 ${f.proyecto}</div>`:""}
+          ${f.responsable?`<div style="font-size:12px;color:#555;margin-bottom:3px">👤 ${f.responsable}</div>`:""}
+          <div style="font-size:11px;color:#888;margin-top:4px">
+            🗓 Creado: <strong>${f.fechaCreacion||"—"}</strong>
+            ${f.fechaInicio?" · Inicio obra: <strong>"+f.fechaInicio+"</strong>":""}
+            · Último registro: <strong>${f.ultimoRegistro||"—"}</strong>
+          </div>
+          ${!activo?`<div style="font-size:11px;color:var(--rojo);margin-top:4px">🔒 Cerrado: ${f.fechaCierre||"—"} · ${f.motivo||""}</div>`:""}
+          <!-- Credenciales -->
+          ${activo?`<div style="margin-top:10px;background:#fff;border:1px dashed #AED6F1;border-radius:6px;padding:8px 12px;font-size:12px">
+            <div style="font-weight:700;color:var(--azul);margin-bottom:4px">🔑 Credenciales para enviar:</div>
+            <div>📍 Frente: <strong>${f.nombre}</strong></div>
+            <div>🔑 Clave: <strong style="font-family:monospace;font-size:14px;color:var(--naranja)">${f.clave||"—"}</strong></div>
+            <div>🔗 <span style="font-size:11px;color:#666">${url}</span></div>
+            <button onclick="copiarMsgFrente('${(f.nombre||"").replace(/'/g,"\\'")}','${f.clave||""}','${(f.responsable||"").replace(/'/g,"\\'")}','${url}')" 
+              style="margin-top:6px;background:var(--verde);color:#fff;border:none;border-radius:4px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">
+              📋 Copiar mensaje WhatsApp
+            </button>
+          </div>`:""}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${activo
+            ?`<button class="btn btn-rojo" style="font-size:12px;padding:8px 16px" onclick="darDeBajaFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')">🔒 Dar de baja</button>`
+            :`<button class="btn btn-secundario" style="font-size:12px;padding:8px 16px" onclick="reactivarFrente('${key}')">🔓 Reactivar</button>`
+          }
+          <button class="btn btn-amarillo" style="font-size:11px;padding:6px 12px" onclick="editarClaveFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')">🔑 Cambiar clave</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function copiarMsgFrente(nombre, clave, resp, url) {
+  const msg=`📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n${resp?"👤 *Responsable:* "+resp+"\n":""}\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n⚠ No compartas esta clave con personas ajenas al frente.`;
+  navigator.clipboard.writeText(msg).then(()=>mostrarToast("✔ Mensaje copiado — pégalo en WhatsApp","verde"))
+    .catch(()=>alert("Copia este mensaje:\n\n"+msg));
+}
+
+function darDeBajaFrente(key, nombre) {
+  const motivo=prompt(`¿Motivo del cierre del frente "${nombre}"?\n(Ej: Proyecto finalizado, Contrato terminado…)`);
+  if(motivo===null) return;
+  if(!frentesConfig[key]) frentesConfig[key]={nombre};
+  frentesConfig[key].estado="cerrado";
+  frentesConfig[key].fechaCierre=FECHA_HOY;
+  frentesConfig[key].motivo=motivo||"Sin especificar";
+  if(usandoFirebase) db.ref("frentes_config/"+key).set(frentesConfig[key]);
+  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+  renderGestionFrente();
+  mostrarToast(`🔒 Frente "${nombre}" dado de baja`,"naranja");
+}
+
+function reactivarFrente(key) {
+  if(!frentesConfig[key]) return;
+  const nombre=frentesConfig[key].nombre||key;
+  if(!confirm(`¿Reactivar el frente "${nombre}"?`)) return;
+  frentesConfig[key].estado="activo";
+  delete frentesConfig[key].fechaCierre;
+  delete frentesConfig[key].motivo;
+  if(usandoFirebase) db.ref("frentes_config/"+key).set(frentesConfig[key]);
+  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+  renderGestionFrente();
+  mostrarToast(`✅ Frente "${nombre}" reactivado`,"verde");
+}
+
+function editarClaveFrente(key, nombre) {
+  const nueva=prompt(`Nueva clave para "${nombre}":\n(Solo letras y números, sin espacios)`);
+  if(!nueva||!nueva.trim()) return;
+  frentesConfig[key].clave=nueva.trim().toUpperCase();
+  if(usandoFirebase) db.ref("frentes_config/"+key+"/clave").set(frentesConfig[key].clave);
+  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+  renderGestionFrente();
+  mostrarToast(`🔑 Clave de "${nombre}" actualizada`,"verde");
+}
 
 // ══════════════════════════════════════════════════════
 //  INFORME SEMANAL
