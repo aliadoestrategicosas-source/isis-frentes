@@ -371,6 +371,7 @@ button, .btn, select, input { touch-action: manipulation; }
   <button class="active" onclick="tabAdmin('consolidado')">📊 Consolidado</button>
   <button onclick="tabAdmin('frentes')">🗂 Todos los Frentes</button>
   <button onclick="tabAdmin('gestion-frentes')">⚙ Gestión Frentes</button>
+  <button onclick="tabAdmin('planta-global')">👷 Planta Global</button>
   <button onclick="tabAdmin('accidentes-admin')">🚨 Accidentalidad</button>
   <button onclick="tabAdmin('ausentismo-admin')">🏥 Ausentismo</button>
   <button onclick="tabAdmin('autorreportes-admin')">💊 Salud</button>
@@ -972,6 +973,73 @@ button, .btn, select, input { touch-action: manipulation; }
   </div>
 </div>
 
+<!-- PLANTA GLOBAL ADMIN -->
+<div id="sec-admin-planta-global" class="seccion-admin" style="display:none">
+  <div class="section-header"><h2>👷 Planta Global de Trabajadores</h2></div>
+  <div class="alerta alerta-info">
+    Aquí administras todos los trabajadores de la empresa. Se registran una sola vez y están disponibles en todos los frentes. Los cambios aplican inmediatamente a todos los frentes activos.
+  </div>
+
+  <!-- Formulario agregar trabajador -->
+  <div class="card card-admin" style="border-left:4px solid var(--naranja);margin-top:14px">
+    <div class="card-titulo">➕ Agregar Trabajador a la Planta Global</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nombre completo</label>
+        <input type="text" id="pg-nombre" placeholder="Nombres y apellidos" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group"><label>Cédula</label>
+        <input type="text" id="pg-cedula" inputmode="numeric" placeholder="Sin puntos ni espacios" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group"><label>Nivel / Rol SST</label>
+        <select id="pg-nivel" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+          <option value="operativo">Operativo</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="rescatista">Rescatista</option>
+          <option value="analistaSST">Analista SST</option>
+          <option value="hse">Profesional HSE</option>
+          <option value="jefe">Jefe de Proyectos</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Cargo específico</label>
+        <input type="text" id="pg-cargo" placeholder="Ej: Electricista Oficial, Liniero…" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group"><label>Empresa / Contratista</label>
+        <input type="text" id="pg-empresa" placeholder="ISIS Proyectos o nombre del contratista" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+      </div>
+      <div class="form-group"><label>Apto médico</label>
+        <select id="pg-apto" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+          <option value="si">Sí</option>
+          <option value="no">No</option>
+          <option value="pendiente">Pendiente</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primario" onclick="agregarTrabajadorAdmin()">➕ Agregar trabajador</button>
+    </div>
+  </div>
+
+  <!-- Lista planta global -->
+  <div class="card card-admin" style="margin-top:14px">
+    <div class="card-titulo">
+      👥 Trabajadores registrados
+      <span id="pg-conteo" class="badge badge-azul" style="margin-left:8px;font-size:12px">0</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <input type="text" id="pg-buscar" placeholder="Buscar…" oninput="renderPlantaAdmin()"
+          style="border:1px solid var(--borde);border-radius:6px;padding:6px 10px;font-size:13px;width:150px">
+        <select id="pg-filtro" onchange="renderPlantaAdmin()" style="border:1px solid var(--borde);border-radius:6px;padding:6px 10px;font-size:13px">
+          <option value="todos">Todos</option>
+          <option value="activo">Activos</option>
+          <option value="retirado">Retirados</option>
+        </select>
+      </div>
+    </div>
+    <div id="pg-lista">
+      <div style="text-align:center;padding:30px;color:var(--texto-muted)">⏳ Cargando planta global…</div>
+    </div>
+  </div>
+</div>
+
 <!-- GESTIÓN DE FRENTES ADMIN -->
 <div id="sec-admin-gestion-frentes" class="seccion-admin" style="display:none">
   <div class="section-header"><h2>⚙ Gestión de Frentes de Trabajo</h2></div>
@@ -1500,6 +1568,7 @@ function tabAdmin(id) {
   event.currentTarget.classList.add("active");
   if(id==="semanal-admin") setSemanaActual();
   if(id==="gestion-frentes") cargarGestionFrente();
+  if(id==="planta-global") cargarPlantaAdmin();
 }
 
 // ══════════════════════════════════════════════════════
@@ -2567,8 +2636,137 @@ function exportarJSONAdmin() {
 document.getElementById("modal-foto").addEventListener("click",function(e){if(e.target===this)cerrarModal();});
 
 // ══════════════════════════════════════════════════════
-//  GESTIÓN DE FRENTES (ADMIN)
+//  PLANTA GLOBAL — GESTIÓN DESDE ADMIN
 // ══════════════════════════════════════════════════════
+
+function cargarPlantaAdmin() {
+  document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando…</div>`;
+  if(usandoFirebase){
+    db.ref("planta_global").once("value", snap=>{
+      plantaGlobal = snap.val() || [];
+      if(!Array.isArray(plantaGlobal)) plantaGlobal = Object.values(plantaGlobal||{});
+      renderPlantaAdmin();
+    });
+  } else {
+    try{ plantaGlobal=JSON.parse(localStorage.getItem("isis_planta_global")||"[]"); }catch(e){ plantaGlobal=[]; }
+    renderPlantaAdmin();
+  }
+}
+
+function renderPlantaAdmin() {
+  const buscar=(document.getElementById("pg-buscar")||{}).value?.toLowerCase()||"";
+  const filtro=(document.getElementById("pg-filtro")||{}).value||"todos";
+  const lista=plantaGlobal.filter(p=>{
+    const matchB=!buscar||(p.nombre||"").toLowerCase().includes(buscar)||(p.cedula||"").includes(buscar)||(p.cargo||"").toLowerCase().includes(buscar);
+    const matchF=filtro==="todos"||(filtro==="activo"&&p.activo)||(filtro==="retirado"&&!p.activo);
+    return matchB&&matchF;
+  });
+  document.getElementById("pg-conteo").textContent=`${plantaGlobal.filter(p=>p.activo).length} activos / ${plantaGlobal.length} total`;
+  if(!lista.length){
+    document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">📭 Sin resultados.</div>`;
+    return;
+  }
+  document.getElementById("pg-lista").innerHTML=`
+    <div class="tabla-wrap">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="background:var(--azul-oscuro);color:#fff">
+        <th style="padding:8px 10px;text-align:left">#</th>
+        <th style="padding:8px 10px;text-align:left">Nombre</th>
+        <th style="padding:8px 10px;text-align:left">Cédula</th>
+        <th style="padding:8px 10px;text-align:left">Nivel</th>
+        <th style="padding:8px 10px;text-align:left">Cargo</th>
+        <th style="padding:8px 10px;text-align:left">Empresa</th>
+        <th style="padding:8px 10px;text-align:center">Apto</th>
+        <th style="padding:8px 10px;text-align:center">Estado</th>
+        <th style="padding:8px 10px;text-align:center">Acciones</th>
+      </tr></thead>
+      <tbody>
+      ${lista.map((p,i)=>{
+        const abApto=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+        return `<tr style="background:${i%2===0?'#fff':'#F9FAFB'};${!p.activo?'opacity:.6':''}">
+          <td style="padding:8px 10px">${i+1}</td>
+          <td style="padding:8px 10px;font-weight:600">${p.nombre||"—"}</td>
+          <td style="padding:8px 10px">${p.cedula||"—"}</td>
+          <td style="padding:8px 10px">${nivelBadge(p.nivel||"operativo")}</td>
+          <td style="padding:8px 10px">${p.cargo||"—"}</td>
+          <td style="padding:8px 10px">${p.empresa||"—"}</td>
+          <td style="padding:8px 10px;text-align:center"><span class="badge ${abApto}">${p.apto||"—"}</span></td>
+          <td style="padding:8px 10px;text-align:center">
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${p.activo?"#1A7A4A":"#C0392B"};color:#fff">
+              ${p.activo?"✅ Activo":"🔴 Retirado"}
+            </span>
+          </td>
+          <td style="padding:8px 10px;text-align:center">
+            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+              ${p.activo
+                ?`<button class="btn btn-rojo" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="retirarTrabajadorAdmin('${p.id}','${(p.nombre||"").replace(/'/g,"\\'")}')">Retirar</button>`
+                :`<button class="btn btn-verde" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="reactivarTrabajadorAdmin('${p.id}')">Reactivar</button>`
+              }
+              <button class="btn btn-secundario" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="editarTrabajadorAdmin('${p.id}')">✏ Editar</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join("")}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function agregarTrabajadorAdmin() {
+  const nombre=(document.getElementById("pg-nombre").value||"").trim();
+  const cedula=(document.getElementById("pg-cedula").value||"").trim();
+  if(!nombre||!cedula){ alert("Nombre y cédula son obligatorios."); return; }
+  if(plantaGlobal.find(p=>p.cedula===cedula)){
+    alert("Ya existe un trabajador con esa cédula en la planta global."); return;
+  }
+  const p={id:uid(),nombre,cedula,
+    nivel:document.getElementById("pg-nivel").value,
+    cargo:(document.getElementById("pg-cargo").value||"").trim(),
+    empresa:(document.getElementById("pg-empresa").value||"").trim(),
+    apto:document.getElementById("pg-apto").value,
+    activo:true, fechaIngreso:FECHA_HOY};
+  plantaGlobal.push(p);
+  guardarPlantaGlobal();
+  ["pg-nombre","pg-cedula","pg-cargo","pg-empresa"].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=""; });
+  renderPlantaAdmin();
+  mostrarToast(`✅ ${nombre} agregado a la planta global`,"verde");
+}
+
+function retirarTrabajadorAdmin(id, nombre) {
+  if(!confirm(`¿Retirar a ${nombre} de la planta activa?\nSu historial en todos los frentes se conserva.`)) return;
+  const p=plantaGlobal.find(x=>x.id===id);
+  if(p){ p.activo=false; p.fechaRetiro=FECHA_HOY; }
+  guardarPlantaGlobal();
+  renderPlantaAdmin();
+  mostrarToast(`${nombre} retirado de la planta activa`,"naranja");
+}
+
+function reactivarTrabajadorAdmin(id) {
+  const p=plantaGlobal.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`¿Reactivar a ${p.nombre}?`)) return;
+  p.activo=true; delete p.fechaRetiro;
+  guardarPlantaGlobal();
+  renderPlantaAdmin();
+  mostrarToast(`✅ ${p.nombre} reactivado`,"verde");
+}
+
+function editarTrabajadorAdmin(id) {
+  const p=plantaGlobal.find(x=>x.id===id);
+  if(!p) return;
+  const nuevoNombre=prompt("Nombre completo:", p.nombre||"");
+  if(nuevoNombre===null) return;
+  const nuevoCargo=prompt("Cargo específico:", p.cargo||"");
+  if(nuevoCargo===null) return;
+  const nuevaEmpresa=prompt("Empresa / Contratista:", p.empresa||"");
+  if(nuevaEmpresa===null) return;
+  if(nuevoNombre.trim()) p.nombre=nuevoNombre.trim();
+  if(nuevoCargo!==null) p.cargo=nuevoCargo.trim();
+  if(nuevaEmpresa!==null) p.empresa=nuevaEmpresa.trim();
+  guardarPlantaGlobal();
+  renderPlantaAdmin();
+  mostrarToast(`✅ Datos de ${p.nombre} actualizados`,"verde");
+}
 const FRENTES_CONFIG_KEY = "isis_frentes_config";
 let frentesConfig = {};
 
