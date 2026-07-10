@@ -2533,29 +2533,44 @@ function generarClave() {
   document.getElementById("gf-clave").value=clave;
 }
 
-async function crearFrenteAdmin() {
+function crearFrenteAdmin() {
   const nombre  = (document.getElementById("gf-nombre").value||"").trim();
   const clave   = (document.getElementById("gf-clave").value||"").trim().toUpperCase();
   const resp    = (document.getElementById("gf-resp").value||"").trim();
   const proyecto= (document.getElementById("gf-proyecto").value||"").trim();
   const inicio  = document.getElementById("gf-inicio").value;
-  if(!nombre||!clave){ alert("Nombre del frente y clave son obligatorios."); return; }
-  const key=_fKey(nombre);
-  const nuevo={nombre,clave,responsable:resp,proyecto,fechaInicio:inicio,estado:"activo",fechaCreacion:FECHA_HOY,ultimoRegistro:"—"};
-  frentesConfig[key]=nuevo;
-  if(usandoFirebase) await db.ref("frentes_config/"+key).set(nuevo);
-  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+  if(!nombre){ alert("El nombre del frente es obligatorio."); return; }
+  if(!clave) { alert("La clave de acceso es obligatoria. Usa el botón 🎲 Generar."); return; }
 
-  // Mostrar preview de credenciales
-  const url="https://aliadoestrategicosas-source.github.io/isis-frentes";
-  const msg=`📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n👤 *Responsable:* ${resp||"(escribe tu nombre al ingresar)"}\n\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.`;
-  document.getElementById("gf-credenciales-texto").innerText=msg;
-  document.getElementById("gf-credenciales-preview").style.display="block";
+  const key = _fKey(nombre);
+  const nuevo = {nombre, clave, responsable:resp, proyecto, fechaInicio:inicio,
+    estado:"activo", fechaCreacion:FECHA_HOY, ultimoRegistro:"—"};
+  frentesConfig[key] = nuevo;
+
+  // Guardar en Firebase o localStorage
+  if(usandoFirebase) {
+    db.ref("frentes_config/"+key).set(nuevo)
+      .then(()=>{ mostrarToast(`✅ Frente "${nombre}" creado y guardado en la nube`,"verde"); })
+      .catch(err=>{ mostrarToast("⚠ Error al guardar en Firebase: "+err.message,"rojo"); });
+  } else {
+    try {
+      localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+    } catch(e) { mostrarToast("⚠ Error al guardar localmente","rojo"); return; }
+    mostrarToast(`✅ Frente "${nombre}" creado`,"verde");
+  }
+
+  // Mostrar credenciales para copiar
+  const url = "https://aliadoestrategicosas-source.github.io/isis-frentes";
+  const msg = `📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n${resp?"👤 *Responsable:* "+resp+"\n":""}\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n⚠ No compartas esta clave con personas ajenas al frente.`;
+  document.getElementById("gf-credenciales-texto").innerText = msg;
+  document.getElementById("gf-credenciales-preview").style.display = "block";
+  document.getElementById("gf-credenciales-preview").scrollIntoView({behavior:"smooth"});
 
   // Limpiar formulario
-  ["gf-nombre","gf-clave","gf-resp","gf-proyecto","gf-inicio"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  ["gf-nombre","gf-clave","gf-resp","gf-proyecto"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value="";
+  });
   renderGestionFrente();
-  mostrarToast(`✅ Frente "${nombre}" creado`,"verde");
 }
 
 let _credMsg="";
@@ -2565,30 +2580,33 @@ function copiarCredenciales() {
     .catch(()=>{ alert("Copia este mensaje:\n\n"+txt); });
 }
 
-async function cargarGestionFrente() {
+function cargarGestionFrente() {
   document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando…</div>`;
   frentesConfig={};
   if(usandoFirebase){
-    const snap=await db.ref("frentes_config").once("value");
-    frentesConfig=snap.val()||{};
-    // Descubrir último registro de cada frente
-    const snap2=await db.ref("frentes").once("value");
-    snap2.forEach(child=>{
-      const v=child.val();
-      if(v&&v.sesion&&v.sesion.frente){
-        const k=_fKey(v.sesion.frente);
-        if(frentesConfig[k]){
-          const ult=frentesConfig[k].ultimoRegistro||"";
-          if((v.sesion.fecha||"")>ult) frentesConfig[k].ultimoRegistro=v.sesion.fecha;
-        }
-      }
+    db.ref("frentes_config").once("value", snap=>{
+      frentesConfig=snap.val()||{};
+      // Descubrir último registro de cada frente
+      db.ref("frentes").once("value", snap2=>{
+        snap2.forEach(child=>{
+          const v=child.val();
+          if(v&&v.sesion&&v.sesion.frente){
+            const k=_fKey(v.sesion.frente);
+            if(frentesConfig[k]){
+              const ult=frentesConfig[k].ultimoRegistro||"";
+              if((v.sesion.fecha||"")>ult) frentesConfig[k].ultimoRegistro=v.sesion.fecha;
+            }
+          }
+        });
+        document.getElementById("gf-inicio").value=FECHA_HOY;
+        renderGestionFrente();
+      });
     });
   } else {
     try{ frentesConfig=JSON.parse(localStorage.getItem(FRENTES_CONFIG_KEY)||"{}"); }catch(e){}
+    document.getElementById("gf-inicio").value=FECHA_HOY;
+    renderGestionFrente();
   }
-  // Poner fecha de inicio del formulario
-  document.getElementById("gf-inicio").value=FECHA_HOY;
-  renderGestionFrente();
 }
 
 function renderGestionFrente() {
