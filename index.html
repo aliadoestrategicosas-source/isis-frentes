@@ -1325,10 +1325,38 @@ function cerrarSesion() {
 // ══════════════════════════════════════════════════════
 function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_"); }
 
+// Planta global — persiste en /planta_global, independiente de fecha y frente
+let plantaGlobal = []; // Array de perfiles de trabajadores
+
+function guardarPlantaGlobal() {
+  if(usandoFirebase) {
+    db.ref("planta_global").set(plantaGlobal)
+      .catch(err=>console.warn("Error guardando planta global:", err));
+  } else {
+    localStorage.setItem("isis_planta_global", JSON.stringify(plantaGlobal));
+  }
+}
+
+function cargarPlantaGlobal(callback) {
+  if(usandoFirebase) {
+    db.ref("planta_global").once("value", snap=>{
+      plantaGlobal = snap.val() || [];
+      if(!Array.isArray(plantaGlobal)) plantaGlobal = Object.values(plantaGlobal||{});
+      if(callback) callback();
+    });
+  } else {
+    try { plantaGlobal = JSON.parse(localStorage.getItem("isis_planta_global")||"[]"); }
+    catch(e){ plantaGlobal=[]; }
+    if(callback) callback();
+  }
+}
+
 function guardarDatos() {
   if (!SESION.activa) return;
   setSyncDot(false);
-  const payload = { sesion:SESION, data:DATA, ts:new Date().toISOString() };
+  // DATA.planta siempre apunta a plantaGlobal — no se guarda en el registro diario
+  const dataParaGuardar = {...DATA, planta: undefined};
+  const payload = { sesion:SESION, data:dataParaGuardar, ts:new Date().toISOString() };
   if (usandoFirebase) {
     db.ref("frentes/"+claveDB()).set(payload)
       .then(()=>setSyncDot(true)).catch(()=>setSyncDot(false));
@@ -1340,22 +1368,39 @@ function guardarDatos() {
 
 function cargarDatos() {
   if (!SESION.activa) return;
-  if (usandoFirebase) {
-    setSyncDot(false);
-    db.ref("frentes/"+claveDB()).on("value", snap=>{
-      const v = snap.val();
-      if (v && v.data) { DATA = v.data; normalizarData(); }
+  // Primero carga la planta global, luego los datos del día
+  cargarPlantaGlobal(()=>{
+    DATA.planta = plantaGlobal;
+    if (usandoFirebase) {
+      setSyncDot(false);
+      db.ref("frentes/"+claveDB()).on("value", snap=>{
+        const v = snap.val();
+        if (v && v.data) {
+          DATA = {...v.data, planta: plantaGlobal}; // siempre usa planta global
+          normalizarData();
+        } else {
+          // Día nuevo — solo inicializar arrays vacíos, planta ya está cargada
+          normalizarData();
+          DATA.planta = plantaGlobal;
+        }
+        setSyncDot(true); renderizarTodo();
+      }, ()=>setSyncDot(false));
+    } else {
+      const raw = localStorage.getItem("isis_"+claveDB());
+      if (raw) {
+        const p=JSON.parse(raw);
+        if(p.data){ DATA={...p.data, planta:plantaGlobal}; normalizarData(); }
+      } else {
+        normalizarData();
+        DATA.planta = plantaGlobal;
+      }
       setSyncDot(true); renderizarTodo();
-    }, ()=>setSyncDot(false));
-  } else {
-    const raw = localStorage.getItem("isis_"+claveDB());
-    if (raw) { const p=JSON.parse(raw); if(p.data){DATA=p.data;normalizarData();} }
-    setSyncDot(true); renderizarTodo();
-  }
+    }
+  });
 }
 
 function normalizarData() {
-  if(!DATA.planta)        DATA.planta=[];
+  DATA.planta = plantaGlobal; // siempre usa la planta global
   if(!DATA.trabajadores)  DATA.trabajadores=[];
   if(!DATA.actividades)   DATA.actividades=[];
   if(!DATA.ausentismo)    DATA.ausentismo=[];
@@ -1476,7 +1521,7 @@ function calcHH(ini,fin) {
 function poblarSelectoresPlanta() {
   const ids=["au-trabajador","at-trabajador","epp-trabajador","ar-trabajador"];
   const opts = `<option value="">— Seleccione —</option>` +
-    DATA.planta.filter(p=>p.activo).map(p=>
+    plantaGlobal.filter(p=>p.activo).map(p=>
       `<option value="${p.id}">${p.nombre} – ${p.cargo||p.nivel||""}</option>`
     ).join("");
   ids.forEach(id=>{
@@ -1496,7 +1541,7 @@ const PREFIJO_MAP = {
 function autoFillDesdePlanta(prefijo) {
   const m = PREFIJO_MAP[prefijo]; if(!m) return;
   const plantaId = document.getElementById(m.sel).value;
-  const p = DATA.planta.find(x=>x.id===plantaId);
+  const p = plantaGlobal.find(x=>x.id===plantaId);
   if(!p) return;
   if(m.cedula)  sv(m.cedula,  p.cedula||"");
   if(m.cargo)   sv(m.cargo,   p.cargo||"");
@@ -1507,11 +1552,10 @@ function autoFillDesdePlanta(prefijo) {
   }
 }
 
-// Helper para obtener nombre del trabajador desde planta por ID selector
 function getNombrePlanta(prefijo) {
   const m = PREFIJO_MAP[prefijo]; if(!m) return "";
   const el = document.getElementById(m.sel); if(!el) return "";
-  const p = DATA.planta.find(x=>x.id===el.value);
+  const p = plantaGlobal.find(x=>x.id===el.value);
   return p ? p.nombre : "";
 }
 function mostrarToast(msg, color="verde") {
@@ -1566,19 +1610,19 @@ function agregarTrabajador() {
   if(!chk()) return;
   const nombre=gv("t-nombre").trim(), cedula=gv("t-cedula").trim();
   if(!nombre||!cedula){alert("Nombre y cédula son obligatorios.");return;}
-  // Verificar duplicado por cédula
-  if(DATA.planta.find(p=>p.cedula===cedula)){
-    alert("Ya existe un trabajador con esa cédula en la planta.");return;
+  if(plantaGlobal.find(p=>p.cedula===cedula)){
+    alert("Ya existe un trabajador con esa cédula en la planta global.");return;
   }
   const p={id:uid(),nombre,cedula,nivel:gv("t-nivel"),cargo:gv("t-cargo"),
     empresa:gv("t-empresa"),apto:gv("t-apto"),obs:gv("t-obs"),activo:true,
     fechaIngreso:SESION.fecha};
-  DATA.planta.push(p);
-  // Crear registro de asistencia para hoy automáticamente
+  plantaGlobal.push(p);
+  DATA.planta = plantaGlobal;
+  guardarPlantaGlobal();
   crearOActualizarAsistencia(p.id, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
   guardarDatos(); renderT();
   ["t-nombre","t-cedula","t-cargo","t-empresa","t-obs"].forEach(id=>sv(id,""));
-  mostrarToast("✔ Trabajador agregado a la planta","verde");
+  mostrarToast("✔ Trabajador agregado a la planta global","verde");
 }
 
 // Crear o actualizar el registro de asistencia del día para un trabajador
@@ -1592,40 +1636,44 @@ function crearOActualizarAsistencia(plantaId, campos) {
   }
 }
 
-// Obtener registro de asistencia de hoy para un trabajador de planta
+// Obtener registro de asistencia de hoy para un trabajador
 function getAsistenciaHoy(plantaId) {
   return DATA.trabajadores.find(t=>t.plantaId===plantaId && t.fecha===SESION.fecha) || null;
 }
 
-// Retirar trabajador (desactivar para futuros días, conserva historial)
+// Retirar trabajador de la planta activa (conserva historial en todos los frentes)
 function retirarTrabajador(plantaId) {
-  if(!confirm("¿Retirar este trabajador de la planta activa?\nConservará su historial de asistencia previo.")) return;
-  const p = DATA.planta.find(x=>x.id===plantaId);
+  if(!confirm("¿Retirar este trabajador de la planta activa?\nSu historial en todos los frentes se conserva intacto.")) return;
+  const p = plantaGlobal.find(x=>x.id===plantaId);
   if(p){ p.activo=false; p.fechaRetiro=SESION.fecha; }
+  DATA.planta = plantaGlobal;
+  guardarPlantaGlobal();
   guardarDatos(); renderT();
   mostrarToast("Trabajador retirado de la planta activa","naranja");
 }
 
-// Reactivar trabajador retirado
+// Reactivar trabajador — queda disponible en cualquier frente
 function reactivarTrabajador(plantaId) {
-  const p = DATA.planta.find(x=>x.id===plantaId);
+  const p = plantaGlobal.find(x=>x.id===plantaId);
   if(p){ p.activo=true; delete p.fechaRetiro; }
+  DATA.planta = plantaGlobal;
+  guardarPlantaGlobal();
   crearOActualizarAsistencia(plantaId, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
   guardarDatos(); renderT();
-  mostrarToast("✔ Trabajador reactivado","verde");
+  mostrarToast("✔ Trabajador reactivado — disponible en todos los frentes","verde");
 }
 
-// Marcar todos los activos como presentes
+// Marcar todos los activos como presentes en este frente hoy
 function marcarTodosPresentes() {
   if(!chk()) return;
-  DATA.planta.filter(p=>p.activo).forEach(p=>{
+  plantaGlobal.filter(p=>p.activo).forEach(p=>{
     crearOActualizarAsistencia(p.id, {asistencia:"presente"});
   });
   guardarDatos(); renderT();
   mostrarToast("✔ Todos marcados como presentes","verde");
 }
 
-// Recalcular HH de los registros del día actual
+// Recalcular HH del día actual
 function calcularHH(){
   DATA.trabajadores.filter(t=>t.fecha===SESION.fecha).forEach(t=>{
     t.hh=calcHH(t.entrada,t.salida);
@@ -1637,8 +1685,8 @@ function calcularHH(){
 // Render principal: panel asistencia del día + tabla planta
 function renderT() {
   const fecha = SESION.fecha;
-  const plantaActiva = DATA.planta.filter(p=>p.activo);
-  const plantaTodos  = DATA.planta;
+  const plantaActiva = plantaGlobal.filter(p=>p.activo);
+  const plantaTodos  = plantaGlobal;
 
   // ── Panel asistencia del día ──────────────────────────
   let hhTotal=0, presentes=0;
