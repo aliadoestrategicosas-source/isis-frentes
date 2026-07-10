@@ -66,9 +66,10 @@ header .spacer{flex:1}
 
 /* ══ NAV ══ */
 nav{background:var(--blanco);border-bottom:1px solid var(--borde);display:flex;gap:2px;padding:0 14px;overflow-x:auto;position:sticky;top:57px;z-index:90}
-nav button{background:none;border:none;padding:9px 13px;cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-muted);border-bottom:3px solid transparent;white-space:nowrap;transition:.2s}
+nav button{background:none;border:none;padding:9px 13px;cursor:pointer;font-size:12px;font-weight:600;color:var(--texto-muted);border-bottom:3px solid transparent;white-space:nowrap;transition:.2s;user-select:none}
 nav button.active{color:var(--naranja);border-color:var(--naranja)}
 nav button:hover:not(.active){color:var(--texto);background:var(--gris-claro)}
+nav button:active{transform:scale(0.97);opacity:.8}
 
 /* ══ MAIN ══ */
 main{padding:18px;max-width:1400px;margin:0 auto}
@@ -196,11 +197,20 @@ body {
 @media(max-width:768px){
   input, select, textarea {
     font-size: 16px !important;
+    min-height: 48px !important;
+    padding: 10px 12px !important;
   }
-  /* Botones con área de toque mínima 44px (Apple HIG) */
-  .btn { min-height: 44px; padding: 10px 16px; }
-  .btn-rojo { min-height: 36px; }
-  .login-btn { min-height: 48px; }
+  /* Botones con área de toque mínima 48px — más grandes para campo */
+  .btn { min-height: 52px !important; padding: 12px 20px !important; font-size: 15px !important; }
+  .btn-rojo { min-height: 44px !important; padding: 10px 14px !important; }
+  .login-btn { min-height: 56px !important; }
+  /* Nav más alto y fácil de tocar */
+  nav button { 
+    min-height: 52px !important; 
+    padding: 12px 16px !important; 
+    font-size: 13px !important;
+    min-width: 80px;
+  }
   /* Header fijo con safe-area */
   header { padding-top: max(10px, env(safe-area-inset-top)); }
   /* Nav scrollable con buen scroll horizontal táctil */
@@ -212,13 +222,34 @@ body {
   .modal-box { margin: env(safe-area-inset-top) 8px env(safe-area-inset-bottom); }
   /* Stat cards más grandes en móvil */
   .stat-num { font-size: 26px; }
-  /* HH badge destacado */
-  #hh-live-badge { font-size: 15px; }
+  /* Cards con más padding para no tocar accidentalmente bordes */
+  .card { padding: 18px 14px !important; margin-bottom: 16px !important; }
+  /* Separación entre elementos de formulario */
+  .form-group { margin-bottom: 16px !important; }
+  .form-group label { font-size: 14px !important; margin-bottom: 6px !important; display: block; }
+  /* Panel de asistencia — filas más grandes */
+  #lista-asistencia-dia > div { padding: 14px !important; margin-bottom: 12px !important; }
+  /* Selectores en panel asistencia */
+  #lista-asistencia-dia select, 
+  #lista-asistencia-dia input[type="time"] { 
+    min-height: 48px !important; 
+    font-size: 15px !important;
+    padding: 8px 10px !important;
+  }
+  /* Evitar que el scroll accidental active botones */
+  .btn { touch-action: manipulation; }
+  nav button { touch-action: manipulation; }
+  /* Más espacio entre botones en btn-row */
+  .btn-row { gap: 12px !important; margin-top: 16px !important; }
+  /* Toggle planta más fácil de tocar */
+  #panel-planta .card-titulo { min-height: 52px; display: flex; align-items: center; }
 }
 /* Tap highlight removal */
 * { -webkit-tap-highlight-color: transparent; }
 /* Smooth scroll en iOS */
 html { scroll-behavior: smooth; }
+/* touch-action en todos los botones para evitar delay de 300ms */
+button, .btn, select, input { touch-action: manipulation; }
 
 .texto-muted{color:var(--texto-muted);font-size:12px}
 .fw-bold{font-weight:700}.mt-8{margin-top:8px}.mt-14{margin-top:14px}
@@ -280,7 +311,7 @@ html { scroll-behavior: smooth; }
   <div class="spacer"></div>
   <span class="badge-rol" id="badge-rol"></span>
   <span class="badge-fecha" id="badge-fecha"></span>
-  <button class="btn-logout" onclick="cerrarSesion()">↩ Salir</button>
+  <button class="btn-logout" onclick="cerrarSesion()" style="margin-left:8px;padding:6px 14px;font-size:11px;border-radius:20px;opacity:.7">↩ Salir</button>
 </header>
 
 <!-- SESSION BAR (solo colaborador) -->
@@ -847,11 +878,14 @@ html { scroll-behavior: smooth; }
 <div id="sec-admin-consolidado" class="seccion-admin activa">
   <div class="section-header">
     <h2>Panel de Control – Todos los Frentes</h2>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input type="date" id="adm-fecha-filtro" style="border:1px solid var(--borde);border-radius:4px;padding:6px 10px;font-size:13px">
-      <button class="btn btn-primario" onclick="cargarTodosFrente()">🔄 Cargar datos</button>
-      <button class="btn btn-verde" onclick="exportarInformeAdmin()">⬇ Exportar informe PDF</button>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <label style="font-size:11px;font-weight:700;color:var(--texto-muted)">FECHA</label>
+      <input type="date" id="adm-fecha-filtro" style="border:1px solid var(--borde);border-radius:6px;padding:8px 12px;font-size:14px;min-height:44px">
     </div>
+    <button class="btn btn-primario" onclick="cargarTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">🔄 Cargar datos</button>
+    <button class="btn btn-verde" onclick="exportarInformeAdmin()" style="margin-top:20px;min-height:48px;font-size:14px">⬇ PDF</button>
   </div>
   <div class="alerta alerta-info" id="adm-alerta-accidentes" style="display:none"></div>
   <div class="alerta alerta-warn" id="adm-alerta-salud" style="display:none"></div>
@@ -1105,7 +1139,7 @@ function iniciarApp() {
 }
 
 function cerrarSesion() {
-  if (!confirm("¿Cerrar sesión?")) return;
+  if (!confirm("¿Seguro que deseas cerrar sesión?\nLos datos ya quedaron guardados en la nube.")) return;
   if (usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
   location.reload();
 }
