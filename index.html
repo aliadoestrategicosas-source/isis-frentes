@@ -928,8 +928,20 @@ button, .btn, select, input { touch-action: manipulation; }
 </div>
 
 <div id="sec-admin-frentes" class="seccion-admin" style="display:none">
-  <div class="section-header"><h2>Detalle por Frente</h2></div>
-  <div id="adm-detalle-frentes"></div>
+  <div class="section-header"><h2>🗂 Detalle por Frente</h2></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-end">
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--texto-muted);display:block;margin-bottom:4px">FECHA</label>
+      <input type="date" id="adm-fecha-frentes" style="border:1px solid var(--borde);border-radius:6px;padding:8px 12px;font-size:14px;min-height:44px">
+    </div>
+    <button class="btn btn-primario" onclick="cargarFrentesDetalle()" style="min-height:44px">🔄 Cargar frentes</button>
+  </div>
+  <div id="adm-detalle-frentes">
+    <div style="text-align:center;padding:40px;color:var(--texto-muted)">
+      <div style="font-size:32px;margin-bottom:12px">📋</div>
+      <div style="font-weight:700">Selecciona una fecha y toca "Cargar frentes"</div>
+    </div>
+  </div>
 </div>
 
 <div id="sec-admin-accidentes" class="seccion-admin" style="display:none">
@@ -1497,54 +1509,88 @@ function cargarTodosFrente() {
   const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
   todosFrente = {};
   document.getElementById("adm-frentes-lista").innerHTML = `
-    <div style="text-align:center;padding:40px;color:var(--texto-muted)">
-      <div style="font-size:32px;margin-bottom:12px">⏳</div>
-      <div style="font-weight:700;font-size:15px">Cargando datos del ${fecha}…</div>
-      <div style="font-size:12px;margin-top:6px">Conectando con Firebase</div>
+    <div style="text-align:center;padding:30px;color:var(--texto-muted)">
+      <div style="font-size:28px;margin-bottom:8px">⏳</div>
+      <div style="font-weight:700">Cargando frentes activos del ${fecha}…</div>
     </div>`;
-  if (usandoFirebase) {
-    db.ref("frentes").orderByKey().once("value", snap=>{
-      snap.forEach(child=>{
-        const v = child.val();
-        if (v && v.sesion && v.sesion.fecha === fecha) {
-          todosFrente[child.key] = v;
-        }
-      });
-      if(Object.keys(todosFrente).length===0) {
-        document.getElementById("adm-frentes-lista").innerHTML = `
-          <div style="text-align:center;padding:40px;color:var(--texto-muted)">
-            <div style="font-size:32px;margin-bottom:12px">📭</div>
-            <div style="font-weight:700;font-size:15px">Sin datos para el ${fecha}</div>
-            <div style="font-size:12px;margin-top:6px">Verifica que los colaboradores hayan iniciado sesión con esta fecha exacta</div>
-          </div>`;
-        // Aún renderizar los KPIs en cero
-        renderAdmin();
-      } else {
-        renderAdmin();
-      }
-    }, err=>{
-      document.getElementById("adm-frentes-lista").innerHTML = `
-        <div class="alerta alerta-err">
-          ⚠ Error al conectar con Firebase: ${err.message}<br>
-          <small>Verifica tu conexión a internet y recarga la página.</small>
-        </div>`;
-    });
-  } else {
-    for (let i=0;i<localStorage.length;i++) {
-      const k=localStorage.key(i);
-      if (k&&k.startsWith("isis_"+fecha)) {
-        try { const v=JSON.parse(localStorage.getItem(k)); if(v&&v.sesion) todosFrente[k]=v; } catch(e){}
-      }
-    }
-    if(Object.keys(todosFrente).length===0) {
+
+  const combinarYRenderizar = (datosDelDia) => {
+    // Construir vista: frentes_config activos + datos del día si existen
+    const frentesActivos = Object.values(frentesConfig||{}).filter(f=>(f.estado||"activo")==="activo");
+
+    // Si no hay frentes creados aún, mostrar mensaje
+    if(!frentesActivos.length && !Object.keys(datosDelDia).length) {
       document.getElementById("adm-frentes-lista").innerHTML = `
         <div style="text-align:center;padding:40px;color:var(--texto-muted)">
-          <div style="font-size:32px;margin-bottom:12px">📭</div>
-          <div style="font-weight:700;font-size:15px">Sin datos para el ${fecha}</div>
-          <div style="font-size:12px;margin-top:6px">No hay registros guardados localmente para esta fecha</div>
+          <div style="font-size:32px;margin-bottom:12px">📋</div>
+          <div style="font-weight:700">No hay frentes activos creados</div>
+          <div style="font-size:12px;margin-top:6px">Ve a ⚙ Gestión Frentes para crear los frentes de trabajo</div>
         </div>`;
+      renderAdmin();
+      return;
     }
+
+    // Combinar: frentes de config + datos del día
+    // Primero agregar todos los que tienen datos del día
+    Object.entries(datosDelDia).forEach(([key, v]) => {
+      todosFrente[key] = v;
+    });
+
+    // Luego agregar frentes activos que NO tienen datos del día (frentes sin registro)
+    frentesActivos.forEach(f => {
+      const key = _fKey(f.nombre||"")+"__"+fecha;
+      const yaExiste = Object.values(todosFrente).some(v=>
+        v.sesion && v.sesion.frente && _fKey(v.sesion.frente) === _fKey(f.nombre||"")
+      );
+      if(!yaExiste) {
+        todosFrente["sindata_"+_fKey(f.nombre||"")] = {
+          sesion: { frente: f.nombre, responsable: f.responsable||"—", fecha },
+          data: {},
+          sinDatos: true
+        };
+      }
+    });
+
     renderAdmin();
+  };
+
+  // Cargar frentes_config y datos del día en paralelo
+  if(usandoFirebase) {
+    // Primero cargar config de frentes si no está cargada
+    const cargarDatos = () => {
+      db.ref("frentes").orderByKey().once("value", snap=>{
+        const datosDelDia = {};
+        snap.forEach(child=>{
+          const v = child.val();
+          if(v && v.sesion && v.sesion.fecha === fecha) {
+            datosDelDia[child.key] = v;
+          }
+        });
+        combinarYRenderizar(datosDelDia);
+      }, err=>{
+        document.getElementById("adm-frentes-lista").innerHTML = `
+          <div class="alerta alerta-err">⚠ Error Firebase: ${err.message}</div>`;
+      });
+    };
+
+    if(Object.keys(frentesConfig||{}).length === 0) {
+      db.ref("frentes_config").once("value", snap=>{
+        frentesConfig = snap.val() || {};
+        cargarDatos();
+      });
+    } else {
+      cargarDatos();
+    }
+  } else {
+    try{ frentesConfig=JSON.parse(localStorage.getItem(FRENTES_CONFIG_KEY)||"{}"); }catch(e){}
+    const datosDelDia = {};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("isis_"+fecha)){
+        try{ const v=JSON.parse(localStorage.getItem(k)); if(v&&v.sesion) datosDelDia[k]=v; }catch(e){}
+      }
+    }
+    combinarYRenderizar(datosDelDia);
   }
 }
 
@@ -1569,6 +1615,75 @@ function tabAdmin(id) {
   if(id==="semanal-admin") setSemanaActual();
   if(id==="gestion-frentes") cargarGestionFrente();
   if(id==="planta-global") cargarPlantaAdmin();
+  if(id==="frentes") {
+    const el=document.getElementById("adm-fecha-frentes");
+    if(el&&!el.value) el.value=FECHA_HOY;
+  }
+}
+
+function cargarFrentesDetalle() {
+  const fecha = document.getElementById("adm-fecha-frentes").value || FECHA_HOY;
+  const contenedor = document.getElementById("adm-detalle-frentes");
+  contenedor.innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)">⏳ Cargando frentes del ${fecha}…</div>`;
+
+  const renderDetalle = (datos) => {
+    const frentes=Object.values(datos);
+    if(!frentes.length){
+      contenedor.innerHTML=`<div style="text-align:center;padding:40px;color:var(--texto-muted)">
+        <div style="font-size:32px;margin-bottom:12px">📭</div>
+        <div style="font-weight:700">Sin registros para el ${fecha}</div>
+        <div style="font-size:12px;margin-top:6px">Verifica que los colaboradores hayan iniciado sesión con esta fecha exacta</div>
+      </div>`;
+      return;
+    }
+    contenedor.innerHTML = frentes.map((f,i)=>{
+      const d=f.data||{}, s=f.sesion||{};
+      const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+      const pres=asistHoy.filter(t=>t.asistencia==="presente").length;
+      const hh=asistHoy.reduce((acc,t)=>acc+(t.hh||0),0);
+      const atF=(d.accidentes||[]).length;
+      const key="fd_"+i;
+      return `<div class="admin-frente-card">
+        <div class="admin-frente-header" onclick="toggleFrenteAdmin('${key}')">
+          <div>
+            <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}</div>
+            <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${s.fecha||"—"}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            ${atF>0?`<span class="badge badge-rojo">🚨 ${atF} AT</span>`:""}
+            <span class="badge badge-azul">${pres} presentes</span>
+            <span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>
+            <span style="color:var(--amarillo);font-size:18px">▼</span>
+          </div>
+        </div>
+        <div class="admin-frente-body" id="${key}">
+          ${renderFrenteDetalleAdmin(d)}
+        </div>
+      </div>`;
+    }).join("");
+  };
+
+  if(usandoFirebase){
+    db.ref("frentes").orderByKey().once("value", snap=>{
+      const datos={};
+      snap.forEach(child=>{
+        const v=child.val();
+        if(v&&v.sesion&&v.sesion.fecha===fecha) datos[child.key]=v;
+      });
+      renderDetalle(datos);
+    }, err=>{
+      contenedor.innerHTML=`<div class="alerta alerta-err">⚠ Error: ${err.message}</div>`;
+    });
+  } else {
+    const datos={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("isis_"+fecha)){
+        try{ const v=JSON.parse(localStorage.getItem(k)); if(v&&v.sesion) datos[k]=v; }catch(e){}
+      }
+    }
+    renderDetalle(datos);
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2230,17 +2345,16 @@ function renderAdmin() {
   let totTrab=0,totHH=0,totAT=0,totAu=0,totIns=0,totSalud=0,totCharlas=0;
   frentes.forEach(f=>{
     const d=f.data||{};
-    // Soporte para modelo nuevo (planta+trabajadores) y modelo legacy
-    const asistHoy = (d.trabajadores||[]).filter(t=>t.fecha===fecha || !t.fecha);
-    totTrab += asistHoy.filter(t=>t.asistencia==="presente").length;
-    totHH   += asistHoy.reduce((s,t)=>s+(t.hh||0),0);
+    const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+    totTrab+=asistHoy.filter(t=>t.asistencia==="presente").length;
+    totHH+=asistHoy.reduce((s,t)=>s+(t.hh||0),0);
     totAT+=(d.accidentes||[]).length;
     totAu+=(d.ausentismo||[]).length;
     totIns+=(d.inspecciones||[]).length;
     totCharlas+=(d.charlas||[]).length;
     totSalud+=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)")).length;
   });
-  document.getElementById("adm-st-frentes").textContent=frentes.length;
+  document.getElementById("adm-st-frentes").textContent=frentes.filter(f=>!f.sinDatos).length+" / "+frentes.length;
   document.getElementById("adm-st-trabajadores").textContent=totTrab;
   document.getElementById("adm-st-hh").textContent=Math.round(totHH*100)/100;
   document.getElementById("adm-st-accidentes").textContent=totAT;
@@ -2250,46 +2364,67 @@ function renderAdmin() {
   document.getElementById("adm-st-charlas").textContent=totCharlas;
   const alertaAT=document.getElementById("adm-alerta-accidentes");
   const alertaSalud=document.getElementById("adm-alerta-salud");
-  if(totAT>0){alertaAT.style.display="block";alertaAT.className="alerta alerta-err";alertaAT.textContent=`🚨 ${totAT} accidente(s) de trabajo reportados en ${fecha}.`;}
-  else{alertaAT.style.display="none";}
+  if(totAT>0){alertaAT.style.display="block";alertaAT.className="alerta alerta-err";alertaAT.textContent=`🚨 ${totAT} accidente(s) reportados el ${fecha}.`;}
+  else alertaAT.style.display="none";
   if(totSalud>0){alertaSalud.style.display="block";alertaSalud.textContent=`⚠ ${totSalud} trabajador(es) con condiciones de salud restrictivas.`;}
-  else{alertaSalud.style.display="none";}
+  else alertaSalud.style.display="none";
+
   const lista=document.getElementById("adm-frentes-lista");
-  if(!frentes.length){lista.innerHTML='<div class="alerta alerta-warn">Sin frentes registrados para esta fecha.</div>';return;}
+  if(!frentes.length){
+    lista.innerHTML=`<div class="alerta alerta-warn">Sin frentes activos. Ve a ⚙ Gestión Frentes para crearlos.</div>`;
+    return;
+  }
+
   lista.innerHTML=frentes.map((f,i)=>{
     const d=f.data||{}, s=f.sesion||{};
+    const sinDatos=!!f.sinDatos;
     const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
     const pres=asistHoy.filter(t=>t.asistencia==="presente").length;
     const hh=asistHoy.reduce((acc,t)=>acc+(t.hh||0),0);
     const alertasSaludF=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
     const atF=(d.accidentes||[]).length;
     const key="frente_"+i;
-    return `<div class="admin-frente-card">
+    const nombreFrente=(s.frente||"Sin nombre").replace(/'/g,"\\'");
+    const fKey=_fKey(s.frente||"");
+
+    return `<div class="admin-frente-card" style="${sinDatos?'opacity:.75;border-left:3px solid #ccc':''}">
       <div class="admin-frente-header" onclick="toggleFrenteAdmin('${key}')">
-        <div>
-          <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}</div>
-          <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${s.fecha||"—"}</div>
+        <div style="flex:1">
+          <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}
+            ${sinDatos?`<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:600">SIN REGISTRO HOY</span>`:""}
+          </div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${fecha}</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           ${atF>0?`<span class="badge badge-rojo">🚨 ${atF} AT</span>`:""}
           ${alertasSaludF.length>0?`<span class="badge badge-amarillo">⚠ ${alertasSaludF.length} salud</span>`:""}
-          <span class="badge badge-azul">${pres} presentes</span>
-          <span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>
+          ${!sinDatos?`<span class="badge badge-azul">${pres} presentes</span><span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>`:""}
           <span style="color:var(--amarillo);font-size:18px">▼</span>
         </div>
       </div>
       <div class="admin-frente-body" id="${key}">
-        <div class="admin-kpi-row">
-          <div class="admin-kpi"><div class="admin-kpi-num">${pres}</div><div class="admin-kpi-label">Presentes</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${Math.round(hh*100)/100}</div><div class="admin-kpi-label">HH</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${(d.ausentismo||[]).length}</div><div class="admin-kpi-label">Ausentismo</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${(d.actividades||[]).length}</div><div class="admin-kpi-label">Actividades</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num" style="color:var(--rojo)">${atF}</div><div class="admin-kpi-label">Accidentes AT</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${(d.charlas||[]).length}</div><div class="admin-kpi-label">Charlas SST</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${(d.inspecciones||[]).length}</div><div class="admin-kpi-label">Inspecciones</div></div>
-          <div class="admin-kpi"><div class="admin-kpi-num">${(d.epp||[]).length}</div><div class="admin-kpi-label">EPP</div></div>
+        ${sinDatos
+          ? `<div style="padding:12px;color:var(--texto-muted);font-size:13px;text-align:center">
+              📭 Sin datos registrados para este frente el ${fecha}.<br>
+              <span style="font-size:11px">El colaborador aún no ha iniciado sesión hoy.</span>
+             </div>`
+          : `<div class="admin-kpi-row">
+              <div class="admin-kpi"><div class="admin-kpi-num">${pres}</div><div class="admin-kpi-label">Presentes</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${Math.round(hh*100)/100}</div><div class="admin-kpi-label">HH</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${(d.ausentismo||[]).length}</div><div class="admin-kpi-label">Ausentismo</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${(d.actividades||[]).length}</div><div class="admin-kpi-label">Actividades</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num" style="color:var(--rojo)">${atF}</div><div class="admin-kpi-label">Accidentes AT</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${(d.charlas||[]).length}</div><div class="admin-kpi-label">Charlas SST</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${(d.inspecciones||[]).length}</div><div class="admin-kpi-label">Inspecciones</div></div>
+              <div class="admin-kpi"><div class="admin-kpi-num">${(d.epp||[]).length}</div><div class="admin-kpi-label">EPP</div></div>
+            </div>
+            ${renderFrenteDetalleAdmin(d)}`
+        }
+        <!-- Acciones del frente -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--borde);margin-top:10px">
+          ${!sinDatos?`<button class="btn btn-verde" style="font-size:12px;padding:7px 14px" onclick="exportarXLSDiarioFrente('${nombreFrente}','${fecha}')">⬇ Excel diario</button>`:""}
+          <button class="btn btn-rojo" style="font-size:12px;padding:7px 14px" onclick="darDeBajaFrenteDesdeAdmin('${fKey}','${nombreFrente}')">🔒 Dar de baja</button>
         </div>
-        ${renderFrenteDetalleAdmin(d)}
       </div>
     </div>`;
   }).join("");
@@ -2299,9 +2434,133 @@ function renderAdmin() {
   renderAdmTablaInspecciones(frentes);
 }
 
-function toggleFrenteAdmin(id) {
-  const b=document.getElementById(id);
-  if(b) b.classList.toggle("abierto");
+function darDeBajaFrenteDesdeAdmin(fKey, nombre) {
+  if(!fKey||!nombre){ mostrarToast("⚠ No se pudo identificar el frente","rojo"); return; }
+  const motivo=prompt(`¿Motivo del cierre de "${nombre}"?\n(Ej: Proyecto finalizado, Emergencia atendida…)`);
+  if(motivo===null) return;
+  if(!frentesConfig[fKey]) frentesConfig[fKey]={nombre};
+  frentesConfig[fKey].estado="cerrado";
+  frentesConfig[fKey].fechaCierre=FECHA_HOY;
+  frentesConfig[fKey].motivo=motivo||"Sin especificar";
+  if(usandoFirebase) db.ref("frentes_config/"+fKey).set(frentesConfig[fKey]);
+  else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
+  mostrarToast(`🔒 Frente "${nombre}" dado de baja`,"naranja");
+  // Recargar vista
+  setTimeout(()=>cargarTodosFrente(), 800);
+}
+
+function exportarXLSDiarioFrente(nombreFrente, fecha) {
+  try {
+    // Buscar datos de este frente en todosFrente
+    const entrada = Object.values(todosFrente).find(f=>
+      f.sesion && f.sesion.frente && _fKey(f.sesion.frente)===_fKey(nombreFrente)
+    );
+    if(!entrada || entrada.sinDatos) {
+      mostrarToast("⚠ Sin datos registrados para exportar","naranja"); return;
+    }
+    const d = entrada.data || {};
+    const s = entrada.sesion || {};
+    const WB = XLSX.utils.book_new();
+
+    // ── Hoja 1: Resumen del día ──
+    const resumen = [
+      ["ISIS PROYECTOS DE INGENIERÍA S.A.S. – INFORME DIARIO SST"],
+      [`Frente: ${s.frente||nombreFrente}`],
+      [`Fecha: ${fecha}`],
+      [`Responsable: ${s.responsable||"—"}`],
+      [`Generado: ${new Date().toLocaleString("es-CO")}`],
+      [],
+      ["MÓDULO","TOTAL"],
+      ["Trabajadores presentes", (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).filter(t=>t.asistencia==="presente").length],
+      ["HH totales", (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).reduce((s,t)=>s+(t.hh||0),0)],
+      ["Actividades registradas", (d.actividades||[]).length],
+      ["Charlas SST", (d.charlas||[]).length],
+      ["EPP entregados", (d.epp||[]).length],
+      ["Ausentismo", (d.ausentismo||[]).length],
+      ["Accidentes AT", (d.accidentes||[]).length],
+      ["Inspecciones", (d.inspecciones||[]).length],
+      ["Autorreportes salud", (d.autorreportes||[]).length],
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(resumen);
+    ws1["!cols"]=[{wch:35},{wch:15}];
+    XLSX.utils.book_append_sheet(WB, ws1, "Resumen");
+
+    // ── Hoja 2: Trabajadores ──
+    const tRows=[["Nombre","Cédula","Nivel","Cargo","Empresa","Asistencia","Entrada","Salida","HH"]];
+    (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(t=>{
+      const p=plantaGlobal.find(x=>x.id===t.plantaId)||{};
+      tRows.push([p.nombre||t.nombre||"—",p.cedula||t.cedula||"—",p.nivel||"—",p.cargo||"—",p.empresa||"—",t.asistencia||"—",t.entrada||"—",t.salida||"—",t.hh||0]);
+    });
+    const ws2=XLSX.utils.aoa_to_sheet(tRows);
+    ws2["!cols"]=[{wch:28},{wch:14},{wch:14},{wch:22},{wch:22},{wch:18},{wch:10},{wch:10},{wch:8}];
+    XLSX.utils.book_append_sheet(WB, ws2, "Trabajadores");
+
+    // ── Hoja 3: Actividades ──
+    const aRows=[["Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicación","Observaciones"]];
+    (d.actividades||[]).forEach(a=>aRows.push([a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
+    const ws3=XLSX.utils.aoa_to_sheet(aRows);
+    ws3["!cols"]=[{wch:40},{wch:10},{wch:12},{wch:12},{wch:10},{wch:22},{wch:35}];
+    XLSX.utils.book_append_sheet(WB, ws3, "Actividades");
+
+    // ── Hoja 4: Charlas SST ──
+    const cRows=[["Tema","Inicio","Fin","Facilitador","Asistentes","Contenido"]];
+    (d.charlas||[]).forEach(c=>cRows.push([c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||0,c.contenido||""]));
+    const ws4=XLSX.utils.aoa_to_sheet(cRows);
+    ws4["!cols"]=[{wch:35},{wch:10},{wch:10},{wch:24},{wch:12},{wch:50}];
+    XLSX.utils.book_append_sheet(WB, ws4, "Charlas SST");
+
+    // ── Hoja 5: EPP ──
+    const eRows=[["Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+    (d.epp||[]).forEach(e=>eRows.push([e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
+    const ws5=XLSX.utils.aoa_to_sheet(eRows);
+    ws5["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:28},{wch:10},{wch:22},{wch:10}];
+    XLSX.utils.book_append_sheet(WB, ws5, "EPP");
+
+    // ── Hoja 6: Accidentes ──
+    const atRows=[["Fecha/Hora","Tipo","Trabajador","Cédula","Cargo","Parte","Lesión","Agente","Atención","FURAT","Descripción"]];
+    (d.accidentes||[]).forEach(a=>atRows.push([a.fecha||"",a.tipo||"",a.nombre||"",a.cedula||"",a.cargo||"",a.parte||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
+    const ws6=XLSX.utils.aoa_to_sheet(atRows);
+    ws6["!cols"]=[{wch:16},{wch:30},{wch:28},{wch:14},{wch:20},{wch:16},{wch:18},{wch:18},{wch:22},{wch:12},{wch:50}];
+    XLSX.utils.book_append_sheet(WB, ws6, "Accidentes AT");
+
+    // ── Hoja 7: Ausentismo ──
+    const auRows=[["Trabajador","Cédula","Cargo","Causa","Días","N° Incapacidad","Reemplazo","Observaciones"]];
+    (d.ausentismo||[]).forEach(a=>auRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||"",a.obs||""]));
+    const ws7=XLSX.utils.aoa_to_sheet(auRows);
+    ws7["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:30},{wch:8},{wch:16},{wch:24},{wch:40}];
+    XLSX.utils.book_append_sheet(WB, ws7, "Ausentismo");
+
+    // ── Hoja 8: Inspecciones ──
+    const insRows=[["Tipo","Inspector","Zona","Hora","Resultado","Hallazgos","Acciones"]];
+    (d.inspecciones||[]).forEach(i=>insRows.push([i.tipo||"",i.inspector||"",i.zona||"",i.hora||"",i.resultado||"",i.hallazgos||"",i.acciones||""]));
+    const ws8=XLSX.utils.aoa_to_sheet(insRows);
+    ws8["!cols"]=[{wch:28},{wch:24},{wch:20},{wch:10},{wch:14},{wch:40},{wch:40}];
+    XLSX.utils.book_append_sheet(WB, ws8, "Inspecciones");
+
+    // ── Hoja 9: Autorreportes Salud ──
+    const arRows=[["Trabajador","Cédula","Cargo","Hora","Condiciones","Decisión","Validado por"]];
+    (d.autorreportes||[]).forEach(a=>arRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.hora||"",(a.condiciones||[]).join(", "),a.decision||"",a.validador||""]));
+    const ws9=XLSX.utils.aoa_to_sheet(arRows);
+    ws9["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:10},{wch:50},{wch:22},{wch:24}];
+    XLSX.utils.book_append_sheet(WB, ws9, "Autorreportes Salud");
+
+    // ── Hoja 10: Clima y Tiempos Muertos ──
+    const clRows=[["Condición","Temperatura","Impacto","Observaciones"]];
+    if(d.clima&&d.clima.cond) clRows.push([d.clima.cond||"",d.clima.temp||"",d.clima.impacto||"",d.clima.obs||""]);
+    clRows.push([]);
+    clRows.push(["Evento de lluvia","Inicio","Fin","Duración","Intensidad","Observaciones"]);
+    (d.lluvias||[]).forEach(l=>clRows.push(["Lluvia",l.ini||"",l.fin||"",l.duracion||"",l.intensidad||"",l.obs||""]));
+    const ws10=XLSX.utils.aoa_to_sheet(clRows);
+    ws10["!cols"]=[{wch:24},{wch:14},{wch:22},{wch:12},{wch:12},{wch:16},{wch:40}];
+    XLSX.utils.book_append_sheet(WB, ws10, "Clima");
+
+    const nombreArchivo=`Informe_Diario_${(s.frente||nombreFrente).replace(/[^a-zA-Z0-9]/g,"_")}_${fecha}.xlsx`;
+    XLSX.writeFile(WB, nombreArchivo);
+    mostrarToast("✔ Excel diario exportado","verde");
+  } catch(err) {
+    console.error("Error exportando Excel diario:", err);
+    mostrarToast("⚠ Error al exportar: "+err.message,"rojo");
+  }
 }
 
 function renderFrenteDetalleAdmin(d) {
@@ -2476,7 +2735,10 @@ function renderFrenteDetalleAdmin(d) {
   return html;
 }
 
-function renderAdmTablaAccidentes(frentes) {
+function toggleFrenteAdmin(id) {
+  const b=document.getElementById(id);
+  if(b) b.classList.toggle("abierto");
+}(frentes) {
   let rows="";
   frentes.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
