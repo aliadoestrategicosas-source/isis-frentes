@@ -1409,8 +1409,11 @@ function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9
 let plantaGlobal = []; // Array de perfiles de trabajadores
 
 function guardarPlantaGlobal() {
+  // Guardar como objeto indexado por ID para evitar problemas de Firebase con arrays
+  const obj = {};
+  plantaGlobal.forEach(p=>{ if(p&&p.id) obj[p.id]=p; });
   if(usandoFirebase) {
-    db.ref("planta_global").set(plantaGlobal)
+    db.ref("planta_global").set(obj)
       .catch(err=>console.warn("Error guardando planta global:", err));
   } else {
     localStorage.setItem("isis_planta_global", JSON.stringify(plantaGlobal));
@@ -1420,13 +1423,25 @@ function guardarPlantaGlobal() {
 function cargarPlantaGlobal(callback) {
   if(usandoFirebase) {
     db.ref("planta_global").once("value", snap=>{
-      plantaGlobal = snap.val() || [];
-      if(!Array.isArray(plantaGlobal)) plantaGlobal = Object.values(plantaGlobal||{});
+      try {
+        const val = snap.val();
+        if(!val) {
+          plantaGlobal = [];
+        } else if(Array.isArray(val)) {
+          plantaGlobal = val.filter(x=>x&&x.id);
+        } else if(typeof val === "object") {
+          plantaGlobal = Object.values(val).filter(x=>x&&x.id);
+        } else {
+          plantaGlobal = [];
+        }
+      } catch(e) { plantaGlobal=[]; }
       if(callback) callback();
-    });
+    }, ()=>{ plantaGlobal=[]; if(callback) callback(); });
   } else {
-    try { plantaGlobal = JSON.parse(localStorage.getItem("isis_planta_global")||"[]"); }
-    catch(e){ plantaGlobal=[]; }
+    try { 
+      const raw = localStorage.getItem("isis_planta_global");
+      plantaGlobal = raw ? JSON.parse(raw).filter(x=>x&&x.id) : [];
+    } catch(e){ plantaGlobal=[]; }
     if(callback) callback();
   }
 }
@@ -2902,15 +2917,35 @@ document.getElementById("modal-foto").addEventListener("click",function(e){if(e.
 // ══════════════════════════════════════════════════════
 
 function cargarPlantaAdmin() {
-  document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando…</div>`;
+  document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando trabajadores desde Firebase…</div>`;
   if(usandoFirebase){
     db.ref("planta_global").once("value", snap=>{
-      plantaGlobal = snap.val() || [];
-      if(!Array.isArray(plantaGlobal)) plantaGlobal = Object.values(plantaGlobal||{});
-      renderPlantaAdmin();
+      try {
+        const val = snap.val();
+        if(!val) {
+          plantaGlobal = [];
+        } else if(Array.isArray(val)) {
+          // Array normal — filtrar nulls que Firebase puede insertar
+          plantaGlobal = val.filter(x=>x&&x.id);
+        } else if(typeof val === "object") {
+          // Firebase convierte arrays con huecos en objetos
+          plantaGlobal = Object.values(val).filter(x=>x&&x.id);
+        } else {
+          plantaGlobal = [];
+        }
+        renderPlantaAdmin();
+      } catch(err) {
+        document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err">⚠ Error al cargar planta: ${err.message}<br><small>Intenta recargar la página.</small></div>`;
+        console.error("Error cargarPlantaAdmin:", err);
+      }
+    }, err=>{
+      document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err">⚠ Error Firebase: ${err.message}</div>`;
     });
   } else {
-    try{ plantaGlobal=JSON.parse(localStorage.getItem("isis_planta_global")||"[]"); }catch(e){ plantaGlobal=[]; }
+    try{ 
+      const raw = localStorage.getItem("isis_planta_global");
+      plantaGlobal = raw ? JSON.parse(raw).filter(x=>x&&x.id) : [];
+    }catch(e){ plantaGlobal=[]; }
     renderPlantaAdmin();
   }
 }
