@@ -1185,13 +1185,13 @@ button, .btn, select, input { touch-action: manipulation; }
   </div>
 </div>
 <script>
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  FIREBASE CONFIG  ←  Reemplaza con tu proyecto real
-// ══════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════
+// ======================================================
+// ===============================================================
 //  PASO 1: Reemplaza estos 4 valores con los de tu proyecto Firebase
 //  Ver guía completa al final del archivo (comentario GUIA FIREBASE)
-// ═══════════════════════════════════════════════════════════════
+// ===============================================================
 const FB_CONFIG = {
   apiKey:            "AIzaSyB9z8cmUgzoUTR5eHrriDfPd_ZX0Zh01hM",
   authDomain:        "isis-gestion--frentes.firebaseapp.com",
@@ -1202,15 +1202,15 @@ const FB_CONFIG = {
   appId:             "1:834427673321:web:bd0e4f866ee08222556e78"
 };
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  CREDENCIALES ADMINISTRADOR  ←  Cambia estas claves
-// ══════════════════════════════════════════════════════
+// ======================================================
 const ADMIN_USER = "admin.isis";      // ← CAMBIA ESTO: tu usuario administrador
 const ADMIN_PASS = "Isis2026*";  // ← CAMBIA ESTO: tu contraseña segura
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  INIT FIREBASE
-// ══════════════════════════════════════════════════════
+// ======================================================
 let db = null, usandoFirebase = false;
 try {
   if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
@@ -1218,9 +1218,9 @@ try {
   console.log("Firebase conectado");
 } catch(e) { console.warn("Firebase no configurado – modo localStorage"); }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  ESTADO GLOBAL
-// ══════════════════════════════════════════════════════
+// ======================================================
 let ROL = null; // 'colab' | 'admin'
 let SESION = { frente:"", responsable:"", fecha:"", activa:false };
 let DATA = { planta:[], trabajadores:[], actividades:[], ausentismo:[], accidentes:[],
@@ -1244,7 +1244,7 @@ const FECHA_HOY = HOY.toISOString().split("T")[0];
 document.getElementById("badge-fecha").textContent =
   HOY.toLocaleDateString("es-CO",{weekday:"short",year:"numeric",month:"short",day:"numeric"}).toUpperCase();
 
-// ── Cargar frente guardado en este dispositivo ──────
+// == Cargar frente guardado en este dispositivo ======
 const FRENTE_KEY = "isis_frente_config";
 function cargarFrenteGuardado() {
   try {
@@ -1269,9 +1269,9 @@ function cargarFrenteGuardado() {
 }
 cargarFrenteGuardado();
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  LOGIN
-// ══════════════════════════════════════════════════════
+// ======================================================
 function selTab(t) {
   document.querySelectorAll(".login-tab").forEach(b=>{
     b.classList.toggle("active", b.getAttribute("onclick").includes("'"+t+"'"));
@@ -1414,9 +1414,9 @@ function cerrarSesion() {
   location.reload();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  FIREBASE / STORAGE
-// ══════════════════════════════════════════════════════
+// ======================================================
 function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_"); }
 
 // Planta global — persiste en /planta_global, independiente de fecha y frente
@@ -1623,9 +1623,9 @@ function cargarTodosFrente() {
   }
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  NAVEGACIÓN COLABORADOR
-// ══════════════════════════════════════════════════════
+// ======================================================
 function tab(id) {
   document.querySelectorAll("#vista-colab .seccion").forEach(s=>s.classList.remove("activa"));
   document.querySelectorAll("#nav-colab button").forEach(b=>b.classList.remove("active"));
@@ -1715,9 +1715,9 @@ function cargarFrentesDetalle() {
   }
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  HELPERS
-// ══════════════════════════════════════════════════════
+// ======================================================
 function chk() { if(!SESION.activa){alert("Sesión no activa.");return false;} return true; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function calcHH(ini,fin) {
@@ -1725,10 +1725,10 @@ function calcHH(ini,fin) {
   const [hi,mi]=ini.split(":").map(Number),[hf,mf]=fin.split(":").map(Number);
   return Math.max(0,Math.round(((hf*60+mf)-(hi*60+mi))/60*100)/100);
 }
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  AUTOFILL DESDE PLANTA — rellena campos de formularios
 //  al seleccionar trabajador en los selectores
-// ══════════════════════════════════════════════════════
+// ======================================================
 
 // Pobla todos los selectores de trabajadores con la planta activa
 function poblarSelectoresPlanta() {
@@ -1807,9 +1807,9 @@ function renderizarTodo() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  TRABAJADORES – PLANTA GLOBAL + ASISTENCIA DIARIA
-// ══════════════════════════════════════════════════════
+// ======================================================
 
 // Toggle visibilidad del panel planta
 function togglePlanta() {
@@ -1901,7 +1901,7 @@ function renderT() {
   const plantaActiva = plantaGlobal.filter(p=>p.activo);
   const plantaTodos  = plantaGlobal;
 
-  // ── Panel asistencia del día ──────────────────────────
+  // == Panel asistencia del día ==========================
   let hhTotal=0, presentes=0;
   const asistenciaHTML = plantaActiva.length===0
     ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores activos en la planta. Agrégalos abajo ↓</div>`
@@ -1941,7 +1941,7 @@ function renderT() {
   document.getElementById("conteo-t").textContent = `${presentes} presentes`;
   document.getElementById("total-hh").textContent = Math.round(hhTotal*100)/100;
 
-  // ── Tabla planta (todos, activos e inactivos) ─────────
+  // == Tabla planta (todos, activos e inactivos) =========
   document.getElementById("tbody-planta").innerHTML = plantaTodos.map((p,i)=>{
     const ab = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
     const estado = p.activo
@@ -1990,9 +1990,9 @@ function setAsistencia(plantaId, campo, valor) {
 function actualizarHHForm(){}
 function editarHoraTrabajador(){}
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  ACTIVIDADES
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarActividad() {
   if(!chk()) return;
   const prog=parseFloat(gv("a-prog"))||0, ejec=parseFloat(gv("a-ejec"))||0;
@@ -2014,9 +2014,9 @@ function renderA() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  AUSENTISMO
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarAusentismo() {
   if(!chk()) return;
   const nombre=getNombrePlanta("au");
@@ -2035,9 +2035,9 @@ function renderAu() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  ACCIDENTES
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarAccidente() {
   if(!chk()) return;
   const nombre=getNombrePlanta("at");
@@ -2060,9 +2060,9 @@ function renderAt() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  MATERIALES
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarMaterial() {
   if(!chk()) return;
   const m={id:uid(),cat:gv("m-cat"),desc:gv("m-desc"),ref:gv("m-ref"),unidad:gv("m-unidad"),
@@ -2080,9 +2080,9 @@ function renderM() {
     <td><button class="btn btn-rojo" onclick="eliminar('materiales','${m.id}')">✕</button></td></tr>`).join("");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  CHARLAS SST
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarCharla() {
   if(!chk()) return;
   const temaB=gv("ch-tema"), temaO=gv("ch-otro").trim();
@@ -2103,9 +2103,9 @@ function renderCh() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  INSPECCIONES
-// ══════════════════════════════════════════════════════
+// ======================================================
 function addInsItem() {
   const desc=document.getElementById("ins-item-desc").value.trim();
   const est=gv("ins-item-est");
@@ -2149,9 +2149,9 @@ function renderIns() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  AUTORREPORTE SALUD
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarAutorreporte() {
   if(!chk()) return;
   const nombre=getNombrePlanta("ar");
@@ -2184,9 +2184,9 @@ function renderAr() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  CLIMA / LLUVIA
-// ══════════════════════════════════════════════════════
+// ======================================================
 function guardarClima() {
   if(!chk()) return;
   DATA.clima={cond:gv("cl-cond"),temp:gv("cl-temp"),impacto:gv("cl-impacto"),obs:gv("cl-obs")};
@@ -2226,9 +2226,9 @@ function renderCl() {
     <td><button class="btn btn-rojo" onclick="eliminar('lluvias','${l.id}')">✕</button></td></tr>`).join("");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  EPP
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarEPP() {
   if(!chk()) return;
   const nombre=getNombrePlanta("epp");
@@ -2249,9 +2249,9 @@ function renderEpp() {
   refrescarDashboard();
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  RESIDUOS
-// ══════════════════════════════════════════════════════
+// ======================================================
 function agregarResiduo() {
   if(!chk()) return;
   const r={id:uid(),tipo:gv("r-tipo"),clase:gv("r-clase"),cant:gv("r-cant"),
@@ -2267,9 +2267,9 @@ function renderR() {
     <td><button class="btn btn-rojo" onclick="eliminar('residuos','${r.id}')">✕</button></td></tr>`).join("");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  FOTOS
-// ══════════════════════════════════════════════════════
+// ======================================================
 function cargarFotosModulo(input,prevId,dest) {
   document.getElementById(prevId).innerHTML="";
   if(dest==="ch") chFotos=[];
@@ -2330,9 +2330,9 @@ function verFoto(id) {
   document.getElementById("modal-foto").classList.add("abierto");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  DASHBOARD COLABORADOR
-// ══════════════════════════════════════════════════════
+// ======================================================
 function refrescarDashboard() {
   if(ROL!=="colab") return;
   const fecha = SESION.fecha;
@@ -2365,9 +2365,9 @@ function refrescarDashboard() {
   </div>`).join("");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  VISTA ADMINISTRADOR – RENDER
-// ══════════════════════════════════════════════════════
+// ======================================================
 function renderAdmin() {
   const frentes = Object.values(todosFrente);
   const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
@@ -2491,7 +2491,7 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     const s = entrada.sesion || {};
     const WB = XLSX.utils.book_new();
 
-    // ── Hoja 1: Resumen del día ──
+    // == Hoja 1: Resumen del día ==
     const resumen = [
       ["ISIS PROYECTOS DE INGENIERÍA S.A.S. – INFORME DIARIO SST"],
       [`Frente: ${s.frente||nombreFrente}`],
@@ -2514,7 +2514,7 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     ws1["!cols"]=[{wch:35},{wch:15}];
     XLSX.utils.book_append_sheet(WB, ws1, "Resumen");
 
-    // ── Hoja 2: Trabajadores ──
+    // == Hoja 2: Trabajadores ==
     const tRows=[["Nombre","Cédula","Nivel","Cargo","Empresa","Asistencia","Entrada","Salida","HH"]];
     (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(t=>{
       const p=plantaGlobal.find(x=>x.id===t.plantaId)||{};
@@ -2524,56 +2524,56 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     ws2["!cols"]=[{wch:28},{wch:14},{wch:14},{wch:22},{wch:22},{wch:18},{wch:10},{wch:10},{wch:8}];
     XLSX.utils.book_append_sheet(WB, ws2, "Trabajadores");
 
-    // ── Hoja 3: Actividades ──
+    // == Hoja 3: Actividades ==
     const aRows=[["Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicación","Observaciones"]];
     (d.actividades||[]).forEach(a=>aRows.push([a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
     const ws3=XLSX.utils.aoa_to_sheet(aRows);
     ws3["!cols"]=[{wch:40},{wch:10},{wch:12},{wch:12},{wch:10},{wch:22},{wch:35}];
     XLSX.utils.book_append_sheet(WB, ws3, "Actividades");
 
-    // ── Hoja 4: Charlas SST ──
+    // == Hoja 4: Charlas SST ==
     const cRows=[["Tema","Inicio","Fin","Facilitador","Asistentes","Contenido"]];
     (d.charlas||[]).forEach(c=>cRows.push([c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||0,c.contenido||""]));
     const ws4=XLSX.utils.aoa_to_sheet(cRows);
     ws4["!cols"]=[{wch:35},{wch:10},{wch:10},{wch:24},{wch:12},{wch:50}];
     XLSX.utils.book_append_sheet(WB, ws4, "Charlas SST");
 
-    // ── Hoja 5: EPP ──
+    // == Hoja 5: EPP ==
     const eRows=[["Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
     (d.epp||[]).forEach(e=>eRows.push([e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
     const ws5=XLSX.utils.aoa_to_sheet(eRows);
     ws5["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:28},{wch:10},{wch:22},{wch:10}];
     XLSX.utils.book_append_sheet(WB, ws5, "EPP");
 
-    // ── Hoja 6: Accidentes ──
+    // == Hoja 6: Accidentes ==
     const atRows=[["Fecha/Hora","Tipo","Trabajador","Cédula","Cargo","Parte","Lesión","Agente","Atención","FURAT","Descripción"]];
     (d.accidentes||[]).forEach(a=>atRows.push([a.fecha||"",a.tipo||"",a.nombre||"",a.cedula||"",a.cargo||"",a.parte||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
     const ws6=XLSX.utils.aoa_to_sheet(atRows);
     ws6["!cols"]=[{wch:16},{wch:30},{wch:28},{wch:14},{wch:20},{wch:16},{wch:18},{wch:18},{wch:22},{wch:12},{wch:50}];
     XLSX.utils.book_append_sheet(WB, ws6, "Accidentes AT");
 
-    // ── Hoja 7: Ausentismo ──
+    // == Hoja 7: Ausentismo ==
     const auRows=[["Trabajador","Cédula","Cargo","Causa","Días","N° Incapacidad","Reemplazo","Observaciones"]];
     (d.ausentismo||[]).forEach(a=>auRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||"",a.obs||""]));
     const ws7=XLSX.utils.aoa_to_sheet(auRows);
     ws7["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:30},{wch:8},{wch:16},{wch:24},{wch:40}];
     XLSX.utils.book_append_sheet(WB, ws7, "Ausentismo");
 
-    // ── Hoja 8: Inspecciones ──
+    // == Hoja 8: Inspecciones ==
     const insRows=[["Tipo","Inspector","Zona","Hora","Resultado","Hallazgos","Acciones"]];
     (d.inspecciones||[]).forEach(i=>insRows.push([i.tipo||"",i.inspector||"",i.zona||"",i.hora||"",i.resultado||"",i.hallazgos||"",i.acciones||""]));
     const ws8=XLSX.utils.aoa_to_sheet(insRows);
     ws8["!cols"]=[{wch:28},{wch:24},{wch:20},{wch:10},{wch:14},{wch:40},{wch:40}];
     XLSX.utils.book_append_sheet(WB, ws8, "Inspecciones");
 
-    // ── Hoja 9: Autorreportes Salud ──
+    // == Hoja 9: Autorreportes Salud ==
     const arRows=[["Trabajador","Cédula","Cargo","Hora","Condiciones","Decisión","Validado por"]];
     (d.autorreportes||[]).forEach(a=>arRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.hora||"",(a.condiciones||[]).join(", "),a.decision||"",a.validador||""]));
     const ws9=XLSX.utils.aoa_to_sheet(arRows);
     ws9["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:10},{wch:50},{wch:22},{wch:24}];
     XLSX.utils.book_append_sheet(WB, ws9, "Autorreportes Salud");
 
-    // ── Hoja 10: Clima y Tiempos Muertos ──
+    // == Hoja 10: Clima y Tiempos Muertos ==
     const clRows=[["Condición","Temperatura","Impacto","Observaciones"]];
     if(d.clima&&d.clima.cond) clRows.push([d.clima.cond||"",d.clima.temp||"",d.clima.impacto||"",d.clima.obs||""]);
     clRows.push([]);
@@ -2596,7 +2596,7 @@ function renderFrenteDetalleAdmin(d) {
   const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
   let html = "";
 
-  // ── TRABAJADORES Y HH ──────────────────────────────
+  // == TRABAJADORES Y HH ==============================
   const asistHoy = (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
   const presentes = asistHoy.filter(t=>t.asistencia==="presente");
   const ausentes  = asistHoy.filter(t=>t.asistencia&&t.asistencia!=="presente");
@@ -2625,7 +2625,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── ACTIVIDADES ────────────────────────────────────
+  // == ACTIVIDADES ====================================
   if((d.actividades||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid var(--naranja);border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">⚙ ACTIVIDADES (${d.actividades.length})</div>`;
@@ -2641,7 +2641,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── CLIMA Y TIEMPOS MUERTOS ────────────────────────
+  // == CLIMA Y TIEMPOS MUERTOS ========================
   const lluvias = d.lluvias||[];
   const totalMinLluvia = lluvias.reduce((s,l)=>{
     if(!l.ini||!l.fin) return s;
@@ -2679,7 +2679,7 @@ function renderFrenteDetalleAdmin(d) {
   }
   html+=`</div>`;
 
-  // ── CHARLAS SST ────────────────────────────────────
+  // == CHARLAS SST ====================================
   if((d.charlas||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F5F0FF;border-left:3px solid var(--morado);border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📢 CHARLAS SST (${d.charlas.length})</div>`;
@@ -2689,7 +2689,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── EPP ────────────────────────────────────────────
+  // == EPP ============================================
   if((d.epp||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F0FFF4;border-left:3px solid var(--verde);border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🦺 EPP ENTREGADO (${d.epp.length} entregas)</div>`;
@@ -2699,7 +2699,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── AUSENTISMO ─────────────────────────────────────
+  // == AUSENTISMO =====================================
   if((d.ausentismo||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#FFF8F0;border-left:3px solid var(--amarillo);border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🏥 AUSENTISMO (${d.ausentismo.length})</div>`;
@@ -2709,7 +2709,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── ACCIDENTES ─────────────────────────────────────
+  // == ACCIDENTES =====================================
   if((d.accidentes||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#FFF0F0;border-left:3px solid var(--rojo);border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--rojo);margin-bottom:6px">🚨 ACCIDENTES / INCIDENTES (${d.accidentes.length})</div>`;
@@ -2721,7 +2721,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── INSPECCIONES ───────────────────────────────────
+  // == INSPECCIONES ===================================
   if((d.inspecciones||[]).length) {
     const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
     html+=`<div class="resumen-bloque" style="background:#F8F9FA;border-left:3px solid #5D6D7E;border-radius:4px;padding:10px 12px;margin-top:10px">
@@ -2737,7 +2737,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── AUTORREPORTES SALUD ────────────────────────────
+  // == AUTORREPORTES SALUD ============================
   const arConAlerta=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
   if((d.autorreportes||[]).length) {
     html+=`<div class="resumen-bloque" style="background:${arConAlerta.length?"#FFF0F0":"#F0FFF4"};border-left:3px solid ${arConAlerta.length?"var(--rojo)":"var(--verde)"};border-radius:4px;padding:10px 12px;margin-top:10px">
@@ -2752,7 +2752,7 @@ function renderFrenteDetalleAdmin(d) {
     html+=`</div>`;
   }
 
-  // ── MATERIALES ─────────────────────────────────────
+  // == MATERIALES =====================================
   if((d.materiales||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid #888;border-radius:4px;padding:10px 12px;margin-top:10px">
       <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📦 MATERIALES (${d.materiales.length})</div>`;
@@ -2767,7 +2767,9 @@ function renderFrenteDetalleAdmin(d) {
 function toggleFrenteAdmin(id) {
   const b=document.getElementById(id);
   if(b) b.classList.toggle("abierto");
-}(frentes) {
+}
+
+function renderAdmTablaAccidentes(frentes) {
   let rows="";
   frentes.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
@@ -2837,9 +2839,9 @@ function renderAdmTablaInspecciones(frentes) {
     `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Tipo</th><th>Inspector</th><th>Nivel</th><th>Zona</th><th>Hora</th><th>Resultado</th><th>Hallazgos</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  INFORME EJECUTIVO ADMIN
-// ══════════════════════════════════════════════════════
+// ======================================================
 function previsualizarAdmin() {
   const frentes=Object.values(todosFrente);
   const fecha=document.getElementById("adm-fecha-filtro").value||FECHA_HOY;
@@ -2926,9 +2928,9 @@ function exportarJSONAdmin() {
 // Modal cierre
 document.getElementById("modal-foto").addEventListener("click",function(e){if(e.target===this)cerrarModal();});
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  PLANTA GLOBAL — GESTIÓN DESDE ADMIN
-// ══════════════════════════════════════════════════════
+// ======================================================
 
 function cargarPlantaAdmin() {
   document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando trabajadores desde Firebase…</div>`;
@@ -3274,9 +3276,9 @@ function editarClaveFrente(key, nombre) {
   mostrarToast(`🔑 Clave de "${nombre}" actualizada`,"verde");
 }
 
-// ══════════════════════════════════════════════════════
+// ======================================================
 //  INFORME SEMANAL
-// ══════════════════════════════════════════════════════
+// ======================================================
 
 function setSemanaActual() {
   const hoy = new Date();
@@ -3444,7 +3446,7 @@ function renderResumenSemanal(fechas) {
   document.getElementById("sem-kpis").style.display="block";
 }
 
-// ── Exportar Excel semanal ─────────────────────────────
+// == Exportar Excel semanal =============================
 async function exportarXLSSemanal() {
   const inicio=document.getElementById("sem-inicio").value;
   const fin=document.getElementById("sem-fin").value;
@@ -3468,7 +3470,7 @@ async function exportarXLSSemanal() {
   const estiloSub ={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{fgColor:{rgb:"1B4F72"}},alignment:{horizontal:"center"}};
   const estiloNum ={font:{bold:true,color:{rgb:"E8610A"}},alignment:{horizontal:"center"}};
 
-  // ── HOJA 1: RESUMEN GENERAL ──────────────────────────
+  // == HOJA 1: RESUMEN GENERAL ==========================
   const resumenRows=[];
   resumenRows.push(["ISIS PROYECTOS DE INGENIERÍA – INFORME SEMANAL SST"]);
   resumenRows.push([`Período: ${inicio} al ${fin}`]);
@@ -3507,7 +3509,7 @@ async function exportarXLSSemanal() {
   ws1["!cols"]=[{wch:40},{wch:20}];
   XLSX.utils.book_append_sheet(WB, ws1, "Resumen General");
 
-  // ── HOJA 2: HH POR FRENTE Y DÍA ────────────────────
+  // == HOJA 2: HH POR FRENTE Y DÍA ====================
   const hhRows=[];
   const frentesArr=[...frentesSet].sort();
   const diasHeader=fechas.map(f=>{const d=new Date(f+"T00:00:00");return d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit",month:"2-digit"});});
@@ -3537,7 +3539,7 @@ async function exportarXLSSemanal() {
   ws2["!cols"]=[{wch:30},...fechas.map(()=>({wch:12})),{wch:12}];
   XLSX.utils.book_append_sheet(WB, ws2, "HH por Frente");
 
-  // ── HOJA 3: TRAZABILIDAD TRABAJADORES ───────────────
+  // == HOJA 3: TRAZABILIDAD TRABAJADORES ===============
   const trabMap={};
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
@@ -3567,7 +3569,7 @@ async function exportarXLSSemanal() {
   ws3["!cols"]=[{wch:28},{wch:14},{wch:14},{wch:22},{wch:22},...fechas.map(()=>({wch:24})),{wch:16}];
   XLSX.utils.book_append_sheet(WB, ws3, "Trazabilidad Trabajadores");
 
-  // ── HOJA 4: ACCIDENTES ──────────────────────────────
+  // == HOJA 4: ACCIDENTES ==============================
   const atRows=[["Fecha","Frente","Tipo","Nombre","Cédula","Cargo","ARL","Parte afectada","Lesión","Agente","Atención","N° FURAT","Descripción"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
@@ -3581,7 +3583,7 @@ async function exportarXLSSemanal() {
   ws4["!cols"]=[{wch:12},{wch:24},{wch:30},{wch:28},{wch:14},{wch:20},{wch:16},{wch:18},{wch:20},{wch:20},{wch:22},{wch:12},{wch:50}];
   XLSX.utils.book_append_sheet(WB, ws4, "Accidentes AT");
 
-  // ── HOJA 5: AUSENTISMO ──────────────────────────────
+  // == HOJA 5: AUSENTISMO ==============================
   const ausRows=[["Fecha","Frente","Trabajador","Cédula","Causa","Días","N° Incapacidad","Reemplazado por","Observaciones"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
@@ -3595,7 +3597,7 @@ async function exportarXLSSemanal() {
   ws5["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:14},{wch:30},{wch:8},{wch:16},{wch:24},{wch:40}];
   XLSX.utils.book_append_sheet(WB, ws5, "Ausentismo");
 
-  // ── HOJA 6: CHARLAS SST ─────────────────────────────
+  // == HOJA 6: CHARLAS SST =============================
   const chRows=[["Fecha","Frente","Tema","Inicio","Fin","Facilitador","N° Asistentes","Contenido"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
@@ -3609,7 +3611,7 @@ async function exportarXLSSemanal() {
   ws6["!cols"]=[{wch:12},{wch:24},{wch:40},{wch:10},{wch:10},{wch:24},{wch:14},{wch:50}];
   XLSX.utils.book_append_sheet(WB, ws6, "Charlas SST");
 
-  // ── HOJA 7: INSPECCIONES ────────────────────────────
+  // == HOJA 7: INSPECCIONES ============================
   const insRows=[["Fecha","Frente","Tipo","Inspector","Zona","Hora","Resultado","Hallazgos","Acciones","Resp. Cierre"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
@@ -3623,7 +3625,7 @@ async function exportarXLSSemanal() {
   ws7["!cols"]=[{wch:12},{wch:24},{wch:30},{wch:24},{wch:20},{wch:10},{wch:16},{wch:40},{wch:40},{wch:24}];
   XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
 
-  // ── HOJA 8: EPP ─────────────────────────────────────
+  // == HOJA 8: EPP =====================================
   const eppRows=[["Fecha","Frente","Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
