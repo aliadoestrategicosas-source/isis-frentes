@@ -293,8 +293,8 @@ button, .btn, select, input { touch-action: manipulation; }
       <!-- Vista: login con credenciales -->
       <div id="login-frente-nuevo">
         <div style="font-size:13px;color:var(--texto-muted);margin-bottom:14px">Ingresa las credenciales que te envió la administradora.</div>
-        <input class="login-field" id="c-frente" type="text" placeholder="Nombre del frente (tal como te lo enviaron)" autocomplete="off">
-        <input class="login-field" id="c-clave-frente" type="password" placeholder="Clave del frente" autocomplete="off">
+        <input class="login-field" id="c-frente" type="text" placeholder="Nombre del frente de trabajo" autocomplete="off">
+        <input class="login-field" id="c-clave-frente" type="password" placeholder="Clave del frente (si te la enviaron)" autocomplete="off">
         <input class="login-field" id="c-responsable" type="text" placeholder="Tu nombre completo" autocomplete="off">
         <input class="login-field" id="c-fecha2" type="date">
         <div style="display:flex;gap:8px">
@@ -302,8 +302,8 @@ button, .btn, select, input { touch-action: manipulation; }
           <button id="btn-cancelar-nuevo" onclick="cancelarNuevoFrente()" style="display:none;flex:1;background:none;border:1px solid var(--borde);border-radius:6px;padding:10px;font-size:12px;color:var(--texto-muted);cursor:pointer">✕ Cancelar</button>
         </div>
       </div>
-      <div class="login-error" id="err-colab">Credenciales incorrectas o campos incompletos.</div>
-      <div class="login-hint">Contacta a la coordinadora SST si no tienes tus credenciales.</div>
+      <div class="login-error" id="err-colab">Clave incorrecta o campos incompletos. Verifica el nombre del frente y la clave.</div>
+      <div class="login-hint">Si no tienes clave, déjala en blanco e ingresa con nombre y fecha.</div>
     </div>
 
     <!-- FORM ADMIN -->
@@ -1282,33 +1282,44 @@ function entrarColab() {
   const clave    = document.getElementById("c-clave-frente").value.trim();
   const resp     = document.getElementById("c-responsable").value.trim();
   const fecha    = document.getElementById("c-fecha2").value;
-  if(!frente||!clave||!resp||!fecha){ mostrarErr("err-colab"); return; }
+  if(!frente||!resp||!fecha){ mostrarErr("err-colab"); return; }
 
-  // Validar contra frentes_config en Firebase o localStorage
-  const verificar = (cfg) => {
-    const key = _fKey(frente);
-    // Buscar por nombre exacto o aproximado
-    const match = Object.values(cfg||{}).find(f=>
-      f.nombre && f.nombre.trim().toLowerCase()===frente.toLowerCase() && f.clave===clave
-    );
-    if(!match){ mostrarErr("err-colab"); return; }
-    if((match.estado||"activo")==="cerrado"){
-      alert("Este frente está cerrado y ya no acepta nuevos registros.\nContacta a la coordinadora SST.");
-      return;
-    }
-    // Guardar en dispositivo
-    localStorage.setItem(FRENTE_KEY, JSON.stringify({frente:match.nombre, responsable:resp, clave}));
+  const entrar = (nombreFrente) => {
+    localStorage.setItem(FRENTE_KEY, JSON.stringify({frente:nombreFrente, responsable:resp, clave}));
     ROL="colab";
-    SESION={frente:match.nombre, responsable:resp, fecha, activa:true};
+    SESION={frente:nombreFrente, responsable:resp, fecha, activa:true};
     iniciarApp();
   };
 
-  if(usandoFirebase){
-    db.ref("frentes_config").once("value", snap=>{ verificar(snap.val()||{}); });
+  if(usandoFirebase && clave) {
+    // Si hay clave, validar contra frentes_config
+    db.ref("frentes_config").once("value", snap=>{
+      const cfg = snap.val()||{};
+      const hayFrente = Object.keys(cfg).length > 0;
+
+      if(!hayFrente) {
+        // No hay frentes configurados — entrar libremente
+        entrar(frente); return;
+      }
+
+      const match = Object.values(cfg).find(f=>
+        f.nombre && f.nombre.trim().toLowerCase()===frente.toLowerCase() && f.clave===clave
+      );
+
+      if(match) {
+        if((match.estado||"activo")==="cerrado"){
+          alert("Este frente está cerrado.\nContacta a la coordinadora SST.");
+          return;
+        }
+        entrar(match.nombre);
+      } else {
+        // Clave incorrecta
+        mostrarErr("err-colab");
+      }
+    }, ()=>{ entrar(frente); }); // Error Firebase → entrar de todas formas
   } else {
-    // Sin Firebase: aceptar cualquier frente (modo local)
-    localStorage.setItem(FRENTE_KEY, JSON.stringify({frente, responsable:resp, clave}));
-    ROL="colab"; SESION={frente, responsable:resp, fecha, activa:true}; iniciarApp();
+    // Sin clave o sin Firebase → entrar directamente
+    entrar(frente);
   }
 }
 
