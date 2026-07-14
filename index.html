@@ -967,22 +967,34 @@ button, .btn, select, input { touch-action: manipulation; }
 </div>
 
 <div id="sec-admin-informe" class="seccion-admin" style="display:none">
-  <div class="section-header"><h2>Informe Ejecutivo Consolidado</h2></div>
+  <div class="section-header"><h2>📄 Informe Ejecutivo Diario</h2></div>
   <div class="card card-admin">
-    <div class="card-titulo">📄 Generar Informe</div>
+    <div class="card-titulo">⚙ Configurar Informe</div>
     <div class="form-grid">
-      <div class="form-group"><label>Tipo</label>
-        <select id="adm-inf-tipo"><option value="diario">Informe Diario</option><option value="semanal">Informe Semanal</option></select>
+      <div class="form-group">
+        <label>Fecha del informe</label>
+        <input type="date" id="adm-inf-fecha" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
       </div>
-      <div class="form-group"><label>Semana (si aplica)</label><input id="adm-inf-semana" type="week"></div>
+      <div class="form-group">
+        <label>Frente (dejar vacío = todos)</label>
+        <select id="adm-inf-frente" style="border:1px solid var(--borde);border-radius:6px;padding:10px 12px;font-size:14px;width:100%">
+          <option value="">Todos los frentes</option>
+        </select>
+      </div>
     </div>
-    <div class="btn-row">
+    <div class="btn-row" style="margin-top:14px">
       <button class="btn btn-primario" onclick="previsualizarAdmin()">👁 Previsualizar</button>
       <button class="btn btn-verde" onclick="exportarInformeAdmin()">⬇ Exportar PDF</button>
       <button class="btn btn-amarillo" onclick="exportarJSONAdmin()">💾 Respaldo JSON</button>
     </div>
+    <div class="alerta alerta-info" style="margin-top:12px;font-size:12px">
+      💡 Para el informe diario, primero ve a <strong>Consolidado</strong>, carga los datos de la fecha y luego regresa aquí a previsualizar.
+    </div>
   </div>
-  <div class="card" id="adm-preview" style="display:none">
+  <div class="card" id="adm-preview" style="display:none;margin-top:14px">
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-verde" onclick="exportarInformeAdmin()">⬇ Exportar este informe como PDF</button>
+    </div>
     <div id="adm-preview-contenido"></div>
   </div>
 </div>
@@ -1463,47 +1475,106 @@ function cargarPlantaGlobal(callback) {
 function guardarDatos() {
   if (!SESION.activa) return;
   setSyncDot(false);
-  // DATA.planta siempre apunta a plantaGlobal — no se guarda en el registro diario
-  const dataParaGuardar = {...DATA, planta: undefined};
-  const payload = { sesion:SESION, data:dataParaGuardar, ts:new Date().toISOString() };
+  // Construir objeto limpio para guardar — sin planta (va en /planta_global)
+  // Reemplazar arrays vacíos con [] explícito y nunca null/undefined
+  const dataLimpia = {
+    trabajadores: DATA.trabajadores||[],
+    actividades:  DATA.actividades||[],
+    ausentismo:   DATA.ausentismo||[],
+    accidentes:   DATA.accidentes||[],
+    materiales:   DATA.materiales||[],
+    charlas:      DATA.charlas||[],
+    epp:          DATA.epp||[],
+    residuos:     DATA.residuos||[],
+    inspecciones: DATA.inspecciones||[],
+    autorreportes:DATA.autorreportes||[],
+    lluvias:      DATA.lluvias||[],
+    fotos:        DATA.fotos||[],
+    clima:        DATA.clima||{}
+  };
+  const payload = { sesion:SESION, data:dataLimpia, ts:new Date().toISOString() };
   if (usandoFirebase) {
     db.ref("frentes/"+claveDB()).set(payload)
-      .then(()=>setSyncDot(true)).catch(()=>setSyncDot(false));
+      .then(()=>setSyncDot(true))
+      .catch(err=>{ setSyncDot(false); console.warn("Firebase save error:",err); });
   } else {
-    localStorage.setItem("isis_"+claveDB(), JSON.stringify(payload));
-    setSyncDot(true);
+    try {
+      localStorage.setItem("isis_"+claveDB(), JSON.stringify(payload));
+      setSyncDot(true);
+    } catch(e){ setSyncDot(false); }
   }
 }
 
 function cargarDatos() {
   if (!SESION.activa) return;
-  // Primero carga la planta global, luego los datos del día
   cargarPlantaGlobal(()=>{
-    DATA.planta = plantaGlobal;
     if (usandoFirebase) {
       setSyncDot(false);
       db.ref("frentes/"+claveDB()).on("value", snap=>{
-        const v = snap.val();
-        if (v && v.data) {
-          DATA = {...v.data, planta: plantaGlobal}; // siempre usa planta global
+        try {
+          const v = snap.val();
+          if (v && v.data) {
+            // Fusionar con valores por defecto para evitar nulls de Firebase
+            DATA = {
+              trabajadores:  Array.isArray(v.data.trabajadores)  ? v.data.trabajadores  : [],
+              actividades:   Array.isArray(v.data.actividades)   ? v.data.actividades   : [],
+              ausentismo:    Array.isArray(v.data.ausentismo)    ? v.data.ausentismo    : [],
+              accidentes:    Array.isArray(v.data.accidentes)    ? v.data.accidentes    : [],
+              materiales:    Array.isArray(v.data.materiales)    ? v.data.materiales    : [],
+              charlas:       Array.isArray(v.data.charlas)       ? v.data.charlas       : [],
+              epp:           Array.isArray(v.data.epp)           ? v.data.epp           : [],
+              residuos:      Array.isArray(v.data.residuos)      ? v.data.residuos      : [],
+              inspecciones:  Array.isArray(v.data.inspecciones)  ? v.data.inspecciones  : [],
+              autorreportes: Array.isArray(v.data.autorreportes) ? v.data.autorreportes : [],
+              lluvias:       Array.isArray(v.data.lluvias)       ? v.data.lluvias       : [],
+              fotos:         Array.isArray(v.data.fotos)         ? v.data.fotos         : [],
+              clima:         v.data.clima && typeof v.data.clima==="object" ? v.data.clima : {},
+              planta:        plantaGlobal
+            };
+          } else {
+            // Día nuevo — inicializar vacío
+            DATA = {
+              trabajadores:[], actividades:[], ausentismo:[], accidentes:[],
+              materiales:[], charlas:[], epp:[], residuos:[], inspecciones:[],
+              autorreportes:[], lluvias:[], fotos:[], clima:{}, planta:plantaGlobal
+            };
+          }
+        } catch(e) {
+          console.warn("Error procesando datos Firebase:", e);
           normalizarData();
-        } else {
-          // Día nuevo — solo inicializar arrays vacíos, planta ya está cargada
-          normalizarData();
-          DATA.planta = plantaGlobal;
         }
-        setSyncDot(true); renderizarTodo();
-      }, ()=>setSyncDot(false));
-    } else {
-      const raw = localStorage.getItem("isis_"+claveDB());
-      if (raw) {
-        const p=JSON.parse(raw);
-        if(p.data){ DATA={...p.data, planta:plantaGlobal}; normalizarData(); }
-      } else {
-        normalizarData();
         DATA.planta = plantaGlobal;
-      }
-      setSyncDot(true); renderizarTodo();
+        setSyncDot(true);
+        renderizarTodo();
+      }, err=>{ setSyncDot(false); console.warn("Firebase listener error:", err); });
+    } else {
+      try {
+        const raw = localStorage.getItem("isis_"+claveDB());
+        if (raw) {
+          const p = JSON.parse(raw);
+          if(p.data) {
+            DATA = {
+              trabajadores:  Array.isArray(p.data.trabajadores)  ? p.data.trabajadores  : [],
+              actividades:   Array.isArray(p.data.actividades)   ? p.data.actividades   : [],
+              ausentismo:    Array.isArray(p.data.ausentismo)    ? p.data.ausentismo    : [],
+              accidentes:    Array.isArray(p.data.accidentes)    ? p.data.accidentes    : [],
+              materiales:    Array.isArray(p.data.materiales)    ? p.data.materiales    : [],
+              charlas:       Array.isArray(p.data.charlas)       ? p.data.charlas       : [],
+              epp:           Array.isArray(p.data.epp)           ? p.data.epp           : [],
+              residuos:      Array.isArray(p.data.residuos)      ? p.data.residuos      : [],
+              inspecciones:  Array.isArray(p.data.inspecciones)  ? p.data.inspecciones  : [],
+              autorreportes: Array.isArray(p.data.autorreportes) ? p.data.autorreportes : [],
+              lluvias:       Array.isArray(p.data.lluvias)       ? p.data.lluvias       : [],
+              fotos:         Array.isArray(p.data.fotos)         ? p.data.fotos         : [],
+              clima:         p.data.clima && typeof p.data.clima==="object" ? p.data.clima : {},
+              planta:        plantaGlobal
+            };
+          } else { normalizarData(); }
+        } else { normalizarData(); }
+      } catch(e) { normalizarData(); }
+      DATA.planta = plantaGlobal;
+      setSyncDot(true);
+      renderizarTodo();
     }
   });
 }
@@ -1995,13 +2066,18 @@ function editarHoraTrabajador(){}
 // ======================================================
 function agregarActividad() {
   if(!chk()) return;
-  const prog=parseFloat(gv("a-prog"))||0, ejec=parseFloat(gv("a-ejec"))||0;
-  const a={id:uid(),desc:gv("a-desc"),unidad:gv("a-unidad"),prog,ejec,
-    avance:prog>0?Math.min(100,Math.round(ejec/prog*100)):0,
-    ubic:gv("a-ubic"),obs:gv("a-obs")};
-  if(!a.desc){alert("La descripción de la actividad es obligatoria.");return;}
-  DATA.actividades.push(a); guardarDatos(); renderA();
+  if(!DATA.actividades) DATA.actividades=[];
+  const desc=(gv("a-desc")||"").trim();
+  if(!desc){alert("La descripción de la actividad es obligatoria.");return;}
+  const prog=parseFloat(gv("a-prog"))||0;
+  const ejec=parseFloat(gv("a-ejec"))||0;
+  const a={id:uid(),desc,unidad:(gv("a-unidad")||"").trim(),prog,ejec,
+    avance:prog>0?Math.min(100,Math.round(ejec/prog*100)):ejec>0?100:0,
+    ubic:(gv("a-ubic")||"").trim(),obs:(gv("a-obs")||"").trim()};
+  DATA.actividades.push(a);
+  guardarDatos(); renderA();
   ["a-desc","a-unidad","a-prog","a-ejec","a-ubic","a-obs"].forEach(id=>sv(id,""));
+  mostrarToast("✔ Actividad registrada","verde");
 }
 function renderA() {
   document.getElementById("tbody-a").innerHTML=DATA.actividades.map((a,i)=>`<tr>
@@ -2843,12 +2919,48 @@ function renderAdmTablaInspecciones(frentes) {
 //  INFORME EJECUTIVO ADMIN
 // ======================================================
 function previsualizarAdmin() {
-  const frentes=Object.values(todosFrente);
-  const fecha=document.getElementById("adm-fecha-filtro").value||FECHA_HOY;
+  // Sincronizar fecha con el filtro del consolidado
+  const fechaFiltro = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
+  const infFecha = document.getElementById("adm-inf-fecha");
+  if(infFecha && !infFecha.value) infFecha.value = fechaFiltro;
+  const fecha = (infFecha && infFecha.value) || fechaFiltro;
+
+  // Si no hay datos cargados, cargarlos primero
+  if(Object.keys(todosFrente).length === 0) {
+    mostrarToast("⏳ Cargando datos antes de generar informe…","naranja");
+    // Sincronizar fecha en el filtro principal
+    const filtroEl = document.getElementById("adm-fecha-filtro");
+    if(filtroEl) filtroEl.value = fecha;
+    cargarTodosFrente();
+    setTimeout(()=>_generarPreviewInforme(fecha), 2000);
+    return;
+  }
+  _generarPreviewInforme(fecha);
+}
+
+function _generarPreviewInforme(fecha) {
+  const frentes=Object.values(todosFrente).filter(f=>!f.sinDatos);
+  if(!frentes.length) {
+    mostrarToast("⚠ Sin datos para mostrar. Carga los datos en Consolidado primero.","naranja");
+    return;
+  }
+  // Poblar selector de frentes en el formulario
+  const selFrente = document.getElementById("adm-inf-frente");
+  if(selFrente) {
+    selFrente.innerHTML = `<option value="">Todos los frentes</option>` +
+      frentes.map(f=>`<option value="${(f.sesion||{}).frente||""}">${(f.sesion||{}).frente||"—"}</option>`).join("");
+  }
+  const filtroFrente = selFrente ? selFrente.value : "";
+  const frentesAMostrar = filtroFrente
+    ? frentes.filter(f=>(f.sesion||{}).frente===filtroFrente)
+    : frentes;
+
   let totTrab=0,totHH=0,totAT=0,totAu=0,totCharlas=0,totIns=0;
-  frentes.forEach(f=>{const d=f.data||{};
-    totTrab+=(d.trabajadores||[]).filter(t=>t.asistencia==="presente").length;
-    totHH+=(d.trabajadores||[]).reduce((s,t)=>s+(t.hh||0),0);
+  frentesAMostrar.forEach(f=>{
+    const d=f.data||{};
+    const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+    totTrab+=asistHoy.filter(t=>t.asistencia==="presente").length;
+    totHH+=asistHoy.reduce((s,t)=>s+(t.hh||0),0);
     totAT+=(d.accidentes||[]).length;
     totAu+=(d.ausentismo||[]).length;
     totCharlas+=(d.charlas||[]).length;
@@ -2856,66 +2968,88 @@ function previsualizarAdmin() {
   });
 
   let html=`<div style="border-bottom:3px solid var(--naranja);padding-bottom:12px;margin-bottom:20px">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--azul-oscuro)">ISIS PROYECTOS DE INGENIERÍA</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:var(--azul-oscuro)">ISIS PROYECTOS DE INGENIERÍA S.A.S.</div>
     <div style="font-size:18px;font-weight:600;color:var(--naranja)">INFORME EJECUTIVO CONSOLIDADO</div>
     <div style="font-size:13px;margin-top:6px;display:flex;gap:20px;flex-wrap:wrap">
       <span><strong>Fecha:</strong> ${fecha}</span>
-      <span><strong>Frentes:</strong> ${frentes.length}</span>
+      <span><strong>Frentes con datos:</strong> ${frentesAMostrar.length}</span>
       <span><strong>Generado:</strong> ${new Date().toLocaleString("es-CO")}</span>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px">
-    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totTrab}</div><div style="font-size:11px;color:var(--texto-muted)">TOTAL TRABAJADORES</div></div>
-    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${Math.round(totHH*100)/100}</div><div style="font-size:11px;color:var(--texto-muted)">TOTAL HORAS-HOMBRE</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totTrab}</div><div style="font-size:11px;color:var(--texto-muted)">TRABAJADORES PRESENTES</div></div>
+    <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${Math.round(totHH*100)/100}</div><div style="font-size:11px;color:var(--texto-muted)">TOTAL HH</div></div>
     <div style="background:${totAT>0?"#FDDEDE":"#D5F0E0"};border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:${totAT>0?"#C0392B":"#1A7A4A"}">${totAT}</div><div style="font-size:11px;color:var(--texto-muted)">ACCIDENTES AT</div></div>
     <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totAu}</div><div style="font-size:11px;color:var(--texto-muted)">AUSENTISMO</div></div>
     <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totCharlas}</div><div style="font-size:11px;color:var(--texto-muted)">CHARLAS SST</div></div>
     <div style="background:#F4F5F7;border-radius:6px;padding:12px;text-align:center"><div style="font-size:28px;font-weight:700;color:var(--naranja)">${totIns}</div><div style="font-size:11px;color:var(--texto-muted)">INSPECCIONES</div></div>
   </div>`;
 
-  frentes.forEach(f=>{
+  frentesAMostrar.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
-    const hhF=(d.trabajadores||[]).reduce((acc,t)=>acc+(t.hh||0),0);
-    html+=`<div style="border-left:4px solid var(--naranja);padding-left:12px;margin-bottom:18px">
+    const asistHoy=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+    const pres=asistHoy.filter(t=>t.asistencia==="presente").length;
+    const hhF=asistHoy.reduce((acc,t)=>acc+(t.hh||0),0);
+    html+=`<div style="border-left:4px solid var(--naranja);padding-left:12px;margin-bottom:18px;page-break-inside:avoid">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--azul)">${s.frente||"—"}</div>
       <div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">Responsable: ${s.responsable||"—"}</div>
-      <p style="font-size:13px">Presentes: <strong>${(d.trabajadores||[]).filter(t=>t.asistencia==="presente").length}</strong> | HH: <strong>${Math.round(hhF*100)/100}</strong> | Ausentismo: <strong>${(d.ausentismo||[]).length}</strong></p>`;
+      <p style="font-size:13px">Presentes: <strong>${pres}</strong> | HH: <strong>${Math.round(hhF*100)/100}</strong> | Ausentismo: <strong>${(d.ausentismo||[]).length}</strong> | EPP: <strong>${(d.epp||[]).length}</strong></p>`;
     if((d.actividades||[]).length) {
       html+=`<p style="font-size:12px;margin-top:6px"><strong>Actividades:</strong> `;
-      html+=d.actividades.map(a=>`${a.desc} (${a.avance}%)`).join(" · ");
+      html+=d.actividades.map(a=>`${a.desc} (${a.avance||0}%)`).join(" · ");
       html+="</p>";
     }
     if((d.accidentes||[]).length) {
       html+=`<div style="background:#FDDEDE;padding:8px 10px;border-radius:4px;margin-top:8px;font-size:12px">🚨 `;
-      html+=d.accidentes.map(a=>`AT: ${a.nombre} – ${a.lesion} – ${a.atencion}`).join(" | ");
+      html+=d.accidentes.map(a=>`AT: ${a.nombre||"—"} – ${a.lesion||"—"} – ${a.atencion||"—"}`).join(" | ");
       html+="</div>";
     }
-    if((d.charlas||[]).length) html+=`<p style="font-size:12px;margin-top:6px"><strong>Charlas:</strong> ${d.charlas.map(c=>c.tema).join(", ")}</p>`;
+    if((d.charlas||[]).length) html+=`<p style="font-size:12px;margin-top:6px"><strong>Charlas SST:</strong> ${d.charlas.map(c=>c.tema||"—").join(", ")}</p>`;
     if((d.inspecciones||[]).length) {
       const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
       html+=`<p style="font-size:12px;margin-top:4px"><strong>Inspecciones:</strong> ${(d.inspecciones||[]).length} realizadas${nc>0?` | <span style="color:var(--rojo)">${nc} no conformes</span>`:" ✔"}</p>`;
     }
-    if(d.clima&&d.clima.cond) html+=`<p style="font-size:12px;margin-top:4px"><strong>Clima:</strong> ${d.clima.cond}${d.clima.temp?" – "+d.clima.temp+"°C":""} | ${d.clima.impacto}</p>`;
+    // Clima y tiempos muertos
+    if(d.clima&&d.clima.cond) html+=`<p style="font-size:12px;margin-top:4px"><strong>Clima:</strong> ${d.clima.cond}${d.clima.temp?" – "+d.clima.temp+"°C":""} | Impacto: ${d.clima.impacto||"—"}</p>`;
+    if((d.lluvias||[]).length) {
+      const minLluvia=(d.lluvias||[]).reduce((s,l)=>{
+        if(!l.ini||!l.fin) return s;
+        const [hi,mi]=l.ini.split(":").map(Number),[hf,mf]=l.fin.split(":").map(Number);
+        return s+Math.max(0,(hf*60+mf)-(hi*60+mi));
+      },0);
+      html+=`<p style="font-size:12px;margin-top:4px"><strong>⏱ Tiempo muerto por lluvia:</strong> <span style="color:var(--rojo)">${minLluvia} min</span> · HH no ejecutadas: <strong style="color:var(--rojo)">${Math.round(minLluvia/60*pres*10)/10} HH</strong></p>`;
+    }
     html+="</div>";
   });
+
   html+=`<div style="margin-top:20px;border-top:1px solid var(--borde);padding-top:12px;font-size:11px;color:var(--texto-muted)">
     Generado por: Administrador ISIS Proyectos de Ingeniería | ${new Date().toLocaleString("es-CO")}
   </div>`;
   document.getElementById("adm-preview-contenido").innerHTML=html;
   document.getElementById("adm-preview").style.display="block";
-  tabAdmin("informe-admin");
+  document.getElementById("adm-preview").scrollIntoView({behavior:"smooth"});
 }
 
 function exportarInformeAdmin() {
   previsualizarAdmin();
   setTimeout(()=>{
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"letter"});
-    doc.html(document.getElementById("adm-preview-contenido"),{
-      callback:d=>d.save(`Informe_Ejecutivo_ISIS_${document.getElementById("adm-fecha-filtro").value||FECHA_HOY}.pdf`),
-      x:30,y:30,width:530,windowWidth:680,autoPaging:"text"
-    });
-  },700);
+    const preview=document.getElementById("adm-preview-contenido");
+    if(!preview||!preview.innerHTML.trim()){
+      mostrarToast("⚠ Primero previsualiza el informe","naranja"); return;
+    }
+    try {
+      const {jsPDF}=window.jspdf;
+      const doc=new jsPDF({orientation:"portrait",unit:"pt",format:"letter"});
+      const fecha=(document.getElementById("adm-inf-fecha")||{}).value||
+                  (document.getElementById("adm-fecha-filtro")||{}).value||FECHA_HOY;
+      doc.html(preview,{
+        callback:d=>d.save(`Informe_Ejecutivo_ISIS_${fecha}.pdf`),
+        x:30,y:30,width:530,windowWidth:680,autoPaging:"text"
+      });
+    } catch(err){
+      mostrarToast("⚠ Error al exportar PDF: "+err.message,"rojo");
+    }
+  },1200);
 }
 function exportarJSONAdmin() {
   const blob=new Blob([JSON.stringify(todosFrente,null,2)],{type:"application/json"});
