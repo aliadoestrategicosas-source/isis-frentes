@@ -178,6 +178,8 @@ tr:hover{background:#EFF3F7}
 .admin-kpi{background:var(--gris-claro);border-radius:6px;padding:10px;text-align:center}
 .admin-kpi-num{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;color:var(--naranja)}
 .admin-kpi-label{font-size:10px;color:var(--texto-muted);font-weight:700;text-transform:uppercase}
+.seccion-admin{display:none}
+.seccion-admin.activa{display:block}
 .seccion-admin-tab{display:inline-block;padding:5px 12px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;margin:2px;border:1px solid var(--borde);background:#fff;color:var(--texto)}
 .seccion-admin-tab.active{background:var(--azul-oscuro);color:#fff;border-color:var(--azul-oscuro)}
 .sub-seccion-admin{display:none;margin-top:12px}.sub-seccion-admin.activa{display:block}
@@ -1757,10 +1759,13 @@ function tab(id) {
 
 // NAVEGACIÓN ADMIN
 function tabAdmin(id) {
-  document.querySelectorAll(".seccion-admin").forEach(s=>s.style.display="none");
+  document.querySelectorAll(".seccion-admin").forEach(s=>{
+    s.classList.remove("activa");
+    s.style.display="none";
+  });
   document.querySelectorAll("#nav-admin button").forEach(b=>b.classList.remove("active"));
   const sec=document.getElementById("sec-admin-"+id);
-  if(sec) sec.style.display="block";
+  if(sec){ sec.style.display="block"; sec.classList.add("activa"); }
   event.currentTarget.classList.add("active");
   if(id==="semanal-admin") setSemanaActual();
   if(id==="gestion-frentes") cargarGestionFrente();
