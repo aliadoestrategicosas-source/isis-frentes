@@ -525,6 +525,7 @@ button, .btn, select, input { touch-action: manipulation; }
           <option>Enfermedad general (sin incapacidad)</option><option>Motivo personal</option>
           <option>Calamidad doméstica</option><option>Licencia maternidad/paternidad</option>
           <option>Permiso remunerado</option><option>Falla de transporte</option>
+          <option>Rotación a otro frente</option>
           <option>Abandono de trabajo</option><option>Otro</option>
         </select>
       </div>
@@ -669,34 +670,40 @@ button, .btn, select, input { touch-action: manipulation; }
     <div class="card-titulo" style="color:var(--morado)">🔍 Registrar Inspección</div>
     <div class="form-grid">
       <div class="form-group"><label>Tipo de inspección</label>
-        <select id="ins-tipo"><option>Inspección preoperacional de herramientas</option><option>Inspección de EPP</option><option>Inspección equipos trabajo en alturas</option><option>Inspección equipos eléctricos / LOTO</option><option>Inspección orden y aseo</option><option>Inspección señalización y demarcación</option><option>Inspección de frente de trabajo</option><option>Inspección de vehículos / maquinaria</option><option>Inspección instalaciones temporales</option><option>Inspección de residuos</option><option>Inspección gerencial / directiva</option><option>Otro</option></select>
+        <select id="ins-tipo" onchange="toggleInsTipoOtro()">
+          <option>Inspección preoperacional de herramientas</option>
+          <option>Inspección de EPP</option>
+          <option>Inspección equipos trabajo en alturas</option>
+          <option>Inspección equipos eléctricos / LOTO</option>
+          <option>Inspección orden y aseo</option>
+          <option>Inspección señalización y demarcación</option>
+          <option>Inspección de frente de trabajo</option>
+          <option>Inspección de vehículos / maquinaria</option>
+          <option>Inspección instalaciones temporales</option>
+          <option>Inspección de residuos</option>
+          <option>Inspección gerencial / directiva</option>
+          <option value="otro">Otro (especificar)</option>
+        </select>
       </div>
-      <div class="form-group"><label>Tipo personalizado</label><input id="ins-tipo-otro" type="text"></div>
-      <div class="form-group"><label>Inspector</label><input id="ins-inspector" type="text"></div>
-      <div class="form-group"><label>Nivel del inspector</label>
-        <select id="ins-nivel"><option value="hse">Profesional HSE</option><option value="analistaSST">Analista SST</option><option value="supervisor">Supervisor</option><option value="rescatista">Rescatista</option><option value="jefe">Jefe de Proyectos</option><option value="operativo">Operativo</option></select>
+      <div class="form-group" id="ins-otro-grupo" style="display:none">
+        <label>Especifica el tipo de inspección</label>
+        <input id="ins-tipo-otro" type="text" placeholder="Describe el tipo de inspección…">
       </div>
-      <div class="form-group"><label>Zona inspeccionada</label><input id="ins-zona" type="text"></div>
+      <div class="form-group"><label>Inspector</label><input id="ins-inspector" type="text" placeholder="Nombre completo del inspector"></div>
       <div class="form-group"><label>Hora</label><input id="ins-hora" type="time"></div>
-      <div class="form-group"><label>Resultado general</label>
-        <select id="ins-resultado"><option value="conforme">Conforme ✔</option><option value="no-conforme">No conforme ✘</option><option value="parcial">Parcialmente conforme</option></select>
-      </div>
     </div>
-    <div style="margin:12px 0 6px;font-weight:700;font-size:12px;color:var(--morado)">🔎 Ítems inspeccionados</div>
-    <div id="ins-items-lista"></div>
-    <div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap">
-      <input id="ins-item-desc" type="text" placeholder="Descripción del ítem" style="flex:1;border:1px solid var(--borde);border-radius:4px;padding:6px 9px;font-size:13px">
-      <select id="ins-item-est" style="border:1px solid var(--borde);border-radius:4px;padding:6px 9px;font-size:13px">
-        <option value="ok">Conforme</option><option value="nc">No conforme</option><option value="na">No aplica</option>
-      </select>
-      <button class="btn btn-secundario" style="padding:6px 12px" onclick="addInsItem()">+ Ítem</button>
+    <div class="form-group mt-8">
+      <label>Novedades encontradas</label>
+      <textarea id="ins-hallazgos" placeholder="Describe las condiciones inseguras, incumplimientos o hallazgos encontrados durante la inspección…" style="min-height:90px"></textarea>
     </div>
-    <div class="form-group mt-8"><label>Hallazgos / Observaciones</label><textarea id="ins-hallazgos"></textarea></div>
-    <div class="form-group mt-8"><label>Acciones correctivas requeridas</label><textarea id="ins-acciones"></textarea></div>
-    <div class="form-group mt-8"><label>Responsable de cierre</label><input id="ins-resp-cierre" type="text"></div>
+    <div class="form-group mt-8">
+      <label>Plan de acción <span style="font-size:11px;color:var(--texto-muted);font-weight:400">(si se requiere)</span></label>
+      <textarea id="ins-acciones" placeholder="Acciones correctivas, responsables y fecha de cierre…" style="min-height:70px"></textarea>
+    </div>
     <div style="margin:12px 0 8px;font-weight:700;font-size:12px;color:var(--morado)">📷 Fotos de hallazgos</div>
     <div class="foto-zona" onclick="document.getElementById('inp-ins-foto').click()">
-      <div style="font-size:22px">📷</div><div style="font-size:13px;font-weight:600;margin-top:4px">Fotos de condiciones encontradas</div>
+      <div style="font-size:22px">📷</div>
+      <div style="font-size:13px;font-weight:600;margin-top:4px">Fotos de condiciones encontradas</div>
       <input type="file" id="inp-ins-foto" class="input-file-hidden" accept="image/*" multiple onchange="cargarFotosModulo(this,'ins-prev','ins')">
     </div>
     <div id="ins-prev" class="foto-grid"></div>
@@ -704,7 +711,7 @@ button, .btn, select, input { touch-action: manipulation; }
   </div>
   <div class="card">
     <div class="tabla-wrap">
-      <table><thead><tr><th>#</th><th>Tipo</th><th>Inspector</th><th>Nivel</th><th>Zona</th><th>Hora</th><th>Resultado</th><th>Fotos</th><th>✕</th></tr></thead>
+      <table><thead><tr><th>#</th><th>Tipo</th><th>Inspector</th><th>Hora</th><th>Novedades</th><th>Plan de acción</th><th>Fotos</th><th>✕</th></tr></thead>
       <tbody id="tbody-ins"></tbody></table>
     </div>
   </div>
@@ -1400,6 +1407,8 @@ function iniciarApp() {
     document.getElementById("nav-admin").style.display="none";
     document.getElementById("vista-admin").style.display="none";
     cargarDatos();
+    // Registrar automáticamente al responsable del frente en la planta global
+    setTimeout(()=>_registrarResponsableEnPlanta(), 2000);
   } else {
     document.getElementById("badge-rol").textContent = "🔐 ADMINISTRADOR";
     document.getElementById("badge-rol").className = "badge-rol badge-rol-admin";
@@ -1420,8 +1429,46 @@ function iniciarApp() {
   }
 }
 
+// Registrar al responsable del frente en la planta global si no existe,
+// y crear su asistencia del día automáticamente
+function _registrarResponsableEnPlanta() {
+  if(!SESION.activa || !SESION.responsable) return;
+  const nombre = SESION.responsable.trim();
+  if(!nombre) return;
+
+  // Buscar si ya existe en la planta global por nombre (comparación flexible)
+  const yaExiste = plantaGlobal.find(p=>
+    p.nombre && p.nombre.trim().toLowerCase() === nombre.toLowerCase()
+  );
+
+  if(!yaExiste) {
+    // Agregar a la planta global como analista SST / supervisor
+    const nuevo = {
+      id: uid(), nombre, cedula:"", nivel:"analistaSST",
+      cargo:"Responsable de frente / Analista SST",
+      empresa:"ISIS Proyectos de Ingeniería S.A.S.",
+      apto:"si", activo:true, fechaIngreso:SESION.fecha,
+      esResponsable:true
+    };
+    plantaGlobal.push(nuevo);
+    guardarPlantaGlobal();
+    // Crear asistencia del día
+    crearOActualizarAsistencia(nuevo.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
+    guardarDatos();
+    renderT();
+    mostrarToast(`✔ ${nombre} agregado a la planta como responsable`,"verde");
+  } else {
+    // Ya existe — solo asegurar que tenga asistencia del día en este frente
+    const asistHoy = getAsistenciaHoy(yaExiste.id);
+    if(!asistHoy) {
+      crearOActualizarAsistencia(yaExiste.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
+      guardarDatos();
+      renderT();
+    }
+  }
+}
+
 function cerrarSesion() {
-  if (!confirm("¿Seguro que deseas cerrar sesión?\nLos datos ya quedaron guardados en la nube.")) return;
   if (usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
   location.reload();
 }
@@ -1791,10 +1838,17 @@ function cargarFrentesDetalle() {
 // ======================================================
 function chk() { if(!SESION.activa){alert("Sesión no activa.");return false;} return true; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
-function calcHH(ini,fin) {
+function calcHH(ini, fin, almuerzoIni, almuerzoFin) {
   if(!ini||!fin) return 0;
-  const [hi,mi]=ini.split(":").map(Number),[hf,mf]=fin.split(":").map(Number);
-  return Math.max(0,Math.round(((hf*60+mf)-(hi*60+mi))/60*100)/100);
+  const toMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
+  let mins = toMin(fin) - toMin(ini);
+  if(mins <= 0) return 0;
+  // Descontar almuerzo si está registrado
+  if(almuerzoIni && almuerzoFin) {
+    const almuerzoDur = toMin(almuerzoFin) - toMin(almuerzoIni);
+    if(almuerzoDur > 0) mins -= almuerzoDur;
+  }
+  return Math.max(0, Math.round(mins/60*100)/100);
 }
 // ======================================================
 //  AUTOFILL DESDE PLANTA — rellena campos de formularios
@@ -1861,7 +1915,7 @@ function nivelBadge(n) {
   return `<span class="cargo-badge ${m[n]||'cargo-operativo'}">${l[n]||n}</span>`;
 }
 function estadoBadge(e) {
-  const m={presente:"badge-verde","ausente-medico":"badge-rojo","ausente-personal":"badge-amarillo","ausente-calamidad":"badge-rojo",permiso:"badge-azul"};
+  const m={presente:"badge-verde","otro-frente":"badge-azul","ausente-medico":"badge-rojo","ausente-personal":"badge-amarillo","ausente-calamidad":"badge-rojo",permiso:"badge-azul","no-aplica":"badge-gris"};
   return `<span class="badge ${m[e]||'badge-gris'}">${e.replace(/-/g," ")}</span>`;
 }
 function gv(id) { const el=document.getElementById(id); return el?el.value:""; }
@@ -1960,7 +2014,7 @@ function marcarTodosPresentes() {
 // Recalcular HH del día actual
 function calcularHH(){
   DATA.trabajadores.filter(t=>t.fecha===SESION.fecha).forEach(t=>{
-    t.hh=calcHH(t.entrada,t.salida);
+    t.hh=calcHH(t.entrada, t.salida, t.almuerzoIni, t.almuerzoFin);
   });
   guardarDatos(); renderT();
   mostrarToast("✔ HH recalculadas","verde");
@@ -1978,11 +2032,17 @@ function renderT() {
     ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores activos en la planta. Agrégalos abajo ↓</div>`
     : plantaActiva.map(p=>{
         const a = getAsistenciaHoy(p.id) || {asistencia:"presente",entrada:"",salida:"",hh:0};
-        hhTotal += (a.hh||0);
+        hhTotal += (a.asistencia==='presente') ? (a.hh||0) : 0;
         if(a.asistencia==="presente") presentes++;
         const abApto = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
         const hhColor = (a.hh||0)>0?"color:var(--naranja)":"color:var(--texto-muted)";
-        return `<div style="background:${a.asistencia==='presente'?'#F0FFF4':'#FFF8F0'};border:1px solid ${a.asistencia==='presente'?'#82E0AA':'#FAD7A0'};border-radius:6px;padding:10px 12px;margin-bottom:8px">
+        const rowBg = a.asistencia==='presente' ? '#F0FFF4' :
+                      a.asistencia==='otro-frente' ? '#EBF5FB' :
+                      a.asistencia==='no-aplica' ? '#F8F9FA' : '#FFF8F0';
+        const rowBorder = a.asistencia==='presente' ? '#82E0AA' :
+                          a.asistencia==='otro-frente' ? '#85C1E9' :
+                          a.asistencia==='no-aplica' ? '#D5D8DC' : '#FAD7A0';
+        return `<div style="background:${rowBg};border:1px solid ${rowBorder};border-radius:6px;padding:10px 12px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <div style="flex:1;min-width:160px">
               <div style="font-weight:700;font-size:13px">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
@@ -1990,19 +2050,41 @@ function renderT() {
             </div>
             <select style="font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','asistencia',this.value)">
               <option value="presente" ${a.asistencia==='presente'?'selected':''}>✅ Presente</option>
+              <option value="otro-frente" ${a.asistencia==='otro-frente'?'selected':''}>🔄 En otro frente</option>
               <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}>🏥 Ausente – Médico</option>
               <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}>🏠 Ausente – Personal</option>
               <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}>⚠ Ausente – Calamidad</option>
               <option value="permiso" ${a.asistencia==='permiso'?'selected':''}>📋 Permiso</option>
+              <option value="no-aplica" ${a.asistencia==='no-aplica'?'selected':''}>➖ No aplica este día</option>
             </select>
             <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <input type="time" value="${a.entrada||''}" placeholder="Entrada"
-                style="width:100px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
-                onchange="setAsistencia('${p.id}','entrada',this.value)">
-              <input type="time" value="${a.salida||''}" placeholder="Salida"
-                style="width:100px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
-                onchange="setAsistencia('${p.id}','salida',this.value)">
-              <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:50px;${hhColor}">${(a.hh||0)} HH</span>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <span style="font-size:10px;color:var(--texto-muted)">Entrada</span>
+                <input type="time" value="${a.entrada||''}"
+                  style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
+                  onchange="setAsistencia('${p.id}','entrada',this.value)">
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <span style="font-size:10px;color:var(--texto-muted)">Almuerzo</span>
+                <div style="display:flex;gap:3px;align-items:center">
+                  <input type="time" value="${a.almuerzoIni||''}"
+                    style="width:85px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px"
+                    placeholder="inicio" title="Inicio almuerzo"
+                    onchange="setAsistencia('${p.id}','almuerzoIni',this.value)">
+                  <span style="font-size:10px;color:var(--texto-muted)">–</span>
+                  <input type="time" value="${a.almuerzoFin||''}"
+                    style="width:85px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px"
+                    placeholder="fin" title="Fin almuerzo"
+                    onchange="setAsistencia('${p.id}','almuerzoFin',this.value)">
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <span style="font-size:10px;color:var(--texto-muted)">Salida</span>
+                <input type="time" value="${a.salida||''}"
+                  style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
+                  onchange="setAsistencia('${p.id}','salida',this.value)">
+              </div>
+              <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:55px;${hhColor}">${(a.hh||0)} HH</span>
             </div>
           </div>
         </div>`;
@@ -2037,23 +2119,23 @@ function setAsistencia(plantaId, campo, valor) {
   const fecha = SESION.fecha;
   let reg = DATA.trabajadores.find(t=>t.plantaId===plantaId && t.fecha===fecha);
   if(!reg){
-    reg = {id:uid(), plantaId, fecha, asistencia:"presente", entrada:"", salida:"", hh:0};
+    reg = {id:uid(), plantaId, fecha, asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0};
     DATA.trabajadores.push(reg);
   }
   reg[campo] = valor;
-  if(campo==="entrada"||campo==="salida"){
-    reg.hh = calcHH(reg.entrada, reg.salida);
+  if(["entrada","salida","almuerzoIni","almuerzoFin"].includes(campo)){
+    reg.hh = calcHH(reg.entrada, reg.salida, reg.almuerzoIni, reg.almuerzoFin);
     const cel = document.getElementById("hh-row-"+plantaId);
     if(cel){
       cel.textContent = reg.hh+" HH";
       cel.style.color = reg.hh>0?"var(--naranja)":"var(--texto-muted)";
     }
-    // Actualizar total HH
-    const tot = DATA.trabajadores.filter(t=>t.fecha===fecha).reduce((s,t)=>s+(t.hh||0),0);
+    // Actualizar total HH solo presentes
+    const tot = DATA.trabajadores.filter(t=>t.fecha===fecha&&t.asistencia==="presente").reduce((s,t)=>s+(t.hh||0),0);
     document.getElementById("total-hh").textContent = Math.round(tot*100)/100;
   }
   guardarDatos();
-  if(campo==="asistencia") renderT(); // re-render para cambiar color de fila
+  if(campo==="asistencia") renderT();
   else refrescarDashboard();
 }
 
@@ -2199,27 +2281,43 @@ function renderInsItems() {
       <button class="btn btn-rojo" onclick="insItemsTemp.splice(${i},1);renderInsItems()">✕</button>
     </div></div>`).join("");
 }
+function toggleInsTipoOtro() {
+  const sel = document.getElementById("ins-tipo");
+  const grp = document.getElementById("ins-otro-grupo");
+  if(grp) grp.style.display = (sel&&sel.value==="otro") ? "block" : "none";
+}
+
 function agregarInspeccion() {
   if(!chk()) return;
-  const tB=gv("ins-tipo"),tO=gv("ins-tipo-otro").trim();
-  const ins={id:uid(),tipo:tB==="Otro"?tO:tB,inspector:gv("ins-inspector"),nivel:gv("ins-nivel"),
-    zona:gv("ins-zona"),hora:gv("ins-hora"),resultado:gv("ins-resultado"),
-    items:[...insItemsTemp],hallazgos:gv("ins-hallazgos"),acciones:gv("ins-acciones"),
-    respCierre:gv("ins-resp-cierre"),fotos:[...insFotos]};
-  if(!ins.inspector){alert("Inspector obligatorio.");return;}
-  insItemsTemp=[]; insFotos=[];
-  document.getElementById("ins-items-lista").innerHTML="";
-  document.getElementById("ins-prev").innerHTML=""; sv("inp-ins-foto","");
-  DATA.inspecciones.push(ins); guardarDatos(); renderIns();
-  ["ins-tipo-otro","ins-inspector","ins-zona","ins-hora","ins-hallazgos","ins-acciones","ins-resp-cierre"].forEach(id=>sv(id,""));
+  if(!DATA.inspecciones) DATA.inspecciones=[];
+  const tipoSel = gv("ins-tipo");
+  const tipoOtro = (gv("ins-tipo-otro")||"").trim();
+  const tipo = tipoSel==="otro" ? (tipoOtro||"Otro") : tipoSel;
+  if(!tipo){ alert("Selecciona el tipo de inspección."); return; }
+  const ins={id:uid(), tipo,
+    inspector:(gv("ins-inspector")||"").trim(),
+    hora:gv("ins-hora"),
+    hallazgos:(gv("ins-hallazgos")||"").trim(),
+    acciones:(gv("ins-acciones")||"").trim(),
+    fotos:[...insFotos]
+  };
+  insFotos=[];
+  document.getElementById("ins-prev").innerHTML="";
+  DATA.inspecciones.push(ins);
+  guardarDatos(); renderIns();
+  ["ins-tipo-otro","ins-inspector","ins-hora","ins-hallazgos","ins-acciones"].forEach(id=>sv(id,""));
+  toggleInsTipoOtro();
+  mostrarToast("✔ Inspección registrada","verde");
 }
+
 function renderIns() {
-  const rc={"conforme":"badge-verde","no-conforme":"badge-rojo","parcial":"badge-amarillo"};
-  const rt={"conforme":"Conforme ✔","no-conforme":"No conforme ✘","parcial":"Parcial"};
   document.getElementById("tbody-ins").innerHTML=(DATA.inspecciones||[]).map((ins,i)=>`<tr>
-    <td>${i+1}</td><td>${ins.tipo}</td><td>${ins.inspector}</td><td>${nivelBadge(ins.nivel)}</td>
-    <td>${ins.zona||"—"}</td><td>${ins.hora||"—"}</td>
-    <td><span class="badge ${rc[ins.resultado]||'badge-gris'}">${rt[ins.resultado]||ins.resultado}</span></td>
+    <td>${i+1}</td>
+    <td style="font-size:12px">${ins.tipo||"—"}</td>
+    <td>${ins.inspector||"—"}</td>
+    <td>${ins.hora||"—"}</td>
+    <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+(ins.hallazgos.length>80?"…":""):"—"}</td>
+    <td style="font-size:11px;max-width:140px">${ins.acciones?ins.acciones.slice(0,60)+(ins.acciones.length>60?"…":""):"—"}</td>
     <td>${(ins.fotos&&ins.fotos.length)?`<span class="badge badge-morado">${ins.fotos.length}📷</span>`:"—"}</td>
     <td><button class="btn btn-rojo" onclick="eliminar('inspecciones','${ins.id}')">✕</button></td></tr>`).join("");
   refrescarDashboard();
