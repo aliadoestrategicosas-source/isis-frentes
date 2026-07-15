@@ -377,12 +377,6 @@ button, .btn, select, input { touch-action: manipulation; }
   <button onclick="tabAdmin('frentes')">🗂 Todos los Frentes</button>
   <button onclick="tabAdmin('gestion-frentes')">⚙ Gestión Frentes</button>
   <button onclick="tabAdmin('planta-global')">👷 Planta Global</button>
-  <button onclick="tabAdmin('accidentes-admin')">🚨 Accidentalidad</button>
-  <button onclick="tabAdmin('ausentismo-admin')">🏥 Ausentismo</button>
-  <button onclick="tabAdmin('autorreportes-admin')">💊 Salud</button>
-  <button onclick="tabAdmin('inspecciones-admin')">🔍 Inspecciones</button>
-  <button onclick="tabAdmin('informe-admin')">📄 Informe Diario</button>
-  <button onclick="tabAdmin('semanal-admin')">📅 Informe Semanal</button>
 </nav>
 
 <main>
@@ -917,13 +911,31 @@ button, .btn, select, input { touch-action: manipulation; }
   <div class="section-header">
     <h2>Panel de Control – Todos los Frentes</h2>
   </div>
+  <!-- Controles diarios -->
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
     <div style="display:flex;flex-direction:column;gap:4px">
       <label style="font-size:11px;font-weight:700;color:var(--texto-muted)">FECHA</label>
       <input type="date" id="adm-fecha-filtro" style="border:1px solid var(--borde);border-radius:6px;padding:8px 12px;font-size:14px;min-height:44px">
     </div>
     <button class="btn btn-primario" onclick="cargarTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">🔄 Cargar datos</button>
-    <button class="btn btn-verde" onclick="exportarInformeAdmin()" style="margin-top:20px;min-height:48px;font-size:14px">⬇ PDF</button>
+    <button class="btn btn-verde" onclick="exportarXLSTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">⬇ Excel del día</button>
+  </div>
+
+  <!-- Panel descarga semanal -->
+  <div style="background:#F0F7FF;border:1px solid #AED6F1;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+    <div style="font-weight:700;font-size:13px;color:var(--azul);margin-bottom:10px">📅 Descarga Informe Semanal Excel</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:700;color:var(--texto-muted)">DESDE</label>
+        <input type="date" id="sem-inicio" style="border:1px solid var(--borde);border-radius:6px;padding:7px 10px;font-size:14px;min-height:40px">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:700;color:var(--texto-muted)">HASTA</label>
+        <input type="date" id="sem-fin" style="border:1px solid var(--borde);border-radius:6px;padding:7px 10px;font-size:14px;min-height:40px">
+      </div>
+      <button class="btn btn-secundario" onclick="setSemanaActual()" style="margin-top:18px;min-height:40px;font-size:13px">📅 Semana actual</button>
+      <button class="btn btn-verde" onclick="descargarExcelSemanal()" style="margin-top:18px;min-height:40px;font-size:13px;font-weight:700">⬇ Descargar Excel semanal</button>
+    </div>
   </div>
   <div class="alerta alerta-info" id="adm-alerta-accidentes" style="display:none"></div>
   <div class="alerta alerta-warn" id="adm-alerta-salud" style="display:none"></div>
@@ -2030,97 +2042,109 @@ function calcularHH(){
 
 // Render principal: panel asistencia del día + tabla planta
 function renderT() {
-  const fecha = SESION.fecha;
   const plantaActiva = plantaGlobal.filter(p=>p.activo);
   const plantaTodos  = plantaGlobal;
 
-  // == Panel asistencia del día ==========================
   let hhTotal=0, presentes=0;
-  const asistenciaHTML = plantaActiva.length===0
-    ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores activos en la planta. Agrégalos abajo ↓</div>`
-    : plantaActiva.map(p=>{
-        const a = getAsistenciaHoy(p.id) || {asistencia:"presente",entrada:"",salida:"",hh:0};
-        hhTotal += (a.asistencia==='presente') ? (a.hh||0) : 0;
-        if(a.asistencia==="presente") presentes++;
-        const abApto = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
-        const hhColor = (a.hh||0)>0?"color:var(--naranja)":"color:var(--texto-muted)";
-        const rowBg = a.asistencia==='presente' ? '#F0FFF4' :
-                      a.asistencia==='otro-frente' ? '#EBF5FB' :
-                      a.asistencia==='no-aplica' ? '#F8F9FA' : '#FFF8F0';
-        const rowBorder = a.asistencia==='presente' ? '#82E0AA' :
-                          a.asistencia==='otro-frente' ? '#85C1E9' :
-                          a.asistencia==='no-aplica' ? '#D5D8DC' : '#FAD7A0';
-        return `<div style="background:${rowBg};border:1px solid ${rowBorder};border-radius:6px;padding:10px 12px;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <div style="flex:1;min-width:160px">
-              <div style="font-weight:700;font-size:13px">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
-              <div style="font-size:11px;color:var(--texto-muted)">${nivelBadge(p.nivel)} ${p.cargo||""} · ${p.empresa||"—"}</div>
-            </div>
-            <select style="font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','asistencia',this.value)">
-              <option value="presente" ${a.asistencia==='presente'?'selected':''}>✅ Presente</option>
-              <option value="otro-frente" ${a.asistencia==='otro-frente'?'selected':''}>🔄 En otro frente</option>
-              <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}>🏥 Ausente – Médico</option>
-              <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}>🏠 Ausente – Personal</option>
-              <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}>⚠ Ausente – Calamidad</option>
-              <option value="permiso" ${a.asistencia==='permiso'?'selected':''}>📋 Permiso</option>
-              <option value="no-aplica" ${a.asistencia==='no-aplica'?'selected':''}>➖ No aplica este día</option>
-            </select>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <span style="font-size:10px;color:var(--texto-muted)">Entrada</span>
-                <input type="time" value="${a.entrada||''}"
-                  style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
-                  onchange="setAsistencia('${p.id}','entrada',this.value)">
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <span style="font-size:10px;color:var(--texto-muted)">Almuerzo</span>
-                <div style="display:flex;gap:3px;align-items:center">
-                  <input type="time" value="${a.almuerzoIni||''}"
-                    style="width:85px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px"
-                    placeholder="inicio" title="Inicio almuerzo"
-                    onchange="setAsistencia('${p.id}','almuerzoIni',this.value)">
-                  <span style="font-size:10px;color:var(--texto-muted)">–</span>
-                  <input type="time" value="${a.almuerzoFin||''}"
-                    style="width:85px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px"
-                    placeholder="fin" title="Fin almuerzo"
-                    onchange="setAsistencia('${p.id}','almuerzoFin',this.value)">
-                </div>
-              </div>
-              <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <span style="font-size:10px;color:var(--texto-muted)">Salida</span>
-                <input type="time" value="${a.salida||''}"
-                  style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px"
-                  onchange="setAsistencia('${p.id}','salida',this.value)">
-              </div>
-              <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:55px;${hhColor}">${(a.hh||0)} HH</span>
+  const enFrente=[], fueraFrente=[];
+  plantaActiva.forEach(p=>{
+    const a = getAsistenciaHoy(p.id)||{asistencia:"presente",entrada:"",salida:"",almuerzoIni:"",almuerzoFin:"",hh:0};
+    if(a.asistencia==="otro-frente"||a.asistencia==="no-aplica") fueraFrente.push({p,a});
+    else { enFrente.push({p,a}); if(a.asistencia==="presente"){presentes++;hhTotal+=(a.hh||0);} }
+  });
+
+  const filaWorker=({p,a})=>{
+    const abApto=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+    const hhColor=(a.hh||0)>0?"color:var(--naranja)":"color:var(--texto-muted)";
+    const rowBg=a.asistencia==='presente'?'#F0FFF4':'#FFF8F0';
+    const rowBorder=a.asistencia==='presente'?'#82E0AA':'#FAD7A0';
+    const ocultarHoras=a.asistencia!=="presente";
+    return `<div style="background:${rowBg};border:1px solid ${rowBorder};border-radius:6px;padding:10px 12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:700;font-size:13px">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
+          <div style="font-size:11px;color:var(--texto-muted)">${nivelBadge(p.nivel)} ${p.cargo||""} · ${p.empresa||"—"}</div>
+        </div>
+        <select style="font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','asistencia',this.value)">
+          <option value="presente" ${a.asistencia==='presente'?'selected':''}>✅ Presente</option>
+          <option value="otro-frente" ${a.asistencia==='otro-frente'?'selected':''}>🔄 En otro frente</option>
+          <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}>🏥 Ausente – Médico</option>
+          <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}>🏠 Ausente – Personal</option>
+          <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}>⚠ Ausente – Calamidad</option>
+          <option value="permiso" ${a.asistencia==='permiso'?'selected':''}>📋 Permiso</option>
+          <option value="no-aplica" ${a.asistencia==='no-aplica'?'selected':''}>➖ No aplica este día</option>
+        </select>
+        ${!ocultarHoras?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span style="font-size:10px;color:var(--texto-muted)">Entrada</span>
+            <input type="time" value="${a.entrada||''}" style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','entrada',this.value)">
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span style="font-size:10px;color:var(--texto-muted)">Almuerzo</span>
+            <div style="display:flex;gap:3px;align-items:center">
+              <input type="time" value="${a.almuerzoIni||''}" style="width:82px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px" title="Inicio almuerzo" onchange="setAsistencia('${p.id}','almuerzoIni',this.value)">
+              <span style="font-size:10px;color:var(--texto-muted)">–</span>
+              <input type="time" value="${a.almuerzoFin||''}" style="width:82px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px" title="Fin almuerzo" onchange="setAsistencia('${p.id}','almuerzoFin',this.value)">
             </div>
           </div>
-        </div>`;
-      }).join("");
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span style="font-size:10px;color:var(--texto-muted)">Salida</span>
+            <input type="time" value="${a.salida||''}" style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','salida',this.value)">
+          </div>
+          <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:55px;${hhColor}">${(a.hh||0)} HH</span>
+        </div>`:`<span style="font-size:12px;color:var(--texto-muted);font-style:italic">${a.asistencia==='otro-frente'?'En otro frente hoy':'No aplica este día'}</span>`}
+      </div>
+    </div>`;
+  };
 
-  document.getElementById("lista-asistencia-dia").innerHTML = asistenciaHTML;
+  let htmlPanel = enFrente.length===0
+    ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores presentes en este frente hoy.</div>`
+    : enFrente.map(filaWorker).join("");
+
+  if(fueraFrente.length>0){
+    htmlPanel+=`<div style="margin-top:12px">
+      <div onclick="toggleFueraFrente()" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F4F6F7;border-radius:6px;border:1px solid #D5D8DC">
+        <span style="font-size:12px;font-weight:700;color:var(--texto-muted)">➖ No disponibles en este frente hoy (${fueraFrente.length})</span>
+        <span id="icono-fuera-frente" style="margin-left:auto;color:var(--texto-muted)">▼</span>
+      </div>
+      <div id="panel-fuera-frente" style="display:none;margin-top:6px">
+        ${fueraFrente.map(filaWorker).join("")}
+      </div>
+    </div>`;
+  }
+
+  document.getElementById("lista-asistencia-dia").innerHTML = htmlPanel;
   document.getElementById("conteo-t").textContent = `${presentes} presentes`;
   document.getElementById("total-hh").textContent = Math.round(hhTotal*100)/100;
 
-  // == Tabla planta (todos, activos e inactivos) =========
+  // Tabla planta
   document.getElementById("tbody-planta").innerHTML = plantaTodos.map((p,i)=>{
-    const ab = p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
-    const estado = p.activo
-      ? `<span class="badge badge-verde">Activo</span>`
-      : `<span class="badge badge-rojo">Retirado ${p.fechaRetiro||""}</span>`;
-    const accion = p.activo
-      ? `<button class="btn btn-rojo" onclick="retirarTrabajador('${p.id}')">Retirar</button>`
-      : `<button class="btn btn-secundario" style="font-size:11px;padding:4px 8px" onclick="reactivarTrabajador('${p.id}')">Reactivar</button>`;
+    const ab=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+    const estado=p.activo?`<span class="badge badge-verde">Activo</span>`:`<span class="badge badge-rojo">Retirado ${p.fechaRetiro||""}</span>`;
+    const accion=p.activo
+      ?`<button class="btn btn-rojo" onclick="retirarTrabajador('${p.id}')">Retirar</button>`
+      :`<button class="btn btn-secundario" style="font-size:11px;padding:4px 8px" onclick="reactivarTrabajador('${p.id}')">Reactivar</button>`;
     return `<tr style="${p.activo?'':'opacity:.6'}">
-      <td>${i+1}</td><td>${p.nombre}</td><td>${p.cedula}</td>
+      <td>${i+1}</td><td>${p.nombre}</td><td>${p.cedula||"—"}</td>
       <td>${nivelBadge(p.nivel)}</td><td>${p.cargo||"—"}</td><td>${p.empresa||"—"}</td>
       <td><span class="badge ${ab}">${p.apto}</span></td>
       <td>${estado}</td><td>${accion}</td></tr>`;
   }).join("");
-  document.getElementById("conteo-planta").textContent = `${plantaTodos.length} registrados`;
+  document.getElementById("conteo-planta").textContent=`${plantaTodos.length} registrados`;
   poblarSelectoresPlanta();
   refrescarDashboard();
 }
+
+function toggleFueraFrente() {
+  const panel=document.getElementById("panel-fuera-frente");
+  const icono=document.getElementById("icono-fuera-frente");
+  if(!panel) return;
+  const visible=panel.style.display!=="none";
+  panel.style.display=visible?"none":"block";
+  if(icono) icono.textContent=visible?"▼":"▲";
+}
+
+// DUMMYMARKER_ASISTENCIA_ENDS_HERE
 
 // Actualizar campo de asistencia y recalcular HH si aplica
 function setAsistencia(plantaId, campo, valor) {
@@ -2643,6 +2667,130 @@ function renderAdmin() {
   renderAdmTablaAusentismo(frentes);
   renderAdmTablaAutorreportes(frentes);
   renderAdmTablaInspecciones(frentes);
+}
+
+// Excel de TODOS los frentes del día seleccionado
+function exportarXLSTodosFrente() {
+  const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
+  const frentes = Object.values(todosFrente).filter(f=>!f.sinDatos);
+  if(!frentes.length) {
+    mostrarToast("⚠ Primero carga los datos del día","naranja"); return;
+  }
+  try {
+    const WB = XLSX.utils.book_new();
+
+    // Hoja resumen del día
+    const resRows=[
+      ["ISIS PROYECTOS DE INGENIERÍA S.A.S. – INFORME DIARIO CONSOLIDADO"],
+      [`Fecha: ${fecha}`],[`Generado: ${new Date().toLocaleString("es-CO")}`],[],
+      ["Frente","Responsable","Presentes","HH Total","Actividades","Charlas","EPP","Ausentismo","Accidentes AT","Inspecciones"]
+    ];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      const asist=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
+      const pres=asist.filter(t=>t.asistencia==="presente").length;
+      const hh=asist.filter(t=>t.asistencia==="presente").reduce((s,t)=>s+(t.hh||0),0);
+      resRows.push([s.frente||"—",s.responsable||"—",pres,Math.round(hh*100)/100,
+        (d.actividades||[]).length,(d.charlas||[]).length,(d.epp||[]).length,
+        (d.ausentismo||[]).length,(d.accidentes||[]).length,(d.inspecciones||[]).length]);
+    });
+    const ws0=XLSX.utils.aoa_to_sheet(resRows);
+    ws0["!cols"]=[{wch:28},{wch:22},{wch:10},{wch:10},{wch:12},{wch:10},{wch:8},{wch:12},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(WB, ws0, "Resumen del Día");
+
+    // Hoja trabajadores de todos los frentes
+    const tRows=[["Frente","Responsable","Trabajador","Cédula","Nivel","Cargo","Empresa","Asistencia","Entrada","Almuerzo Ini","Almuerzo Fin","Salida","HH"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(a=>{
+        const p=plantaGlobal.find(x=>x.id===a.plantaId)||{};
+        tRows.push([s.frente||"—",s.responsable||"—",p.nombre||a.nombre||"—",p.cedula||"—",
+          p.nivel||"—",p.cargo||"—",p.empresa||"—",a.asistencia||"—",
+          a.entrada||"—",a.almuerzoIni||"—",a.almuerzoFin||"—",a.salida||"—",a.hh||0]);
+      });
+    });
+    const ws1=XLSX.utils.aoa_to_sheet(tRows);
+    ws1["!cols"]=[{wch:24},{wch:20},{wch:26},{wch:14},{wch:14},{wch:22},{wch:22},{wch:16},{wch:10},{wch:12},{wch:12},{wch:10},{wch:8}];
+    XLSX.utils.book_append_sheet(WB, ws1, "Trabajadores y HH");
+
+    // Hoja actividades
+    const aRows=[["Frente","Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicación","Observaciones"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.actividades||[]).forEach(a=>aRows.push([s.frente||"—",a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
+    });
+    const ws2=XLSX.utils.aoa_to_sheet(aRows);
+    ws2["!cols"]=[{wch:24},{wch:40},{wch:10},{wch:12},{wch:12},{wch:10},{wch:20},{wch:35}];
+    XLSX.utils.book_append_sheet(WB, ws2, "Actividades");
+
+    // Hoja charlas
+    const cRows=[["Frente","Tema","Inicio","Fin","Facilitador","Asistentes","Contenido"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.charlas||[]).forEach(c=>cRows.push([s.frente||"—",c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||0,c.contenido||""]));
+    });
+    const ws3=XLSX.utils.aoa_to_sheet(cRows);
+    ws3["!cols"]=[{wch:24},{wch:35},{wch:10},{wch:10},{wch:24},{wch:12},{wch:50}];
+    XLSX.utils.book_append_sheet(WB, ws3, "Charlas SST");
+
+    // Hoja EPP
+    const eRows=[["Frente","Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.epp||[]).forEach(e=>eRows.push([s.frente||"—",e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
+    });
+    const ws4=XLSX.utils.aoa_to_sheet(eRows);
+    ws4["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:20},{wch:28},{wch:10},{wch:20},{wch:10}];
+    XLSX.utils.book_append_sheet(WB, ws4, "EPP");
+
+    // Hoja ausentismo
+    const auRows=[["Frente","Trabajador","Cédula","Cargo","Causa","Días","N° Incapacidad","Reemplazo"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.ausentismo||[]).forEach(a=>auRows.push([s.frente||"—",a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||""]));
+    });
+    const ws5=XLSX.utils.aoa_to_sheet(auRows);
+    ws5["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:20},{wch:30},{wch:8},{wch:16},{wch:24}];
+    XLSX.utils.book_append_sheet(WB, ws5, "Ausentismo");
+
+    // Hoja accidentes
+    const atRows=[["Frente","Trabajador","Cédula","Tipo","Fecha/Hora","Lesión","Agente","Atención","FURAT","Descripción"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.accidentes||[]).forEach(a=>atRows.push([s.frente||"—",a.nombre||"",a.cedula||"",a.tipo||"",a.fecha||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
+    });
+    const ws6=XLSX.utils.aoa_to_sheet(atRows);
+    ws6["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:28},{wch:16},{wch:18},{wch:18},{wch:20},{wch:12},{wch:50}];
+    XLSX.utils.book_append_sheet(WB, ws6, "Accidentes AT");
+
+    // Hoja inspecciones
+    const insRows=[["Frente","Tipo","Inspector","Hora","Novedades","Plan de acción"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.inspecciones||[]).forEach(i=>insRows.push([s.frente||"—",i.tipo||"",i.inspector||"",i.hora||"",i.hallazgos||"",i.acciones||""]));
+    });
+    const ws7=XLSX.utils.aoa_to_sheet(insRows);
+    ws7["!cols"]=[{wch:24},{wch:30},{wch:24},{wch:10},{wch:45},{wch:45}];
+    XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
+
+    XLSX.writeFile(WB, `Informe_Diario_ISIS_${fecha}.xlsx`);
+    mostrarToast("✔ Excel diario descargado","verde");
+  } catch(err) {
+    mostrarToast("⚠ Error: "+err.message,"rojo");
+    console.error(err);
+  }
+}
+
+// Wrapper que carga datos y descarga Excel semanal
+function descargarExcelSemanal() {
+  const inicio=document.getElementById("sem-inicio").value;
+  const fin=document.getElementById("sem-fin").value;
+  if(!inicio||!fin){ mostrarToast("⚠ Selecciona el rango de fechas","naranja"); return; }
+  mostrarToast("⏳ Cargando datos de la semana…","naranja");
+  // Reutilizar lógica de cargarDatosSemana y exportarXLSSemanal
+  cargarDatosSemana().then(()=>{
+    exportarXLSSemanal();
+  }).catch(()=>exportarXLSSemanal());
 }
 
 function darDeBajaFrenteDesdeAdmin(fKey, nombre) {
