@@ -3877,6 +3877,138 @@ async function exportarXLSSemanal() {
   ws8["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:14},{wch:20},{wch:30},{wch:10},{wch:20},{wch:10}];
   XLSX.utils.book_append_sheet(WB, ws8, "EPP");
 
+  // ── HOJA 9: CONSOLIDADO POR TRABAJADOR ───────────────
+  // Construir mapa: cedula -> {perfil, dias, HHT, EPP, autorreportes, ausentismo, accidentes}
+  const trabConsolidado = {};
+
+  fechas.forEach(f=>{
+    Object.values(datosSemana[f]||{}).forEach(fr=>{
+      const d=fr.data||{}, s=fr.sesion||{};
+      const planta=d.planta||[];
+
+      // HH por día
+      (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(a=>{
+        const perf=planta.find(p=>p.id===a.plantaId)||{};
+        const ced=perf.cedula||a.cedula||a.plantaId||"SIN_CED";
+        const nom=perf.nombre||a.nombre||"Sin nombre";
+        if(!trabConsolidado[ced]) trabConsolidado[ced]={
+          nombre:nom, cedula:ced, nivel:perf.nivel||"", cargo:perf.cargo||"",
+          empresa:perf.empresa||"", apto:perf.apto||"",
+          diasTrabajados:0, HHT:0, diasPorFecha:{},
+          epp:[], autorreportes:[], ausentismo:[], accidentes:[]
+        };
+        const t=trabConsolidado[ced];
+        if(a.asistencia==="presente"&&(a.hh||0)>0){
+          t.diasTrabajados++;
+          t.HHT+=a.hh||0;
+          t.diasPorFecha[f]={frente:s.frente||"",hh:a.hh||0,entrada:a.entrada||"",salida:a.salida||""};
+        }
+      });
+
+      // EPP entregado
+      (d.epp||[]).forEach(e=>{
+        const ced=e.cedula||"SIN_CED";
+        if(!trabConsolidado[ced]) trabConsolidado[ced]={nombre:e.nombre||"",cedula:ced,nivel:"",cargo:e.cargo||"",empresa:"",apto:"",diasTrabajados:0,HHT:0,diasPorFecha:{},epp:[],autorreportes:[],ausentismo:[],accidentes:[]};
+        trabConsolidado[ced].epp.push({fecha:f,frente:s.frente||"",item:e.item||"",cant:e.cant||0,motivo:e.motivo||""});
+      });
+
+      // Autorreportes
+      (d.autorreportes||[]).forEach(ar=>{
+        const ced=ar.cedula||"SIN_CED";
+        if(!trabConsolidado[ced]) trabConsolidado[ced]={nombre:ar.nombre||"",cedula:ced,nivel:"",cargo:"",empresa:"",apto:"",diasTrabajados:0,HHT:0,diasPorFecha:{},epp:[],autorreportes:[],ausentismo:[],accidentes:[]};
+        trabConsolidado[ced].autorreportes.push({fecha:f,frente:s.frente||"",condiciones:(ar.condiciones||[]).join(", ")||"Apto",decision:ar.decision||""});
+      });
+
+      // Ausentismo
+      (d.ausentismo||[]).forEach(au=>{
+        const ced=au.cedula||"SIN_CED";
+        if(!trabConsolidado[ced]) trabConsolidado[ced]={nombre:au.nombre||"",cedula:ced,nivel:"",cargo:"",empresa:"",apto:"",diasTrabajados:0,HHT:0,diasPorFecha:{},epp:[],autorreportes:[],ausentismo:[],accidentes:[]};
+        trabConsolidado[ced].ausentismo.push({fecha:f,frente:s.frente||"",causa:au.causa||"",dias:au.dias||0,numInc:au.numInc||""});
+      });
+
+      // Accidentes
+      (d.accidentes||[]).forEach(at=>{
+        const ced=at.cedula||"SIN_CED";
+        if(!trabConsolidado[ced]) trabConsolidado[ced]={nombre:at.nombre||"",cedula:ced,nivel:"",cargo:"",empresa:"",apto:"",diasTrabajados:0,HHT:0,diasPorFecha:{},epp:[],autorreportes:[],ausentismo:[],accidentes:[]};
+        trabConsolidado[ced].accidentes.push({fecha:f,frente:s.frente||"",tipo:at.tipo||"",lesion:at.lesion||"",atencion:at.atencion||"",furat:at.furat||""});
+      });
+    });
+  });
+
+  // Construir filas del consolidado
+  const consRows=[];
+  // Cabecera principal
+  consRows.push(["ISIS PROYECTOS DE INGENIERÍA S.A.S. – CONSOLIDADO SEMANAL POR TRABAJADOR"]);
+  consRows.push([`Período: ${inicio} al ${fin}`]);
+  consRows.push([]);
+
+  const diasHeaderCons=fechas.map(f=>{
+    const d=new Date(f+"T00:00:00");
+    return d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit",month:"2-digit"});
+  });
+
+  // Sección HH por trabajador
+  consRows.push(["== HORAS-HOMBRE TRABAJADAS =="]);
+  consRows.push(["Nombre","Cédula","Nivel","Cargo","Empresa","Apto Médico",...diasHeaderCons,"DÍAS TRABAJADOS","HHT TOTAL SEMANA"]);
+  Object.values(trabConsolidado).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(t=>{
+    const fila=[t.nombre,t.cedula,t.nivel,t.cargo,t.empresa,t.apto];
+    fechas.forEach(f=>{
+      const dia=t.diasPorFecha[f];
+      fila.push(dia?`${dia.hh}HH – ${dia.frente}`:"");
+    });
+    fila.push(t.diasTrabajados);
+    fila.push(Math.round(t.HHT*100)/100);
+    consRows.push(fila);
+  });
+
+  consRows.push([]);
+  consRows.push(["== EPP ENTREGADO EN LA SEMANA =="]);
+  consRows.push(["Nombre","Cédula","Cargo","Fecha","Frente","EPP","Cantidad","Motivo"]);
+  Object.values(trabConsolidado).filter(t=>t.epp.length>0)
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .forEach(t=>{
+      t.epp.forEach(e=>{
+        consRows.push([t.nombre,t.cedula,t.cargo,e.fecha,e.frente,e.item,e.cant,e.motivo]);
+      });
+    });
+
+  consRows.push([]);
+  consRows.push(["== AUTORREPORTES DE SALUD =="]);
+  consRows.push(["Nombre","Cédula","Cargo","Fecha","Frente","Condiciones reportadas","Decisión"]);
+  Object.values(trabConsolidado).filter(t=>t.autorreportes.length>0)
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .forEach(t=>{
+      t.autorreportes.forEach(ar=>{
+        consRows.push([t.nombre,t.cedula,t.cargo,ar.fecha,ar.frente,ar.condiciones,ar.decision]);
+      });
+    });
+
+  consRows.push([]);
+  consRows.push(["== AUSENTISMO =="]);
+  consRows.push(["Nombre","Cédula","Cargo","Empresa","Fecha","Frente","Causa","Días","N° Incapacidad"]);
+  Object.values(trabConsolidado).filter(t=>t.ausentismo.length>0)
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .forEach(t=>{
+      t.ausentismo.forEach(au=>{
+        consRows.push([t.nombre,t.cedula,t.cargo,t.empresa,au.fecha,au.frente,au.causa,au.dias,au.numInc]);
+      });
+    });
+
+  consRows.push([]);
+  consRows.push(["== ACCIDENTES DE TRABAJO =="]);
+  consRows.push(["Nombre","Cédula","Cargo","Empresa","Fecha","Frente","Tipo evento","Lesión","Atención","N° FURAT"]);
+  Object.values(trabConsolidado).filter(t=>t.accidentes.length>0)
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .forEach(t=>{
+      t.accidentes.forEach(at=>{
+        consRows.push([t.nombre,t.cedula,t.cargo,t.empresa,at.fecha,at.frente,at.tipo,at.lesion,at.atencion,at.furat]);
+      });
+    });
+
+  const ws9c=XLSX.utils.aoa_to_sheet(consRows);
+  ws9c["!cols"]=[{wch:28},{wch:14},{wch:16},{wch:22},{wch:24},{wch:12},...fechas.map(()=>({wch:22})),{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(WB, ws9c, "Consolidado por Trabajador");
+
   // Exportar
   const nombre=`Informe_Semanal_ISIS_${inicio}_${fin}.xlsx`;
   XLSX.writeFile(WB, nombre);
