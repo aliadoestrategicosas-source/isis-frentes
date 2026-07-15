@@ -337,9 +337,9 @@ button, .btn, select, input { touch-action: manipulation; }
   <div class="spacer"></div>
   <span class="badge-rol" id="badge-rol"></span>
   <span class="badge-fecha" id="badge-fecha"></span>
-  <button class="btn-logout" onclick="cerrarSesion()" 
-    style="margin-left:12px;padding:6px 16px;font-size:11px;border-radius:20px;opacity:.65;border:1px solid rgba(255,255,255,.3);letter-spacing:.3px"
-    title="Cerrar sesión">↩ Salir</button>
+  <button class="btn-logout" onclick="confirmarSalida()" 
+    style="margin-left:16px;padding:5px 14px;font-size:10px;border-radius:20px;opacity:.5;border:1px solid rgba(255,255,255,.25);letter-spacing:.3px;min-width:60px"
+    title="Cerrar sesión (mantén presionado)">↩ Salir</button>
 </header>
 
 <!-- SESSION BAR (solo colaborador) -->
@@ -1277,6 +1277,14 @@ const CS_LABELS = ["Dolor de cabeza intenso","Mareos / vértigo","Alteraciones d
 // Fecha hoy
 const HOY = new Date();
 const FECHA_HOY = HOY.toISOString().split("T")[0];
+// Protección contra cierre accidental de la página
+window.addEventListener('beforeunload', e => {
+  if(SESION && SESION.activa && ROL==="colab") {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 document.getElementById("badge-fecha").textContent =
   HOY.toLocaleDateString("es-CO",{weekday:"short",year:"numeric",month:"short",day:"numeric"}).toUpperCase();
 
@@ -1485,8 +1493,20 @@ function _registrarResponsableEnPlanta() {
   }
 }
 
+let _ultimoTapSalir = 0;
+function confirmarSalida() {
+  const ahora = Date.now();
+  if(ahora - _ultimoTapSalir > 2000) {
+    _ultimoTapSalir = ahora;
+    mostrarToast("⚠ Toca Salir de nuevo para confirmar salida","naranja");
+    return;
+  }
+  cerrarSesion();
+}
+
 function cerrarSesion() {
-  if (usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
+  if(!confirm("¿Seguro que deseas cerrar sesión?\nLos datos ya quedaron guardados en la nube.")) return;
+  if(usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
   location.reload();
 }
 
