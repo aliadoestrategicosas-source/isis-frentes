@@ -3844,56 +3844,76 @@ document.getElementById("modal-foto").addEventListener("click",function(e){if(e.
 
 // Migrar trabajadores desde registros de frente hacia planta_global
 function migrarTrabajadoresDeFrente() {
-  if(!confirm("Esto importara todos los trabajadores registrados en frentes anteriores a la planta global.\nLos duplicados (misma cedula) se omiten.\n\n¿Continuar?")) return;
-  mostrarToast("Importando trabajadores...","naranja");
+  if(!confirm("Esto importara TODOS los trabajadores encontrados en el historial de frentes.\nLos duplicados (misma cedula) se omiten.\n\nPuede tardar unos segundos. Continuar?")) return;
 
-  const importar = (snapData) => {
+  document.getElementById("pg-lista").innerHTML='<div style="text-align:center;padding:30px;color:var(--texto-muted)">Leyendo historial de Firebase...<br><small>Esto puede tardar unos segundos</small></div>';
+
+  const procesarRegistros = (todosLosRegistros) => {
     let importados=0, omitidos=0;
-    snapData.forEach(child=>{
-      const v = child.val ? child.val() : child;
-      if(!v||!v.data) return;
-      // Planta vieja dentro del registro diario
-      const plantaVieja = v.data.planta||[];
-      plantaVieja.forEach(p=>{
-        if(!p||!p.nombre) return;
-        // Verificar si ya existe por cedula o nombre
-        const yaExiste = plantaGlobal.find(x=>
-          (p.cedula && x.cedula && x.cedula===p.cedula) ||
-          (x.nombre && x.nombre.toLowerCase()===p.nombre.toLowerCase())
-        );
-        if(yaExiste){ omitidos++; return; }
-        // Agregar a planta global con nuevo ID si no tiene uno
-        const nuevo = {
-          id: p.id||uid(),
-          nombre: p.nombre||"",
-          cedula: p.cedula||"",
+    const cedulasVistas=new Set(plantaGlobal.filter(p=>p.cedula).map(p=>p.cedula));
+    const nombresVistos=new Set(plantaGlobal.filter(p=>p.nombre).map(p=>p.nombre.toLowerCase().trim()));
+
+    todosLosRegistros.forEach(registro=>{
+      if(!registro) return;
+      // Buscar planta en data.planta (modelo viejo)
+      const plantaVieja = (registro.data&&registro.data.planta)||[];
+      // Buscar tambien en trabajadores con perfil embebido (modelo intermedio)
+      const trabConPerfil = (registro.data&&registro.data.trabajadores||[]).filter(t=>t.nombre&&!t.plantaId);
+
+      const todos=[...plantaVieja, ...trabConPerfil];
+
+      todos.forEach(p=>{
+        if(!p||!p.nombre||p.nombre.trim()==="") return;
+        const ced=(p.cedula||"").trim();
+        const nom=p.nombre.toLowerCase().trim();
+
+        // Verificar duplicado por cedula (preferido) o nombre
+        if(ced && cedulasVistas.has(ced)){ omitidos++; return; }
+        if(!ced && nombresVistos.has(nom)){ omitidos++; return; }
+
+        const nuevo={
+          id: uid(),
+          nombre: p.nombre.trim(),
+          cedula: ced,
           nivel: p.nivel||"operativo",
-          cargo: p.cargo||"",
-          empresa: p.empresa||"",
+          cargo: (p.cargo||"").trim(),
+          empresa: (p.empresa||"").trim(),
           apto: p.apto||"pendiente",
-          obs: p.obs||"",
+          obs: (p.obs||"").trim(),
           activo: true,
-          fechaIngreso: p.fechaIngreso||(v.sesion&&v.sesion.fecha)||FECHA_HOY,
+          fechaIngreso: p.fechaIngreso||(registro.sesion&&registro.sesion.fecha)||FECHA_HOY,
           docs: p.docs||{}
         };
         plantaGlobal.push(nuevo);
+        if(ced) cedulasVistas.add(ced);
+        nombresVistos.add(nom);
         importados++;
       });
     });
+
     if(importados>0){
       guardarPlantaGlobal();
       renderPlantaAdmin();
-      mostrarToast("Importados: "+importados+" trabajadores. Omitidos: "+omitidos+" (ya existian)","verde");
+      mostrarToast("Importados "+importados+" trabajadores. Ya existian: "+omitidos,"verde");
     } else {
-      mostrarToast("No se encontraron trabajadores nuevos para importar. Omitidos: "+omitidos,"naranja");
+      renderPlantaAdmin();
+      mostrarToast("No se encontraron trabajadores nuevos. Ya existian: "+omitidos,"naranja");
     }
   };
 
   if(usandoFirebase){
+    // Leer TODOS los nodos sin filtro
     db.ref("frentes").once("value", snap=>{
       const registros=[];
-      snap.forEach(child=>{ registros.push({val:()=>child.val()}); });
-      importar(registros);
+      snap.forEach(child=>{
+        const v=child.val();
+        if(v) registros.push(v);
+      });
+      console.log("Registros encontrados en Firebase:", registros.length);
+      procesarRegistros(registros);
+    }, err=>{
+      mostrarToast("Error leyendo Firebase: "+err.message,"rojo");
+      renderPlantaAdmin();
     });
   } else {
     const registros=[];
@@ -3903,7 +3923,7 @@ function migrarTrabajadoresDeFrente() {
         try{ const v=JSON.parse(localStorage.getItem(k)); if(v) registros.push(v); }catch(e){}
       }
     }
-    importar(registros);
+    procesarRegistros(registros);
   }
 }
 const DOCS_CONFIG = [
