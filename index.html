@@ -363,6 +363,7 @@ button, .btn, select, input { touch-action: manipulation; }
   <button onclick="tab('ausentismo')">🏥 Ausentismo</button>
   <button onclick="tab('accidentes')">🚨 Accidentes AT</button>
   <button onclick="tab('materiales')">📦 Materiales</button>
+  <button onclick="tab('permiso')">📋 Permiso Trabajo</button>
   <button onclick="tab('seguridad')">🦺 Charlas SST</button>
   <button onclick="tab('inspecciones')">🔍 Inspecciones</button>
   <button onclick="tab('autoreporte')">💊 Autorreporte Salud</button>
@@ -391,6 +392,7 @@ button, .btn, select, input { touch-action: manipulation; }
     <button class="btn btn-secundario" onclick="refrescarDashboard()">↺ Actualizar</button>
   </div>
   <div class="alerta alerta-info" id="alerta-sesion-colab">✔ Sesión activa. Registra la información de tu frente de trabajo.</div>
+  <div id="alertas-docs-colab" style="display:none"></div>
   <div id="alertas-salud-colab"></div>
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-num" id="st-trabajadores">0</div><div class="stat-label">Trabajadores</div></div>
@@ -412,70 +414,45 @@ button, .btn, select, input { touch-action: manipulation; }
 
 <!-- TRABAJADORES -->
 <div id="sec-trabajadores" class="seccion">
-  <div class="section-header"><h2>Trabajadores del Frente</h2></div>
+  <div class="section-header"><h2>Personal del Frente</h2></div>
 
-  <!-- PANEL 1: ASISTENCIA DEL DÍA -->
+  <!-- PANEL: ASISTENCIA DEL DÍA -->
   <div class="card" style="border-left:4px solid var(--naranja)">
-    <div class="card-titulo">✅ Confirmar Asistencia del Día
+    <div class="card-titulo">✅ Personal del Frente
       <span id="conteo-t" class="badge badge-azul" style="font-size:12px;margin-left:8px">0 presentes</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--texto-muted)">Total HH: <strong id="total-hh" style="color:var(--naranja)">0</strong></span>
+      <span style="margin-left:auto;font-size:11px;color:var(--texto-muted)">HH: <strong id="total-hh" style="color:var(--naranja)">0</strong></span>
     </div>
-    <div class="alerta alerta-info" style="margin-bottom:10px;font-size:12px">
-      👉 Marca la asistencia de cada trabajador. Los datos de perfil se completan una sola vez en "Planta del Frente".
+    <!-- Filtro de vista -->
+    <div style="display:flex;gap:0;margin-bottom:12px;border:1px solid var(--borde);border-radius:6px;overflow:hidden">
+      <button id="filtro-presentes" onclick="setFiltroAsistencia('presentes')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:var(--naranja);color:#fff;min-height:40px;touch-action:manipulation">
+        ✅ Solo presentes
+      </button>
+      <button id="filtro-todos" onclick="setFiltroAsistencia('todos')"
+        style="flex:1;padding:8px;font-size:13px;font-weight:600;border:none;cursor:pointer;background:#fff;color:var(--texto-muted);min-height:40px;touch-action:manipulation">
+        👥 Ver todos
+      </button>
     </div>
     <div id="lista-asistencia-dia">
-      <div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores en la planta del frente. Agrégalos abajo ↓</div>
+      <div class="texto-muted" style="padding:12px;text-align:center">⏳ Cargando personal del frente…</div>
     </div>
     <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-secundario" onclick="calcularHH()" style="font-size:12px">↺ Recalcular HH</button>
       <button class="btn btn-verde" onclick="marcarTodosPresentes()" style="font-size:12px">✔ Todos presentes</button>
     </div>
+    <div class="alerta alerta-info" style="margin-top:10px;font-size:11px">
+      💡 Si falta algún trabajador en la lista, contacta a la coordinadora SST para que lo agregue desde el panel de administración.
+    </div>
   </div>
 
-  <!-- PANEL 2: PLANTA GLOBAL DEL FRENTE -->
-  <div class="card" style="border-left:4px solid var(--azul)">
-    <div class="card-titulo" style="cursor:pointer" onclick="togglePlanta()">
-      👷 Planta del Frente
-      <span id="conteo-planta" class="badge badge-gris" style="font-size:12px;margin-left:8px">0 registrados</span>
-      <span id="icono-planta" style="margin-left:auto;font-size:16px">▼</span>
-    </div>
-    <div id="panel-planta" style="display:none">
-      <!-- Formulario agregar nuevo trabajador -->
-      <div style="background:var(--gris-claro);border-radius:6px;padding:14px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--azul);margin-bottom:10px">➕ Agregar nuevo trabajador a la planta</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nombre completo</label><input id="t-nombre" type="text" placeholder="Nombres y apellidos"></div>
-          <div class="form-group"><label>Cédula</label><input id="t-cedula" type="text" inputmode="numeric"></div>
-          <div class="form-group"><label>Nivel / Rol SST</label>
-            <select id="t-nivel">
-              <option value="jefe">Jefe de Proyectos</option>
-              <option value="hse">Profesional HSE</option>
-              <option value="analistaSST">Analista SST</option>
-              <option value="supervisor">Supervisor</option>
-              <option value="rescatista">Rescatista</option>
-              <option value="auxiliarIng">Auxiliar de Ingeniería</option>
-              <option value="operativo" selected>Operativo</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Cargo específico</label><input id="t-cargo" type="text" placeholder="Ej: Electricista Oficial…"></div>
-          <div class="form-group"><label>Empresa / Contratista</label><input id="t-empresa" type="text"></div>
-          <div class="form-group"><label>Apto médico riesgo</label>
-            <select id="t-apto"><option value="si">Sí</option><option value="no">No</option><option value="pendiente">Pendiente</option></select>
-          </div>
-        </div>
-        <div class="form-group mt-8"><label>Observaciones del perfil</label><textarea id="t-obs" style="min-height:45px"></textarea></div>
-        <div class="btn-row">
-          <button class="btn btn-primario" onclick="agregarTrabajador()">➕ Agregar a la planta</button>
-        </div>
+  <!-- MODAL PERFIL TRABAJADOR -->
+  <div id="modal-perfil" class="modal-overlay" style="display:none" onclick="cerrarPerfilTrabajador(event)">
+    <div class="modal-box" style="max-width:480px" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--azul)" id="perfil-nombre">—</div>
+        <button onclick="cerrarPerfilTrabajador()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--texto-muted)">✕</button>
       </div>
-      <!-- Tabla planta -->
-      <div class="tabla-wrap">
-        <table><thead><tr><th>#</th><th>Nombre</th><th>Cédula</th><th>Nivel</th><th>Cargo</th><th>Empresa</th><th>Apto</th><th>Estado</th><th>Retirar</th></tr></thead>
-        <tbody id="tbody-planta"></tbody></table>
-      </div>
-      <div class="alerta alerta-warn" style="margin-top:10px;font-size:11px">
-        ⚠ "Retirar" desactiva al trabajador para futuros días pero conserva su historial. No elimina registros anteriores.
-      </div>
+      <div id="perfil-contenido"></div>
     </div>
   </div>
 </div>
@@ -625,6 +602,125 @@ button, .btn, select, input { touch-action: manipulation; }
     <div class="tabla-wrap">
       <table><thead><tr><th>#</th><th>Cat.</th><th>Descripción</th><th>Ref.</th><th>Unid.</th><th>Usado</th><th>Disp.</th><th>Estado</th><th>✕</th></tr></thead>
       <tbody id="tbody-m"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- PERMISO DE TRABAJO -->
+<div id="sec-permiso" class="seccion">
+  <div class="section-header"><h2>📋 Permiso de Trabajo</h2></div>
+  <div class="alerta alerta-warn">⚠ El permiso de trabajo debe diligenciarse <strong>antes de iniciar</strong> cualquier actividad de alto riesgo en el frente. Un permiso por frente cubre la jornada del día.</div>
+
+  <div class="card" style="border-left:4px solid var(--azul)">
+    <div class="card-titulo">📋 Registrar Permiso de Trabajo</div>
+
+    <!-- Tipo de permiso -->
+    <div style="font-weight:700;font-size:13px;color:var(--azul);margin-bottom:10px">Tipo(s) de trabajo a ejecutar hoy:</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;background:#F4F9FF;border:1px solid #AED6F1;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-alturas" style="width:18px;height:18px"> 🏔 Trabajo en alturas</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#FFF8E8;border:1px solid #F9E79F;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-electrico" style="width:18px;height:18px"> ⚡ Trabajo eléctrico / LOTO</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#FFF0E8;border:1px solid #FAD7A0;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-caliente" style="width:18px;height:18px"> 🔥 Trabajo en caliente</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#F4F9FF;border:1px solid #AED6F1;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-confinado" style="width:18px;height:18px"> 🕳 Espacios confinados</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#F9F4FF;border:1px solid #D7BDE2;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-excavacion" style="width:18px;height:18px"> ⛏ Excavaciones y zanjas</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#F4FFF4;border:1px solid #A9DFBF;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-izaje" style="width:18px;height:18px"> 🏗 Izaje de cargas</label>
+      <label style="display:flex;align-items:center;gap:8px;background:#F0F0F0;border:1px solid #D5D8DC;border-radius:6px;padding:10px;cursor:pointer;font-size:13px;font-weight:600">
+        <input type="checkbox" id="pt-nocturno" style="width:18px;height:18px"> 🌙 Trabajo nocturno</label>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group"><label>Hora de inicio</label><input id="pt-hora-ini" type="time"></div>
+      <div class="form-group"><label>Hora de finalización estimada</label><input id="pt-hora-fin" type="time"></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Ubicación / Área de trabajo</label>
+        <input id="pt-ubicacion" type="text" placeholder="Sector, tramo, coordenada o descripción del área">
+      </div>
+    </div>
+
+    <!-- Descripción de actividades -->
+    <div class="form-group mt-8">
+      <label>Descripción de actividades a ejecutar</label>
+      <textarea id="pt-actividades" placeholder="Describe detalladamente qué se va a hacer durante la jornada…" style="min-height:80px"></textarea>
+    </div>
+
+    <!-- Riesgos identificados -->
+    <div class="form-group mt-8">
+      <label>Riesgos identificados</label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin-top:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-caida"> Caída de alturas</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-electrico"> Contacto eléctrico</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-incendio"> Incendio / explosión</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-atrapamiento"> Atrapamiento</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-golpe"> Golpe por objetos</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-quimico"> Exposición química</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-ruido"> Ruido / vibración</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-ergonomico"> Riesgo ergonómico</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-vehiculo"> Atropellamiento / vehículo</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="r-publico"> Afectación a terceros</label>
+      </div>
+      <input id="r-otros" type="text" placeholder="Otros riesgos…" style="margin-top:8px;border:1px solid var(--borde);border-radius:6px;padding:8px 10px;font-size:13px;width:100%">
+    </div>
+
+    <!-- Medidas de control -->
+    <div class="form-group mt-8">
+      <label>Medidas de control / EPP requerido</label>
+      <textarea id="pt-controles" placeholder="Ej: Uso de arnés y línea de vida certificada, bloqueo y etiquetado LOTO, señalización perimetral, extintor a 5m, vigía de seguridad…" style="min-height:80px"></textarea>
+    </div>
+
+    <!-- Condiciones especiales -->
+    <div class="form-group mt-8">
+      <label>Condiciones especiales o restricciones</label>
+      <textarea id="pt-restricciones" placeholder="Ej: No iniciar si hay lluvia, verificar tensión cero antes de intervenir, coordinar con operador de subestación…" style="min-height:60px"></textarea>
+    </div>
+
+    <!-- Firmas -->
+    <div style="background:#F8F9FA;border-radius:8px;padding:14px;margin-top:16px;margin-bottom:4px">
+      <div style="font-weight:700;font-size:13px;color:var(--azul);margin-bottom:12px">✍ Confirmación de las partes</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Analista SST / Responsable HSE</label>
+          <input id="pt-firma-sst" type="text" placeholder="Nombre completo">
+        </div>
+        <div class="form-group">
+          <label>Supervisor de obra</label>
+          <input id="pt-firma-supervisor" type="text" placeholder="Nombre completo">
+        </div>
+        <div class="form-group">
+          <label>Trabajador ejecutor principal</label>
+          <select id="pt-firma-trabajador">
+            <option value="">— Seleccione el ejecutor principal —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado del permiso</label>
+          <select id="pt-estado">
+            <option value="emitido">✅ Emitido y aprobado</option>
+            <option value="suspendido">⏸ Suspendido temporalmente</option>
+            <option value="cancelado">❌ Cancelado</option>
+            <option value="cerrado">🔒 Cerrado al finalizar jornada</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mt-8">
+        <label>Observaciones del permiso</label>
+        <textarea id="pt-obs" placeholder="Observaciones adicionales, incidentes durante la jornada, motivo de suspensión/cancelación…" style="min-height:50px"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primario" onclick="guardarPermiso()">💾 Emitir permiso de trabajo</button>
+    </div>
+  </div>
+
+  <!-- Lista de permisos del día -->
+  <div class="card" style="margin-top:14px">
+    <div class="card-titulo">📋 Permisos emitidos hoy</div>
+    <div id="lista-permisos">
+      <div class="texto-muted" style="padding:12px;text-align:center">Sin permisos registrados para este frente hoy.</div>
     </div>
   </div>
 </div>
@@ -939,16 +1035,77 @@ button, .btn, select, input { touch-action: manipulation; }
   </div>
   <div class="alerta alerta-info" id="adm-alerta-accidentes" style="display:none"></div>
   <div class="alerta alerta-warn" id="adm-alerta-salud" style="display:none"></div>
-  <div class="stats-grid" id="adm-stats">
+  <!-- KPIs operativos del día -->
+  <div class="stats-grid" id="adm-stats" style="margin-bottom:10px">
     <div class="stat-card"><div class="stat-num" id="adm-st-frentes">0</div><div class="stat-label">Frentes activos</div></div>
-    <div class="stat-card"><div class="stat-num" id="adm-st-trabajadores">0</div><div class="stat-label">Total trabajadores</div></div>
-    <div class="stat-card"><div class="stat-num" id="adm-st-hh">0</div><div class="stat-label">Total HH</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-trabajadores">0</div><div class="stat-label">Presentes hoy</div></div>
+    <div class="stat-card"><div class="stat-num" id="adm-st-hh">0</div><div class="stat-label">HH del día</div></div>
     <div class="stat-card"><div class="stat-num" id="adm-st-accidentes" style="color:var(--rojo)">0</div><div class="stat-label">Accidentes AT</div></div>
     <div class="stat-card"><div class="stat-num" id="adm-st-ausentismo">0</div><div class="stat-label">Ausentismo</div></div>
     <div class="stat-card"><div class="stat-num" id="adm-st-inspecciones">0</div><div class="stat-label">Inspecciones</div></div>
     <div class="stat-card"><div class="stat-num" id="adm-st-salud-alerta" style="color:var(--rojo)">0</div><div class="stat-label">Alertas salud</div></div>
     <div class="stat-card"><div class="stat-num" id="adm-st-charlas">0</div><div class="stat-label">Charlas SST</div></div>
   </div>
+
+  <!-- Panel indicadores SST acumulados -->
+  <div style="background:#F0F7FF;border:1px solid #AED6F1;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <div style="font-weight:700;font-size:14px;color:var(--azul)">Indicadores SST Acumulados</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="ind-periodo" onchange="calcularIndicadores()" style="border:1px solid var(--borde);border-radius:6px;padding:6px 10px;font-size:13px">
+          <option value="7">Ultimos 7 dias</option>
+          <option value="30" selected>Ultimos 30 dias</option>
+          <option value="90">Ultimos 90 dias</option>
+          <option value="365">Ultimo año</option>
+        </select>
+        <button class="btn btn-secundario" onclick="calcularIndicadores()" style="font-size:12px;min-height:36px">Calcular</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px" id="panel-indicadores">
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">IF — IND. FRECUENCIA</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-if">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">AT x 200.000 / HHT</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">IS — IND. SEVERIDAD</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-is">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">Dias perdidos x 200.000 / HHT</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">IA — IND. ACCIDENTALIDAD</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-ia">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">IF x IS / 1000</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">HHT ACUMULADAS</div>
+        <div style="font-size:26px;font-weight:700;color:var(--naranja)" id="ind-hht">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">Total periodo</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">DIAS SIN ACCIDENTE</div>
+        <div style="font-size:26px;font-weight:700;color:var(--verde)" id="ind-dsa">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">Desde ultimo AT</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">TASA AUSENTISMO</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-ta">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">Dias ausentes / Dias posibles</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">COBERTURA CHARLAS</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-cc">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">Charlas / Dias con datos</div>
+      </div>
+      <div style="background:#fff;border-radius:8px;padding:12px;text-align:center;border:1px solid #D6EAF8">
+        <div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">COBERTURA AUTORREPORTE</div>
+        <div style="font-size:26px;font-weight:700;color:var(--azul)" id="ind-car">—</div>
+        <div style="font-size:10px;color:var(--texto-muted)">% trabajadores con autorreporte</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--texto-muted);font-style:italic" id="ind-nota"></div>
+  </div>
+
   <div id="adm-frentes-lista"></div>
 </div>
 
@@ -1024,7 +1181,10 @@ button, .btn, select, input { touch-action: manipulation; }
 
 <!-- PLANTA GLOBAL ADMIN -->
 <div id="sec-admin-planta-global" class="seccion-admin" style="display:none">
-  <div class="section-header"><h2>👷 Planta Global de Trabajadores</h2></div>
+  <div class="section-header"><h2>Planta Global de Trabajadores</h2></div>
+
+  <!-- Panel de alertas de documentos -->
+  <div id="pg-alertas" style="display:none;margin-bottom:14px"></div>
   <div class="alerta alerta-info">
     Aquí administras todos los trabajadores de la empresa. Se registran una sola vez y están disponibles en todos los frentes. Los cambios aplican inmediatamente a todos los frentes activos.
   </div>
@@ -1222,11 +1382,11 @@ button, .btn, select, input { touch-action: manipulation; }
 </div>
 <script>
 // ======================================================
-//  FIREBASE CONFIG  ←  Reemplaza con tu proyecto real
+//  FIREBASE CONFIG    Reemplaza con tu proyecto real
 // ======================================================
 // ===============================================================
 //  PASO 1: Reemplaza estos 4 valores con los de tu proyecto Firebase
-//  Ver guía completa al final del archivo (comentario GUIA FIREBASE)
+//  Ver guia completa al final del archivo (comentario GUIA FIREBASE)
 // ===============================================================
 const FB_CONFIG = {
   apiKey:            "AIzaSyB9z8cmUgzoUTR5eHrriDfPd_ZX0Zh01hM",
@@ -1239,10 +1399,10 @@ const FB_CONFIG = {
 };
 
 // ======================================================
-//  CREDENCIALES ADMINISTRADOR  ←  Cambia estas claves
+//  CREDENCIALES ADMINISTRADOR    Cambia estas claves
 // ======================================================
-const ADMIN_USER = "admin.isis";      // ← CAMBIA ESTO: tu usuario administrador
-const ADMIN_PASS = "Isis2026*";  // ← CAMBIA ESTO: tu contraseña segura
+const ADMIN_USER = "admin.isis";      //  CAMBIA ESTO: tu usuario administrador
+const ADMIN_PASS = "Isis2026*";  //  CAMBIA ESTO: tu contrasena segura
 
 // ======================================================
 //  INIT FIREBASE
@@ -1252,7 +1412,7 @@ try {
   if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
   db = firebase.database(); usandoFirebase = true;
   console.log("Firebase conectado");
-} catch(e) { console.warn("Firebase no configurado – modo localStorage"); }
+} catch(e) { console.warn("Firebase no configurado  modo localStorage"); }
 
 // ======================================================
 //  ESTADO GLOBAL
@@ -1268,16 +1428,77 @@ let lluviaTimer = null, lluviaInicio = null;
 let fotosPendientes = [], chFotos = [], insFotos = [];
 let insItemsTemp = [];
 let plantaVisible = false;
+let filtroAsistencia = 'presentes'; // 'presentes' | 'todos'
 
-const CS_LABELS = ["Dolor de cabeza intenso","Mareos / vértigo","Alteraciones de la visión",
-  "Fiebre","Náuseas / vómito","Bajo efecto de medicamentos","Dolor en el pecho",
-  "Dificultad respiratoria","Fatiga extrema / somnolencia","Lesión músculo-esquelética",
-  "Estrés / alteración emocional"];
+function setFiltroAsistencia(modo) {
+  filtroAsistencia = modo;
+  document.getElementById("filtro-presentes").style.background = modo==='presentes'?'var(--naranja)':'#fff';
+  document.getElementById("filtro-presentes").style.color = modo==='presentes'?'#fff':'var(--texto-muted)';
+  document.getElementById("filtro-todos").style.background = modo==='todos'?'var(--naranja)':'#fff';
+  document.getElementById("filtro-todos").style.color = modo==='todos'?'#fff':'var(--texto-muted)';
+  renderT();
+}
+
+function abrirPerfilTrabajador(plantaId) {
+  const p = plantaGlobal.find(x=>x.id===plantaId);
+  if(!p) return;
+  const a = getAsistenciaHoy(plantaId)||{};
+  const abApto = p.apto==="si"?"#1A7A4A":p.apto==="no"?"#C0392B":"#E67E22";
+  const aptoTxt = p.apto==="si"?"Apto":p.apto==="no"?"No apto":"Pendiente";
+  const estadoTxt = {presente:"Presente","otro-frente":"En otro frente","ausente-medico":"Ausente - Medico","ausente-personal":"Ausente - Personal","ausente-calamidad":"Ausente - Calamidad",permiso:"Permiso","no-aplica":"No aplica este dia"};
+  document.getElementById("perfil-nombre").textContent = p.nombre;
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">CEDULA</div><div style="font-weight:700;font-size:15px">'+(p.cedula||"")+'</div></div>';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">NIVEL</div><div>'+nivelBadge(p.nivel||"operativo")+'</div></div>';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">CARGO</div><div style="font-size:13px;font-weight:600">'+(p.cargo||"")+'</div></div>';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">EMPRESA</div><div style="font-size:13px">'+(p.empresa||"")+'</div></div>';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">APTO MEDICO</div><div style="font-weight:700;color:'+abApto+'">'+aptoTxt+'</div></div>';
+  html += '<div style="background:#F4F5F7;border-radius:6px;padding:10px"><div style="font-size:10px;font-weight:700;color:var(--texto-muted);margin-bottom:4px">INGRESO PLANTA</div><div style="font-size:13px">'+(p.fechaIngreso||"")+'</div></div>';
+  html += '</div>';
+
+  const rowBg = a.asistencia==='presente'?'#F0FFF4':'#FFF8F0';
+  const rowBorder = a.asistencia==='presente'?'#82E0AA':'#FAD7A0';
+  html += '<div style="background:'+rowBg+';border:1.5px solid '+rowBorder+';border-radius:8px;padding:14px">';
+  html += '<div style="font-size:11px;font-weight:700;color:var(--texto-muted);margin-bottom:8px">HOY  '+(SESION.fecha||"")+'</div>';
+  html += '<div style="font-weight:700;font-size:15px;margin-bottom:12px">'+(estadoTxt[a.asistencia||"presente"]||"")+'</div>';
+
+  if(a.asistencia==='presente') {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;text-align:center">';
+    html += '<div><div style="font-size:10px;color:var(--texto-muted);font-weight:700">ENTRADA</div><div style="font-size:20px;font-weight:700;color:var(--azul)">'+(a.entrada||"")+'</div></div>';
+    html += '<div><div style="font-size:10px;color:var(--texto-muted);font-weight:700">ALM. INI</div><div style="font-size:18px;font-weight:700;color:#E67E22">'+(a.almuerzoIni||"")+'</div></div>';
+    html += '<div><div style="font-size:10px;color:var(--texto-muted);font-weight:700">ALM. FIN</div><div style="font-size:18px;font-weight:700;color:#E67E22">'+(a.almuerzoFin||"")+'</div></div>';
+    html += '<div><div style="font-size:10px;color:var(--texto-muted);font-weight:700">SALIDA</div><div style="font-size:20px;font-weight:700;color:var(--rojo)">'+(a.salida||"")+'</div></div>';
+    html += '</div>';
+    html += '<div style="text-align:center;margin-top:12px;padding:10px;background:#fff;border-radius:6px">';
+    html += '<div style="font-size:11px;color:var(--texto-muted)">HORAS-HOMBRE DEL DIA</div>';
+    html += '<div style="font-size:30px;font-weight:700;color:var(--naranja)">'+(a.hh||0)+' HH</div>';
+    html += '</div>';
+  } else {
+    html += '<div style="color:var(--texto-muted);font-size:13px;text-align:center;padding:10px">Sin registro de horas para este estado</div>';
+  }
+  html += '</div>';
+
+  if(p.obs) html += '<div style="margin-top:10px;font-size:12px;color:#666;padding:8px 10px;background:#F9F9F9;border-radius:6px">Obs: '+p.obs+'</div>';
+
+  document.getElementById("perfil-contenido").innerHTML = html;
+  document.getElementById("modal-perfil").style.display="flex";
+}
+
+function cerrarPerfilTrabajador(e) {
+  if(!e||e.target===document.getElementById("modal-perfil")||!e.target)
+    document.getElementById("modal-perfil").style.display="none";
+}
+
+const CS_LABELS = ["Dolor de cabeza intenso","Mareos / vertigo","Alteraciones de la vision",
+  "Fiebre","Nauseas / vomito","Bajo efecto de medicamentos","Dolor en el pecho",
+  "Dificultad respiratoria","Fatiga extrema / somnolencia","Lesion musculo-esqueletica",
+  "Estres / alteracion emocional"];
 
 // Fecha hoy
 const HOY = new Date();
 const FECHA_HOY = HOY.toISOString().split("T")[0];
-// Protección contra cierre accidental de la página
+// Proteccion contra cierre accidental de la pagina
 window.addEventListener('beforeunload', e => {
   if(SESION && SESION.activa && ROL==="colab") {
     e.preventDefault();
@@ -1298,10 +1519,10 @@ function cargarFrenteGuardado() {
       document.getElementById("login-frente-guardado").style.display="block";
       document.getElementById("login-frente-nuevo").style.display="none";
       document.getElementById("lbl-frente-guardado").textContent = cfg.frente;
-      document.getElementById("lbl-resp-guardado").textContent = "👤 "+cfg.responsable;
+      document.getElementById("lbl-resp-guardado").textContent = " "+cfg.responsable;
       document.getElementById("c-fecha").value = FECHA_HOY;
     } else {
-      // Primera vez — mostrar formulario completo
+      // Primera vez  mostrar formulario completo
       document.getElementById("login-frente-guardado").style.display="none";
       document.getElementById("login-frente-nuevo").style.display="block";
       document.getElementById("c-fecha2").value = FECHA_HOY;
@@ -1345,7 +1566,7 @@ function entrarColab() {
       const hayFrente = Object.keys(cfg).length > 0;
 
       if(!hayFrente) {
-        // No hay frentes configurados — entrar libremente
+        // No hay frentes configurados  entrar libremente
         entrar(frente); return;
       }
 
@@ -1355,7 +1576,7 @@ function entrarColab() {
 
       if(match) {
         if((match.estado||"activo")==="cerrado"){
-          alert("Este frente está cerrado.\nContacta a la coordinadora SST.");
+          alert("Este frente esta cerrado.\nContacta a la coordinadora SST.");
           return;
         }
         entrar(match.nombre);
@@ -1363,14 +1584,14 @@ function entrarColab() {
         // Clave incorrecta
         mostrarErr("err-colab");
       }
-    }, ()=>{ entrar(frente); }); // Error Firebase → entrar de todas formas
+    }, ()=>{ entrar(frente); }); // Error Firebase  entrar de todas formas
   } else {
-    // Sin clave o sin Firebase → entrar directamente
+    // Sin clave o sin Firebase  entrar directamente
     entrar(frente);
   }
 }
 
-// Entrar con frente guardado — solo cambia la fecha
+// Entrar con frente guardado  solo cambia la fecha
 function entrarColabGuardado() {
   const fecha = document.getElementById("c-fecha").value;
   if(!fecha){ mostrarErr("err-colab"); return; }
@@ -1420,7 +1641,7 @@ function iniciarApp() {
   document.getElementById("pantalla-login").style.display="none";
   document.getElementById("app-shell").style.display="block";
   if (ROL==="colab") {
-    document.getElementById("badge-rol").textContent = "👷 COLABORADOR – "+SESION.frente;
+    document.getElementById("badge-rol").textContent = " COLABORADOR  "+SESION.frente;
     document.getElementById("badge-rol").className = "badge-rol badge-rol-colab";
     document.getElementById("header-sub").textContent = SESION.frente+" | "+SESION.responsable;
     document.getElementById("session-bar").style.display="flex";
@@ -1432,12 +1653,12 @@ function iniciarApp() {
     document.getElementById("nav-admin").style.display="none";
     document.getElementById("vista-admin").style.display="none";
     cargarDatos();
-    // Registrar automáticamente al responsable del frente en la planta global
+    // Registrar automaticamente al responsable del frente en la planta global
     setTimeout(()=>_registrarResponsableEnPlanta(), 2000);
   } else {
-    document.getElementById("badge-rol").textContent = "🔐 ADMINISTRADOR";
+    document.getElementById("badge-rol").textContent = " ADMINISTRADOR";
     document.getElementById("badge-rol").className = "badge-rol badge-rol-admin";
-    document.getElementById("header-sub").textContent = "Panel de Control – Vista Ejecutiva";
+    document.getElementById("header-sub").textContent = "Panel de Control  Vista Ejecutiva";
     document.getElementById("session-bar").style.display="none";
     document.getElementById("nav-admin").style.display="flex";
     document.getElementById("vista-admin").style.display="block";
@@ -1446,22 +1667,23 @@ function iniciarApp() {
     document.getElementById("adm-fecha-filtro").value = FECHA_HOY;
     document.getElementById("adm-frentes-lista").innerHTML = `
       <div style="text-align:center;padding:40px;color:var(--texto-muted)">
-        <div style="font-size:32px;margin-bottom:12px">⏳</div>
-        <div style="font-weight:700;font-size:15px">Cargando datos de Firebase…</div>
+        <div style="font-size:32px;margin-bottom:12px"></div>
+        <div style="font-weight:700;font-size:15px">Cargando datos de Firebase</div>
         <div style="font-size:12px;margin-top:6px">Esto puede tardar unos segundos</div>
       </div>`;
     cargarTodosFrente();
+    calcularIndicadores();
   }
 }
 
 // Registrar al responsable del frente en la planta global si no existe,
-// y crear su asistencia del día automáticamente
+// y crear su asistencia del dia automaticamente
 function _registrarResponsableEnPlanta() {
   if(!SESION.activa || !SESION.responsable) return;
   const nombre = SESION.responsable.trim();
   if(!nombre) return;
 
-  // Buscar si ya existe en la planta global por nombre (comparación flexible)
+  // Buscar si ya existe en la planta global por nombre (comparacion flexible)
   const yaExiste = plantaGlobal.find(p=>
     p.nombre && p.nombre.trim().toLowerCase() === nombre.toLowerCase()
   );
@@ -1471,19 +1693,19 @@ function _registrarResponsableEnPlanta() {
     const nuevo = {
       id: uid(), nombre, cedula:"", nivel:"analistaSST",
       cargo:"Responsable de frente / Analista SST",
-      empresa:"ISIS Proyectos de Ingeniería S.A.S.",
+      empresa:"ISIS Proyectos de Ingenieria S.A.S.",
       apto:"si", activo:true, fechaIngreso:SESION.fecha,
       esResponsable:true
     };
     plantaGlobal.push(nuevo);
     guardarPlantaGlobal();
-    // Crear asistencia del día
+    // Crear asistencia del dia
     crearOActualizarAsistencia(nuevo.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
     guardarDatos();
     renderT();
-    mostrarToast(`✔ ${nombre} agregado a la planta como responsable`,"verde");
+    mostrarToast(` ${nombre} agregado a la planta como responsable`,"verde");
   } else {
-    // Ya existe — solo asegurar que tenga asistencia del día en este frente
+    // Ya existe  solo asegurar que tenga asistencia del dia en este frente
     const asistHoy = getAsistenciaHoy(yaExiste.id);
     if(!asistHoy) {
       crearOActualizarAsistencia(yaExiste.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
@@ -1498,14 +1720,14 @@ function confirmarSalida() {
   const ahora = Date.now();
   if(ahora - _ultimoTapSalir > 2000) {
     _ultimoTapSalir = ahora;
-    mostrarToast("⚠ Toca Salir de nuevo para confirmar salida","naranja");
+    mostrarToast(" Toca Salir de nuevo para confirmar salida","naranja");
     return;
   }
   cerrarSesion();
 }
 
 function cerrarSesion() {
-  if(!confirm("¿Seguro que deseas cerrar sesión?\nLos datos ya quedaron guardados en la nube.")) return;
+  if(!confirm("¿Seguro que deseas cerrar sesion?\nLos datos ya quedaron guardados en la nube.")) return;
   if(usandoFirebase && ROL==="colab") db.ref("frentes/"+claveDB()).off();
   location.reload();
 }
@@ -1513,9 +1735,9 @@ function cerrarSesion() {
 // ======================================================
 //  FIREBASE / STORAGE
 // ======================================================
-function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_"); }
+function claveDB() { return SESION.fecha+"__"+SESION.frente.replace(/[^a-zA-Z0-9aeiouÁÉÍÓÚnÑ]/g,"_"); }
 
-// Planta global — persiste en /planta_global, independiente de fecha y frente
+// Planta global  persiste en /planta_global, independiente de fecha y frente
 let plantaGlobal = []; // Array de perfiles de trabajadores
 
 function guardarPlantaGlobal() {
@@ -1559,8 +1781,8 @@ function cargarPlantaGlobal(callback) {
 function guardarDatos() {
   if (!SESION.activa) return;
   setSyncDot(false);
-  // Construir objeto limpio para guardar — sin planta (va en /planta_global)
-  // Reemplazar arrays vacíos con [] explícito y nunca null/undefined
+  // Construir objeto limpio para guardar  sin planta (va en /planta_global)
+  // Reemplazar arrays vacios con [] explicito y nunca null/undefined
   const dataLimpia = {
     trabajadores: DATA.trabajadores||[],
     actividades:  DATA.actividades||[],
@@ -1574,6 +1796,7 @@ function guardarDatos() {
     autorreportes:DATA.autorreportes||[],
     lluvias:      DATA.lluvias||[],
     fotos:        DATA.fotos||[],
+    permisos:     DATA.permisos||[],
     clima:        DATA.clima||{}
   };
   const payload = { sesion:SESION, data:dataLimpia, ts:new Date().toISOString() };
@@ -1612,11 +1835,12 @@ function cargarDatos() {
               autorreportes: Array.isArray(v.data.autorreportes) ? v.data.autorreportes : [],
               lluvias:       Array.isArray(v.data.lluvias)       ? v.data.lluvias       : [],
               fotos:         Array.isArray(v.data.fotos)         ? v.data.fotos         : [],
+              permisos:      Array.isArray(v.data.permisos)      ? v.data.permisos      : [],
               clima:         v.data.clima && typeof v.data.clima==="object" ? v.data.clima : {},
               planta:        plantaGlobal
             };
           } else {
-            // Día nuevo — inicializar vacío
+            // Dia nuevo  inicializar vacio
             DATA = {
               trabajadores:[], actividades:[], ausentismo:[], accidentes:[],
               materiales:[], charlas:[], epp:[], residuos:[], inspecciones:[],
@@ -1678,6 +1902,7 @@ function normalizarData() {
   if(!DATA.lluvias)       DATA.lluvias=[];
   if(!DATA.fotos)         DATA.fotos=[];
   if(!DATA.clima)         DATA.clima={};
+  if(!DATA.permisos)      DATA.permisos=[];
 }
 
 function setSyncDot(ok) {
@@ -1685,7 +1910,7 @@ function setSyncDot(ok) {
   const l=document.getElementById("lbl-sync");
   if(!d) return;
   d.className="online-dot "+(ok?"dot-on":"dot-off");
-  l.textContent=ok?"Sincronizado":"Guardando…";
+  l.textContent=ok?"Sincronizado":"Guardando";
 }
 
 // Cargar TODOS los frentes para admin
@@ -1694,33 +1919,33 @@ function cargarTodosFrente() {
   todosFrente = {};
   document.getElementById("adm-frentes-lista").innerHTML = `
     <div style="text-align:center;padding:30px;color:var(--texto-muted)">
-      <div style="font-size:28px;margin-bottom:8px">⏳</div>
-      <div style="font-weight:700">Cargando frentes activos del ${fecha}…</div>
+      <div style="font-size:28px;margin-bottom:8px"></div>
+      <div style="font-weight:700">Cargando frentes activos del ${fecha}</div>
     </div>`;
 
   const combinarYRenderizar = (datosDelDia) => {
-    // Construir vista: frentes_config activos + datos del día si existen
+    // Construir vista: frentes_config activos + datos del dia si existen
     const frentesActivos = Object.values(frentesConfig||{}).filter(f=>(f.estado||"activo")==="activo");
 
-    // Si no hay frentes creados aún, mostrar mensaje
+    // Si no hay frentes creados aun, mostrar mensaje
     if(!frentesActivos.length && !Object.keys(datosDelDia).length) {
       document.getElementById("adm-frentes-lista").innerHTML = `
         <div style="text-align:center;padding:40px;color:var(--texto-muted)">
-          <div style="font-size:32px;margin-bottom:12px">📋</div>
+          <div style="font-size:32px;margin-bottom:12px"></div>
           <div style="font-weight:700">No hay frentes activos creados</div>
-          <div style="font-size:12px;margin-top:6px">Ve a ⚙ Gestión Frentes para crear los frentes de trabajo</div>
+          <div style="font-size:12px;margin-top:6px">Ve a  Gestion Frentes para crear los frentes de trabajo</div>
         </div>`;
       renderAdmin();
       return;
     }
 
-    // Combinar: frentes de config + datos del día
-    // Primero agregar todos los que tienen datos del día
+    // Combinar: frentes de config + datos del dia
+    // Primero agregar todos los que tienen datos del dia
     Object.entries(datosDelDia).forEach(([key, v]) => {
       todosFrente[key] = v;
     });
 
-    // Luego agregar frentes activos que NO tienen datos del día (frentes sin registro)
+    // Luego agregar frentes activos que NO tienen datos del dia (frentes sin registro)
     frentesActivos.forEach(f => {
       const key = _fKey(f.nombre||"")+"__"+fecha;
       const yaExiste = Object.values(todosFrente).some(v=>
@@ -1728,7 +1953,7 @@ function cargarTodosFrente() {
       );
       if(!yaExiste) {
         todosFrente["sindata_"+_fKey(f.nombre||"")] = {
-          sesion: { frente: f.nombre, responsable: f.responsable||"—", fecha },
+          sesion: { frente: f.nombre, responsable: f.responsable||"", fecha },
           data: {},
           sinDatos: true
         };
@@ -1738,9 +1963,9 @@ function cargarTodosFrente() {
     renderAdmin();
   };
 
-  // Cargar frentes_config y datos del día en paralelo
+  // Cargar frentes_config y datos del dia en paralelo
   if(usandoFirebase) {
-    // Primero cargar config de frentes si no está cargada
+    // Primero cargar config de frentes si no esta cargada
     const cargarDatos = () => {
       db.ref("frentes").orderByKey().once("value", snap=>{
         const datosDelDia = {};
@@ -1753,7 +1978,7 @@ function cargarTodosFrente() {
         combinarYRenderizar(datosDelDia);
       }, err=>{
         document.getElementById("adm-frentes-lista").innerHTML = `
-          <div class="alerta alerta-err">⚠ Error Firebase: ${err.message}</div>`;
+          <div class="alerta alerta-err"> Error Firebase: ${err.message}</div>`;
       });
     };
 
@@ -1811,15 +2036,15 @@ function tabAdmin(id) {
 function cargarFrentesDetalle() {
   const fecha = document.getElementById("adm-fecha-frentes").value || FECHA_HOY;
   const contenedor = document.getElementById("adm-detalle-frentes");
-  contenedor.innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)">⏳ Cargando frentes del ${fecha}…</div>`;
+  contenedor.innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)"> Cargando frentes del ${fecha}</div>`;
 
   const renderDetalle = (datos) => {
     const frentes=Object.values(datos);
     if(!frentes.length){
       contenedor.innerHTML=`<div style="text-align:center;padding:40px;color:var(--texto-muted)">
-        <div style="font-size:32px;margin-bottom:12px">📭</div>
+        <div style="font-size:32px;margin-bottom:12px"></div>
         <div style="font-weight:700">Sin registros para el ${fecha}</div>
-        <div style="font-size:12px;margin-top:6px">Verifica que los colaboradores hayan iniciado sesión con esta fecha exacta</div>
+        <div style="font-size:12px;margin-top:6px">Verifica que los colaboradores hayan iniciado sesion con esta fecha exacta</div>
       </div>`;
       return;
     }
@@ -1833,14 +2058,14 @@ function cargarFrentesDetalle() {
       return `<div class="admin-frente-card">
         <div class="admin-frente-header" onclick="toggleFrenteAdmin('${key}')">
           <div>
-            <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}</div>
-            <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${s.fecha||"—"}</div>
+            <div class="admin-frente-titulo"> ${s.frente||"Sin nombre"}</div>
+            <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||""} | ${s.fecha||""}</div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            ${atF>0?`<span class="badge badge-rojo">🚨 ${atF} AT</span>`:""}
+            ${atF>0?`<span class="badge badge-rojo"> ${atF} AT</span>`:""}
             <span class="badge badge-azul">${pres} presentes</span>
             <span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>
-            <span style="color:var(--amarillo);font-size:18px">▼</span>
+            <span style="color:var(--amarillo);font-size:18px"></span>
           </div>
         </div>
         <div class="admin-frente-body" id="${key}">
@@ -1859,7 +2084,7 @@ function cargarFrentesDetalle() {
       });
       renderDetalle(datos);
     }, err=>{
-      contenedor.innerHTML=`<div class="alerta alerta-err">⚠ Error: ${err.message}</div>`;
+      contenedor.innerHTML=`<div class="alerta alerta-err"> Error: ${err.message}</div>`;
     });
   } else {
     const datos={};
@@ -1876,14 +2101,14 @@ function cargarFrentesDetalle() {
 // ======================================================
 //  HELPERS
 // ======================================================
-function chk() { if(!SESION.activa){alert("Sesión no activa.");return false;} return true; }
+function chk() { if(!SESION.activa){alert("Sesion no activa.");return false;} return true; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function calcHH(ini, fin, almuerzoIni, almuerzoFin) {
   if(!ini||!fin) return 0;
   const toMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
   let mins = toMin(fin) - toMin(ini);
   if(mins <= 0) return 0;
-  // Descontar almuerzo si está registrado
+  // Descontar almuerzo si esta registrado
   if(almuerzoIni && almuerzoFin) {
     const almuerzoDur = toMin(almuerzoFin) - toMin(almuerzoIni);
     if(almuerzoDur > 0) mins -= almuerzoDur;
@@ -1891,16 +2116,233 @@ function calcHH(ini, fin, almuerzoIni, almuerzoFin) {
   return Math.max(0, Math.round(mins/60*100)/100);
 }
 // ======================================================
+//  INDICADORES SST AUTOMATICOS
+// ======================================================
+async function calcularIndicadores() {
+  const periodoEl=document.getElementById("ind-periodo");
+  const dias=parseInt((periodoEl&&periodoEl.value)||"30");
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const desde=new Date(hoy); desde.setDate(hoy.getDate()-dias);
+
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set("ind-if","..."); set("ind-is","..."); set("ind-ia","...");
+  set("ind-hht","..."); set("ind-dsa","..."); set("ind-ta","...");
+  set("ind-cc","..."); set("ind-car","...");
+
+  // Acumular datos del periodo desde Firebase
+  let totHHT=0, totAT=0, totDiasPerdidos=0, totAusencias=0, totCharlas=0;
+  let diasConDatos=0, totalAutorreportes=0, totalPresentes=0;
+  let fechaUltimoAT=null;
+
+  if(usandoFirebase){
+    await new Promise(resolve=>{
+      db.ref("frentes").once("value",snap=>{
+        snap.forEach(child=>{
+          const v=child.val();
+          if(!v||!v.sesion||!v.sesion.fecha) return;
+          const fStr=v.sesion.fecha;
+          const fDate=new Date(fStr+'T00:00:00');
+          if(fDate<desde||fDate>hoy) return;
+          const d=v.data||{};
+          diasConDatos++;
+          // HHT
+          (d.trabajadores||[]).filter(t=>t.asistencia==='presente').forEach(t=>{ totHHT+=(t.hh||0); totalPresentes++; });
+          // Accidentes AT
+          (d.accidentes||[]).forEach(at=>{
+            totAT++;
+            totDiasPerdidos+=parseInt(at.diasPerdidos||at.dias||0);
+            if(!fechaUltimoAT||fStr>fechaUltimoAT) fechaUltimoAT=fStr;
+          });
+          // Ausentismo
+          (d.ausentismo||[]).forEach(au=>{ totAusencias+=parseInt(au.dias||1); });
+          // Charlas
+          totCharlas+=(d.charlas||[]).length;
+          // Autorreportes
+          totalAutorreportes+=(d.autorreportes||[]).length;
+        });
+        resolve();
+      });
+    });
+  } else {
+    // localStorage fallback
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(!k||!k.startsWith("isis_")) continue;
+      try{
+        const v=JSON.parse(localStorage.getItem(k));
+        if(!v||!v.sesion||!v.sesion.fecha) continue;
+        const fDate=new Date(v.sesion.fecha+'T00:00:00');
+        if(fDate<desde||fDate>hoy) continue;
+        const d=v.data||{};
+        diasConDatos++;
+        (d.trabajadores||[]).filter(t=>t.asistencia==='presente').forEach(t=>{ totHHT+=(t.hh||0); totalPresentes++; });
+        (d.accidentes||[]).forEach(at=>{ totAT++; totDiasPerdidos+=parseInt(at.diasPerdidos||0); if(!fechaUltimoAT||v.sesion.fecha>fechaUltimoAT) fechaUltimoAT=v.sesion.fecha; });
+        (d.ausentismo||[]).forEach(au=>{ totAusencias+=parseInt(au.dias||1); });
+        totCharlas+=(d.charlas||[]).length;
+        totalAutorreportes+=(d.autorreportes||[]).length;
+      }catch(e){}
+    }
+  }
+
+  // Calcular indicadores
+  const hhtR=Math.round(totHHT*100)/100;
+  const IF_val = totHHT>0 ? Math.round(totAT*200000/totHHT*100)/100 : 0;
+  const IS_val = totHHT>0 ? Math.round(totDiasPerdidos*200000/totHHT*100)/100 : 0;
+  const IA_val = Math.round(IF_val*IS_val/1000*100)/100;
+  const DSA = fechaUltimoAT
+    ? Math.round((hoy-new Date(fechaUltimoAT+'T00:00:00'))/86400000)
+    : dias;
+  const diasPosibles = totalPresentes; // 1 dia por trabajador presente
+  const TA_val = diasPosibles>0 ? (Math.round(totAusencias/diasPosibles*1000)/10)+'%' : '0%';
+  const CC_val = diasConDatos>0 ? Math.round(totCharlas/diasConDatos*10)/10+'/dia' : '0';
+  const CAR_val= totalPresentes>0 ? Math.round(totalAutorreportes/totalPresentes*1000)/10+'%' : '0%';
+
+  // Mostrar con colores semaforo
+  const colorIF = IF_val===0?'var(--verde)':IF_val<=5?'var(--amarillo)':'var(--rojo)';
+  const colorDSA= DSA>=30?'var(--verde)':DSA>=15?'var(--amarillo)':'var(--rojo)';
+
+  const elIF=document.getElementById("ind-if"); if(elIF){elIF.textContent=IF_val; elIF.style.color=colorIF;}
+  set("ind-is", IS_val);
+  set("ind-ia", IA_val);
+  const elHHT=document.getElementById("ind-hht"); if(elHHT){elHHT.textContent=hhtR;}
+  const elDSA=document.getElementById("ind-dsa"); if(elDSA){elDSA.textContent=DSA; elDSA.style.color=colorDSA;}
+  set("ind-ta", TA_val);
+  set("ind-cc", CC_val);
+  set("ind-car", CAR_val);
+
+  const notaEl=document.getElementById("ind-nota");
+  if(notaEl) notaEl.textContent=
+    'Periodo: '+desde.toLocaleDateString("es-CO")+' al '+hoy.toLocaleDateString("es-CO")+
+    ' | '+diasConDatos+' dias con registros | '+totAT+' AT | '+Math.round(totHHT)+' HHT'+
+    (fechaUltimoAT?' | Ultimo AT: '+fechaUltimoAT:' | Sin accidentes en el periodo')+
+    ' | IF: #AT x 200.000 / HHT | IS: dias perdidos x 200.000 / HHT | Decreto 1072/2015';
+}
+const TIPOS_PERMISO = [
+  {id:"pt-alturas",   label:"Trabajo en alturas"},
+  {id:"pt-electrico", label:"Trabajo electrico / LOTO"},
+  {id:"pt-caliente",  label:"Trabajo en caliente"},
+  {id:"pt-confinado", label:"Espacios confinados"},
+  {id:"pt-excavacion",label:"Excavaciones y zanjas"},
+  {id:"pt-izaje",     label:"Izaje de cargas"},
+  {id:"pt-nocturno",  label:"Trabajo nocturno"}
+];
+const RIESGOS_IDS = ["r-caida","r-electrico","r-incendio","r-atrapamiento","r-golpe","r-quimico","r-ruido","r-ergonomico","r-vehiculo","r-publico"];
+const RIESGOS_LABELS = ["Caida de alturas","Contacto electrico","Incendio / explosion","Atrapamiento","Golpe por objetos","Exposicion quimica","Ruido / vibracion","Riesgo ergonomico","Atropellamiento / vehiculo","Afectacion a terceros"];
+
+function guardarPermiso() {
+  if(!chk()) return;
+  if(!DATA.permisos) DATA.permisos=[];
+
+  // Tipos seleccionados
+  const tipos = TIPOS_PERMISO.filter(t=>{ const el=document.getElementById(t.id); return el&&el.checked; }).map(t=>t.label);
+  if(!tipos.length){ alert("Selecciona al menos un tipo de trabajo."); return; }
+
+  // Riesgos
+  const riesgos = RIESGOS_IDS.map((id,i)=>{ const el=document.getElementById(id); return (el&&el.checked)?RIESGOS_LABELS[i]:null; }).filter(Boolean);
+  const rOtros = (document.getElementById("r-otros")||{}).value||"";
+  if(rOtros.trim()) riesgos.push(rOtros.trim());
+
+  // Trabajador ejecutor
+  const selTrab = document.getElementById("pt-firma-trabajador");
+  const trabajadorId = selTrab ? selTrab.value : "";
+  const trabajador = trabajadorId ? (plantaGlobal.find(p=>p.id===trabajadorId)||{}).nombre||trabajadorId : "";
+
+  const permiso = {
+    id: uid(),
+    fecha: SESION.fecha,
+    horaEmision: new Date().toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}),
+    tipos,
+    horaIni: (document.getElementById("pt-hora-ini")||{}).value||"",
+    horaFin: (document.getElementById("pt-hora-fin")||{}).value||"",
+    ubicacion: (gv("pt-ubicacion")||"").trim(),
+    actividades: (gv("pt-actividades")||"").trim(),
+    riesgos,
+    controles: (gv("pt-controles")||"").trim(),
+    restricciones: (gv("pt-restricciones")||"").trim(),
+    firmaSst: (gv("pt-firma-sst")||"").trim(),
+    firmaSupervisor: (gv("pt-firma-supervisor")||"").trim(),
+    firmaTrabajador: trabajador,
+    estado: gv("pt-estado")||"emitido",
+    obs: (gv("pt-obs")||"").trim()
+  };
+
+  if(!permiso.actividades){ alert("Describe las actividades a ejecutar."); return; }
+  if(!permiso.firmaSst){ alert("Ingresa el nombre del Analista SST."); return; }
+
+  DATA.permisos.push(permiso);
+  guardarDatos();
+  renderPermisos();
+
+  // Limpiar form
+  TIPOS_PERMISO.forEach(t=>{ const el=document.getElementById(t.id); if(el) el.checked=false; });
+  RIESGOS_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
+  ["pt-hora-ini","pt-hora-fin","pt-ubicacion","pt-actividades","pt-controles","pt-restricciones","pt-firma-sst","pt-firma-supervisor","pt-obs","r-otros"].forEach(id=>sv(id,""));
+  mostrarToast(" Permiso de trabajo emitido","verde");
+}
+
+function renderPermisos() {
+  if(!DATA.permisos||!DATA.permisos.length){
+    document.getElementById("lista-permisos").innerHTML=`<div class="texto-muted" style="padding:12px;text-align:center">Sin permisos registrados para este frente hoy.</div>`;
+    return;
+  }
+  const estadoColor={emitido:"#1A7A4A",suspendido:"#E67E22",cancelado:"#C0392B",cerrado:"#5D6D7E"};
+  const estadoLabel={emitido:" Emitido",suspendido:" Suspendido",cancelado:" Cancelado",cerrado:" Cerrado"};
+  document.getElementById("lista-permisos").innerHTML = DATA.permisos.map((p,i)=>`
+    <div style="border:1px solid #AED6F1;border-radius:8px;padding:14px;margin-bottom:10px;background:#F4F9FF">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px;color:var(--azul)">Permiso #${i+1}  ${p.horaEmision||""}</div>
+          <div style="font-size:12px;color:#555;margin-top:3px">${p.horaIni||""} a ${p.horaFin||""} ${p.ubicacion?"·  "+p.ubicacion:""}</div>
+        </div>
+        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:${estadoColor[p.estado]||"#5D6D7E"};color:#fff">${estadoLabel[p.estado]||p.estado}</span>
+        <button class="btn btn-rojo" style="font-size:11px;padding:5px 10px" onclick="eliminar('permisos','${p.id}')"></button>
+      </div>
+
+      <!-- Tipos -->
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        ${(p.tipos||[]).map(t=>`<span style="background:var(--azul);color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700">${t}</span>`).join("")}
+      </div>
+
+      <!-- Actividades -->
+      ${p.actividades?`<div style="font-size:12px;margin-bottom:6px"><strong>Actividades:</strong> ${p.actividades}</div>`:""}
+
+      <!-- Riesgos -->
+      ${(p.riesgos||[]).length?`<div style="font-size:12px;margin-bottom:6px"><strong>Riesgos:</strong> ${p.riesgos.join(" · ")}</div>`:""}
+
+      <!-- Controles -->
+      ${p.controles?`<div style="font-size:12px;margin-bottom:6px"><strong>Controles:</strong> ${p.controles}</div>`:""}
+
+      <!-- Restricciones -->
+      ${p.restricciones?`<div style="font-size:12px;color:var(--rojo);margin-bottom:6px"><strong> Restricciones:</strong> ${p.restricciones}</div>`:""}
+
+      <!-- Firmas -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid #D6EAF8">
+        ${p.firmaSst?`<div style="font-size:11px;text-align:center"><div style="font-weight:700;color:var(--azul)">${p.firmaSst}</div><div style="color:#888">Analista SST</div></div>`:""}
+        ${p.firmaSupervisor?`<div style="font-size:11px;text-align:center"><div style="font-weight:700;color:var(--azul)">${p.firmaSupervisor}</div><div style="color:#888">Supervisor</div></div>`:""}
+        ${p.firmaTrabajador?`<div style="font-size:11px;text-align:center"><div style="font-weight:700;color:var(--azul)">${p.firmaTrabajador}</div><div style="color:#888">Ejecutor</div></div>`:""}
+      </div>
+      ${p.obs?`<div style="font-size:11px;color:#666;margin-top:6px;font-style:italic">Obs: ${p.obs}</div>`:""}
+    </div>`).join("");
+}
+
+function poblarSelectorEjecutor() {
+  const sel=document.getElementById("pt-firma-trabajador");
+  if(!sel) return;
+  sel.innerHTML=`<option value=""> Seleccione el ejecutor principal </option>`+
+    plantaGlobal.filter(p=>p.activo).map(p=>`<option value="${p.id}">${p.nombre}  ${p.cargo||p.nivel||""}</option>`).join("");
+}
+
+// ======================================================
 //  AUTOFILL DESDE PLANTA — rellena campos de formularios
 //  al seleccionar trabajador en los selectores
-// ======================================================
+// ===============================================================================================
 
 // Pobla todos los selectores de trabajadores con la planta activa
 function poblarSelectoresPlanta() {
   const ids=["au-trabajador","at-trabajador","epp-trabajador","ar-trabajador"];
-  const opts = `<option value="">— Seleccione —</option>` +
+  const opts = `<option value=""> Seleccione </option>` +
     plantaGlobal.filter(p=>p.activo).map(p=>
-      `<option value="${p.id}">${p.nombre} – ${p.cargo||p.nivel||""}</option>`
+      `<option value="${p.id}">${p.nombre}  ${p.cargo||p.nivel||""}</option>`
     ).join("");
   ids.forEach(id=>{
     const el=document.getElementById(id);
@@ -1944,14 +2386,14 @@ function mostrarToast(msg, color="verde") {
   setTimeout(()=>t.remove(),2500);
 }
 function diffTxt(ini,fin) {
-  if(!ini||!fin) return "—";
+  if(!ini||!fin) return "";
   const [hi,mi]=ini.split(":").map(Number),[hf,mf]=fin.split(":").map(Number);
-  const m=(hf*60+mf)-(hi*60+mi); if(m<0) return "—";
+  const m=(hf*60+mf)-(hi*60+mi); if(m<0) return "";
   return `${Math.floor(m/60)}h ${m%60}m`;
 }
 function nivelBadge(n) {
   const m={jefe:"cargo-jefe",hse:"cargo-hse",analistaSST:"cargo-analistaSST",supervisor:"cargo-supervisor",operativo:"cargo-operativo",rescatista:"cargo-rescatista",auxiliarIng:"cargo-auxiliarIng"};
-  const l={jefe:"Jefe Proy.",hse:"Prof. HSE",analistaSST:"Analista SST",supervisor:"Supervisor",operativo:"Operativo",rescatista:"Rescatista",auxiliarIng:"Aux. Ingeniería"};
+  const l={jefe:"Jefe Proy.",hse:"Prof. HSE",analistaSST:"Analista SST",supervisor:"Supervisor",operativo:"Operativo",rescatista:"Rescatista",auxiliarIng:"Aux. Ingenieria"};
   return `<span class="cargo-badge ${m[n]||'cargo-operativo'}">${l[n]||n}</span>`;
 }
 function estadoBadge(e) {
@@ -1969,27 +2411,28 @@ function eliminar(col,id) {
 function renderizarTodo() {
   renderT(); renderA(); renderAu(); renderAt(); renderM(); renderCh();
   renderIns(); renderAr(); renderCl(); renderEpp(); renderR(); renderF();
+  renderPermisos(); poblarSelectorEjecutor();
   refrescarDashboard();
 }
 
 // ======================================================
-//  TRABAJADORES – PLANTA GLOBAL + ASISTENCIA DIARIA
+//  TRABAJADORES  PLANTA GLOBAL + ASISTENCIA DIARIA
 // ======================================================
 
 // Toggle visibilidad del panel planta
 function togglePlanta() {
   plantaVisible = !plantaVisible;
   document.getElementById("panel-planta").style.display = plantaVisible ? "block" : "none";
-  document.getElementById("icono-planta").textContent = plantaVisible ? "▲" : "▼";
+  document.getElementById("icono-planta").textContent = plantaVisible ? "" : "";
 }
 
 // Agregar nuevo trabajador a la planta permanente del frente
 function agregarTrabajador() {
   if(!chk()) return;
   const nombre=gv("t-nombre").trim(), cedula=gv("t-cedula").trim();
-  if(!nombre||!cedula){alert("Nombre y cédula son obligatorios.");return;}
+  if(!nombre||!cedula){alert("Nombre y cedula son obligatorios.");return;}
   if(plantaGlobal.find(p=>p.cedula===cedula)){
-    alert("Ya existe un trabajador con esa cédula en la planta global.");return;
+    alert("Ya existe un trabajador con esa cedula en la planta global.");return;
   }
   const p={id:uid(),nombre,cedula,nivel:gv("t-nivel"),cargo:gv("t-cargo"),
     empresa:gv("t-empresa"),apto:gv("t-apto"),obs:gv("t-obs"),activo:true,
@@ -2000,10 +2443,10 @@ function agregarTrabajador() {
   crearOActualizarAsistencia(p.id, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
   guardarDatos(); renderT();
   ["t-nombre","t-cedula","t-cargo","t-empresa","t-obs"].forEach(id=>sv(id,""));
-  mostrarToast("✔ Trabajador agregado a la planta global","verde");
+  mostrarToast(" Trabajador agregado a la planta global","verde");
 }
 
-// Crear o actualizar el registro de asistencia del día para un trabajador
+// Crear o actualizar el registro de asistencia del dia para un trabajador
 function crearOActualizarAsistencia(plantaId, campos) {
   const fecha = SESION.fecha;
   const idx = DATA.trabajadores.findIndex(t=>t.plantaId===plantaId && t.fecha===fecha);
@@ -2030,7 +2473,7 @@ function retirarTrabajador(plantaId) {
   mostrarToast("Trabajador retirado de la planta activa","naranja");
 }
 
-// Reactivar trabajador — queda disponible en cualquier frente
+// Reactivar trabajador  queda disponible en cualquier frente
 function reactivarTrabajador(plantaId) {
   const p = plantaGlobal.find(x=>x.id===plantaId);
   if(p){ p.activo=true; delete p.fechaRetiro; }
@@ -2038,7 +2481,7 @@ function reactivarTrabajador(plantaId) {
   guardarPlantaGlobal();
   crearOActualizarAsistencia(plantaId, {asistencia:"presente",entrada:"",salida:"",hh:0,obs:""});
   guardarDatos(); renderT();
-  mostrarToast("✔ Trabajador reactivado — disponible en todos los frentes","verde");
+  mostrarToast(" Trabajador reactivado  disponible en todos los frentes","verde");
 }
 
 // Marcar todos los activos como presentes en este frente hoy
@@ -2048,19 +2491,19 @@ function marcarTodosPresentes() {
     crearOActualizarAsistencia(p.id, {asistencia:"presente"});
   });
   guardarDatos(); renderT();
-  mostrarToast("✔ Todos marcados como presentes","verde");
+  mostrarToast(" Todos marcados como presentes","verde");
 }
 
-// Recalcular HH del día actual
+// Recalcular HH del dia actual
 function calcularHH(){
   DATA.trabajadores.filter(t=>t.fecha===SESION.fecha).forEach(t=>{
     t.hh=calcHH(t.entrada, t.salida, t.almuerzoIni, t.almuerzoFin);
   });
   guardarDatos(); renderT();
-  mostrarToast("✔ HH recalculadas","verde");
+  mostrarToast(" HH recalculadas","verde");
 }
 
-// Render principal: panel asistencia del día + tabla planta
+// Render principal: panel asistencia del dia + tabla planta
 function renderT() {
   const plantaActiva = plantaGlobal.filter(p=>p.activo);
   const plantaTodos  = plantaGlobal;
@@ -2081,18 +2524,19 @@ function renderT() {
     const ocultarHoras=a.asistencia!=="presente";
     return `<div style="background:${rowBg};border:1px solid ${rowBorder};border-radius:6px;padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div style="flex:1;min-width:160px">
-          <div style="font-weight:700;font-size:13px">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
-          <div style="font-size:11px;color:var(--texto-muted)">${nivelBadge(p.nivel)} ${p.cargo||""} · ${p.empresa||"—"}</div>
+        <div style="flex:1;min-width:140px;cursor:pointer" onclick="abrirPerfilTrabajador('${p.id}')">
+          <div style="font-weight:700;font-size:13px;color:var(--azul);text-decoration:underline dotted">${p.nombre} <span class="badge ${abApto}" style="font-size:9px">${p.apto}</span></div>
+          <div style="font-size:11px;color:var(--texto-muted)">${nivelBadge(p.nivel)} ${p.cargo||""}</div>
+          ${(a.hh||0)>0&&a.asistencia==='presente'?`<div style="font-size:11px;font-weight:700;color:var(--naranja);margin-top:2px">${a.hh} HH · ${a.entrada||""}${a.salida||""}</div>`:""}
         </div>
         <select style="font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','asistencia',this.value)">
-          <option value="presente" ${a.asistencia==='presente'?'selected':''}>✅ Presente</option>
-          <option value="otro-frente" ${a.asistencia==='otro-frente'?'selected':''}>🔄 En otro frente</option>
-          <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}>🏥 Ausente – Médico</option>
-          <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}>🏠 Ausente – Personal</option>
-          <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}>⚠ Ausente – Calamidad</option>
-          <option value="permiso" ${a.asistencia==='permiso'?'selected':''}>📋 Permiso</option>
-          <option value="no-aplica" ${a.asistencia==='no-aplica'?'selected':''}>➖ No aplica este día</option>
+          <option value="presente" ${a.asistencia==='presente'?'selected':''}> Presente</option>
+          <option value="otro-frente" ${a.asistencia==='otro-frente'?'selected':''}> En otro frente</option>
+          <option value="ausente-medico" ${a.asistencia==='ausente-medico'?'selected':''}> Ausente  Medico</option>
+          <option value="ausente-personal" ${a.asistencia==='ausente-personal'?'selected':''}> Ausente  Personal</option>
+          <option value="ausente-calamidad" ${a.asistencia==='ausente-calamidad'?'selected':''}> Ausente  Calamidad</option>
+          <option value="permiso" ${a.asistencia==='permiso'?'selected':''}> Permiso</option>
+          <option value="no-aplica" ${a.asistencia==='no-aplica'?'selected':''}> No aplica este dia</option>
         </select>
         ${!ocultarHoras?`<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
@@ -2103,7 +2547,7 @@ function renderT() {
             <span style="font-size:10px;color:var(--texto-muted)">Almuerzo</span>
             <div style="display:flex;gap:3px;align-items:center">
               <input type="time" value="${a.almuerzoIni||''}" style="width:82px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px" title="Inicio almuerzo" onchange="setAsistencia('${p.id}','almuerzoIni',this.value)">
-              <span style="font-size:10px;color:var(--texto-muted)">–</span>
+              <span style="font-size:10px;color:var(--texto-muted)"></span>
               <input type="time" value="${a.almuerzoFin||''}" style="width:82px;font-size:11px;border:1px solid #FAD7A0;border-radius:4px;padding:4px 5px;min-height:34px" title="Fin almuerzo" onchange="setAsistencia('${p.id}','almuerzoFin',this.value)">
             </div>
           </div>
@@ -2112,20 +2556,30 @@ function renderT() {
             <input type="time" value="${a.salida||''}" style="width:95px;font-size:12px;border:1px solid var(--borde);border-radius:4px;padding:4px 6px;min-height:36px" onchange="setAsistencia('${p.id}','salida',this.value)">
           </div>
           <span id="hh-row-${p.id}" style="font-size:13px;font-weight:700;min-width:55px;${hhColor}">${(a.hh||0)} HH</span>
-        </div>`:`<span style="font-size:12px;color:var(--texto-muted);font-style:italic">${a.asistencia==='otro-frente'?'En otro frente hoy':'No aplica este día'}</span>`}
+        </div>`:`<span style="font-size:12px;color:var(--texto-muted);font-style:italic">${a.asistencia==='otro-frente'?'En otro frente hoy':'No aplica este dia'}</span>`}
       </div>
     </div>`;
   };
 
-  let htmlPanel = enFrente.length===0
-    ? `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores presentes en este frente hoy.</div>`
-    : enFrente.map(filaWorker).join("");
+  // Aplicar filtro
+  const enFrenteFiltrado = filtroAsistencia==='presentes'
+    ? enFrente.filter(({a})=>a.asistencia==='presente')
+    : enFrente;
+
+  let htmlPanel = enFrenteFiltrado.length===0
+    ? (filtroAsistencia==='presentes' && enFrente.length>0
+        ? `<div style="text-align:center;padding:16px;color:var(--texto-muted)">
+            Sin trabajadores marcados como presentes aun.<br>
+            <button onclick="setFiltroAsistencia('todos')" style="margin-top:8px;background:none;border:1px solid var(--borde);border-radius:4px;padding:6px 12px;font-size:12px;cursor:pointer">Ver todos los trabajadores</button>
+           </div>`
+        : `<div class="texto-muted" style="padding:12px;text-align:center">Sin trabajadores activos en este frente hoy.</div>`)
+    : enFrenteFiltrado.map(filaWorker).join("");
 
   if(fueraFrente.length>0){
     htmlPanel+=`<div style="margin-top:12px">
       <div onclick="toggleFueraFrente()" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F4F6F7;border-radius:6px;border:1px solid #D5D8DC">
-        <span style="font-size:12px;font-weight:700;color:var(--texto-muted)">➖ No disponibles en este frente hoy (${fueraFrente.length})</span>
-        <span id="icono-fuera-frente" style="margin-left:auto;color:var(--texto-muted)">▼</span>
+        <span style="font-size:12px;font-weight:700;color:var(--texto-muted)"> No disponibles en este frente hoy (${fueraFrente.length})</span>
+        <span id="icono-fuera-frente" style="margin-left:auto;color:var(--texto-muted)"></span>
       </div>
       <div id="panel-fuera-frente" style="display:none;margin-top:6px">
         ${fueraFrente.map(filaWorker).join("")}
@@ -2137,20 +2591,24 @@ function renderT() {
   document.getElementById("conteo-t").textContent = `${presentes} presentes`;
   document.getElementById("total-hh").textContent = Math.round(hhTotal*100)/100;
 
-  // Tabla planta
-  document.getElementById("tbody-planta").innerHTML = plantaTodos.map((p,i)=>{
-    const ab=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
-    const estado=p.activo?`<span class="badge badge-verde">Activo</span>`:`<span class="badge badge-rojo">Retirado ${p.fechaRetiro||""}</span>`;
-    const accion=p.activo
-      ?`<button class="btn btn-rojo" onclick="retirarTrabajador('${p.id}')">Retirar</button>`
-      :`<button class="btn btn-secundario" style="font-size:11px;padding:4px 8px" onclick="reactivarTrabajador('${p.id}')">Reactivar</button>`;
-    return `<tr style="${p.activo?'':'opacity:.6'}">
-      <td>${i+1}</td><td>${p.nombre}</td><td>${p.cedula||"—"}</td>
-      <td>${nivelBadge(p.nivel)}</td><td>${p.cargo||"—"}</td><td>${p.empresa||"—"}</td>
-      <td><span class="badge ${ab}">${p.apto}</span></td>
-      <td>${estado}</td><td>${accion}</td></tr>`;
-  }).join("");
-  document.getElementById("conteo-planta").textContent=`${plantaTodos.length} registrados`;
+  // Tabla planta  solo si existe (admin la puede ver desde Planta Global)
+  const tbodyPlanta = document.getElementById("tbody-planta");
+  if(tbodyPlanta) {
+    tbodyPlanta.innerHTML = plantaTodos.map((p,i)=>{
+      const ab=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+      const estado=p.activo?`<span class="badge badge-verde">Activo</span>`:`<span class="badge badge-rojo">Retirado ${p.fechaRetiro||""}</span>`;
+      const accion=p.activo
+        ?`<button class="btn btn-rojo" onclick="retirarTrabajador('${p.id}')">Retirar</button>`
+        :`<button class="btn btn-secundario" style="font-size:11px;padding:4px 8px" onclick="reactivarTrabajador('${p.id}')">Reactivar</button>`;
+      return `<tr style="${p.activo?'':'opacity:.6'}">
+        <td>${i+1}</td><td>${p.nombre}</td><td>${p.cedula||""}</td>
+        <td>${nivelBadge(p.nivel)}</td><td>${p.cargo||""}</td><td>${p.empresa||""}</td>
+        <td><span class="badge ${ab}">${p.apto}</span></td>
+        <td>${estado}</td><td>${accion}</td></tr>`;
+    }).join("");
+    const conteoPlanta=document.getElementById("conteo-planta");
+    if(conteoPlanta) conteoPlanta.textContent=`${plantaTodos.length} registrados`;
+  }
   poblarSelectoresPlanta();
   refrescarDashboard();
 }
@@ -2161,7 +2619,7 @@ function toggleFueraFrente() {
   if(!panel) return;
   const visible=panel.style.display!=="none";
   panel.style.display=visible?"none":"block";
-  if(icono) icono.textContent=visible?"▼":"▲";
+  if(icono) icono.textContent=visible?"":"";
 }
 
 // DUMMYMARKER_ASISTENCIA_ENDS_HERE
@@ -2202,7 +2660,7 @@ function agregarActividad() {
   if(!chk()) return;
   if(!DATA.actividades) DATA.actividades=[];
   const desc=(gv("a-desc")||"").trim();
-  if(!desc){alert("La descripción de la actividad es obligatoria.");return;}
+  if(!desc){alert("La descripcion de la actividad es obligatoria.");return;}
   const prog=parseFloat(gv("a-prog"))||0;
   const ejec=parseFloat(gv("a-ejec"))||0;
   const a={id:uid(),desc,unidad:(gv("a-unidad")||"").trim(),prog,ejec,
@@ -2211,16 +2669,16 @@ function agregarActividad() {
   DATA.actividades.push(a);
   guardarDatos(); renderA();
   ["a-desc","a-unidad","a-prog","a-ejec","a-ubic","a-obs"].forEach(id=>sv(id,""));
-  mostrarToast("✔ Actividad registrada","verde");
+  mostrarToast(" Actividad registrada","verde");
 }
 function renderA() {
   document.getElementById("tbody-a").innerHTML=DATA.actividades.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.desc}</td><td>${a.unidad||"—"}</td>
+    <td>${i+1}</td><td>${a.desc}</td><td>${a.unidad||""}</td>
     <td>${a.prog||0}</td><td>${a.ejec||0}</td>
     <td><div class="progreso-bar-wrap" style="min-width:70px"><div class="progreso-bar" style="width:${a.avance||0}%"></div></div>
     <div style="font-size:10px;text-align:center">${a.avance||0}%</div></td>
-    <td>${a.ubic||"—"}</td><td style="font-size:11px;max-width:150px">${a.obs||"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('actividades','${a.id}')">✕</button></td></tr>`).join("");
+    <td>${a.ubic||""}</td><td style="font-size:11px;max-width:150px">${a.obs||""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('actividades','${a.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2239,9 +2697,9 @@ function agregarAusentismo() {
 }
 function renderAu() {
   document.getElementById("tbody-au").innerHTML=DATA.ausentismo.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.cargo||"—"}</td>
-    <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('ausentismo','${a.id}')">✕</button></td></tr>`).join("");
+    <td>${i+1}</td><td>${a.nombre}</td><td>${a.cedula||""}</td><td>${a.cargo||""}</td>
+    <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||""}</td><td>${a.reemplazo||""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('ausentismo','${a.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2258,15 +2716,15 @@ function agregarAccidente() {
     atencion:gv("at-atencion"),desc:gv("at-desc"),causasInm:gv("at-causas-inm"),
     causasBas:gv("at-causas-bas"),acciones:gv("at-acciones"),testigos:gv("at-testigos"),
     reporteArl:gv("at-reporte-arl"),furat:gv("at-furat")};
-  if(!a.desc){alert("La descripción del evento es obligatoria.");return;}
+  if(!a.desc){alert("La descripcion del evento es obligatoria.");return;}
   DATA.accidentes.push(a); guardarDatos(); renderAt();
 }
 function renderAt() {
   document.getElementById("tbody-at").innerHTML=DATA.accidentes.map((a,i)=>`<tr>
-    <td>${i+1}</td><td>${a.fecha||"—"}</td><td><span class="badge badge-rojo" style="font-size:10px">${(a.tipo||"").slice(0,22)}…</span></td>
-    <td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.lesion||"—"}</td><td>${a.agente||"—"}</td>
-    <td>${a.atencion||"—"}</td><td>${a.furat||"Pendiente"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('accidentes','${a.id}')">✕</button></td></tr>`).join("");
+    <td>${i+1}</td><td>${a.fecha||""}</td><td><span class="badge badge-rojo" style="font-size:10px">${(a.tipo||"").slice(0,22)}</span></td>
+    <td>${a.nombre}</td><td>${a.cedula||""}</td><td>${a.lesion||""}</td><td>${a.agente||""}</td>
+    <td>${a.atencion||""}</td><td>${a.furat||"Pendiente"}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('accidentes','${a.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2277,7 +2735,7 @@ function agregarMaterial() {
   if(!chk()) return;
   const m={id:uid(),cat:gv("m-cat"),desc:gv("m-desc"),ref:gv("m-ref"),unidad:gv("m-unidad"),
     cant:gv("m-cant"),disp:gv("m-disp"),estado:gv("m-estado"),obs:gv("m-obs")};
-  if(!m.desc){alert("Descripción obligatoria.");return;}
+  if(!m.desc){alert("Descripcion obligatoria.");return;}
   DATA.materiales.push(m); guardarDatos(); renderM();
   ["m-desc","m-ref","m-unidad","m-cant","m-disp","m-obs"].forEach(id=>sv(id,""));
 }
@@ -2285,9 +2743,9 @@ function renderM() {
   const ec={"Bueno":"badge-verde","Regular":"badge-amarillo","Defectuoso":"badge-rojo","N/A (material)":"badge-gris"};
   document.getElementById("tbody-m").innerHTML=DATA.materiales.map((m,i)=>`<tr>
     <td>${i+1}</td><td><span class="badge badge-azul">${m.cat}</span></td><td>${m.desc}</td>
-    <td>${m.ref||"—"}</td><td>${m.unidad||"—"}</td><td>${m.cant||0}</td><td>${m.disp||0}</td>
+    <td>${m.ref||""}</td><td>${m.unidad||""}</td><td>${m.cant||0}</td><td>${m.disp||0}</td>
     <td><span class="badge ${ec[m.estado]||'badge-gris'}">${m.estado}</span></td>
-    <td><button class="btn btn-rojo" onclick="eliminar('materiales','${m.id}')">✕</button></td></tr>`).join("");
+    <td><button class="btn btn-rojo" onclick="eliminar('materiales','${m.id}')"></button></td></tr>`).join("");
 }
 
 // ======================================================
@@ -2306,10 +2764,10 @@ function agregarCharla() {
 }
 function renderCh() {
   document.getElementById("tbody-ch").innerHTML=DATA.charlas.map((c,i)=>`<tr>
-    <td>${i+1}</td><td>${c.tema}</td><td>${c.inicio||"—"}</td><td>${c.fin||"—"}</td>
-    <td>${diffTxt(c.inicio,c.fin)}</td><td>${c.facilitador||"—"}</td><td>${c.asistentes||"—"}</td>
-    <td>${(c.fotos&&c.fotos.length)?`<span class="badge badge-verde">${c.fotos.length}📷</span>`:"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('charlas','${c.id}')">✕</button></td></tr>`).join("");
+    <td>${i+1}</td><td>${c.tema}</td><td>${c.inicio||""}</td><td>${c.fin||""}</td>
+    <td>${diffTxt(c.inicio,c.fin)}</td><td>${c.facilitador||""}</td><td>${c.asistentes||""}</td>
+    <td>${(c.fotos&&c.fotos.length)?`<span class="badge badge-verde">${c.fotos.length}</span>`:""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('charlas','${c.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2330,7 +2788,7 @@ function renderInsItems() {
     <span>${it.desc}</span>
     <div style="display:flex;align-items:center;gap:7px">
       <span class="badge ${it.est==="ok"?"badge-verde":it.est==="nc"?"badge-rojo":"badge-gris"}">${it.est==="ok"?"Conforme":it.est==="nc"?"No conforme":"N/A"}</span>
-      <button class="btn btn-rojo" onclick="insItemsTemp.splice(${i},1);renderInsItems()">✕</button>
+      <button class="btn btn-rojo" onclick="insItemsTemp.splice(${i},1);renderInsItems()"></button>
     </div></div>`).join("");
 }
 function toggleInsTipoOtro() {
@@ -2345,7 +2803,7 @@ function agregarInspeccion() {
   const tipoSel = gv("ins-tipo");
   const tipoOtro = (gv("ins-tipo-otro")||"").trim();
   const tipo = tipoSel==="otro" ? (tipoOtro||"Otro") : tipoSel;
-  if(!tipo){ alert("Selecciona el tipo de inspección."); return; }
+  if(!tipo){ alert("Selecciona el tipo de inspeccion."); return; }
   const ins={id:uid(), tipo,
     inspector:(gv("ins-inspector")||"").trim(),
     hora:gv("ins-hora"),
@@ -2359,19 +2817,19 @@ function agregarInspeccion() {
   guardarDatos(); renderIns();
   ["ins-tipo-otro","ins-inspector","ins-hora","ins-hallazgos","ins-acciones"].forEach(id=>sv(id,""));
   toggleInsTipoOtro();
-  mostrarToast("✔ Inspección registrada","verde");
+  mostrarToast(" Inspeccion registrada","verde");
 }
 
 function renderIns() {
   document.getElementById("tbody-ins").innerHTML=(DATA.inspecciones||[]).map((ins,i)=>`<tr>
     <td>${i+1}</td>
-    <td style="font-size:12px">${ins.tipo||"—"}</td>
-    <td>${ins.inspector||"—"}</td>
-    <td>${ins.hora||"—"}</td>
-    <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+(ins.hallazgos.length>80?"…":""):"—"}</td>
-    <td style="font-size:11px;max-width:140px">${ins.acciones?ins.acciones.slice(0,60)+(ins.acciones.length>60?"…":""):"—"}</td>
-    <td>${(ins.fotos&&ins.fotos.length)?`<span class="badge badge-morado">${ins.fotos.length}📷</span>`:"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('inspecciones','${ins.id}')">✕</button></td></tr>`).join("");
+    <td style="font-size:12px">${ins.tipo||""}</td>
+    <td>${ins.inspector||""}</td>
+    <td>${ins.hora||""}</td>
+    <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+(ins.hallazgos.length>80?"":""):""}</td>
+    <td style="font-size:11px;max-width:140px">${ins.acciones?ins.acciones.slice(0,60)+(ins.acciones.length>60?"":""):""}</td>
+    <td>${(ins.fotos&&ins.fotos.length)?`<span class="badge badge-morado">${ins.fotos.length}</span>`:""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('inspecciones','${ins.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2400,12 +2858,12 @@ function renderAr() {
   document.getElementById("tbody-ar").innerHTML=(DATA.autorreportes||[]).map((ar,i)=>{
     const alerta=ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
     return `<tr style="${alerta?"background:#FFF3F0":""}">
-      <td>${i+1}</td><td>${ar.nombre}${alerta?" 🔴":""}</td><td>${ar.cedula}</td>
-      <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||"—"}</td>
-      <td style="font-size:11px">${ar.condiciones.join(", ")||"—"}</td>
+      <td>${i+1}</td><td>${ar.nombre}${alerta?" ":""}</td><td>${ar.cedula}</td>
+      <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||""}</td>
+      <td style="font-size:11px">${ar.condiciones.join(", ")||""}</td>
       <td><span class="badge ${dc[ar.decision]||'badge-gris'}">${dl[ar.decision]||ar.decision}</span></td>
-      <td>${ar.validador||"—"}</td>
-      <td><button class="btn btn-rojo" onclick="eliminar('autorreportes','${ar.id}')">✕</button></td></tr>`;
+      <td>${ar.validador||""}</td>
+      <td><button class="btn btn-rojo" onclick="eliminar('autorreportes','${ar.id}')"></button></td></tr>`;
   }).join("");
   refrescarDashboard();
 }
@@ -2416,7 +2874,7 @@ function renderAr() {
 function guardarClima() {
   if(!chk()) return;
   DATA.clima={cond:gv("cl-cond"),temp:gv("cl-temp"),impacto:gv("cl-impacto"),obs:gv("cl-obs")};
-  guardarDatos(); alert("Condición climática guardada.");
+  guardarDatos(); alert("Condicion climatica guardada.");
 }
 function iniciarLluvia() {
   if(!chk()) return;
@@ -2448,8 +2906,8 @@ function agregarLluvia() {
 function renderCl() {
   document.getElementById("tbody-cl").innerHTML=(DATA.lluvias||[]).map((l,i)=>`<tr>
     <td>${i+1}</td><td>${l.ini}</td><td>${l.fin||"En curso"}</td><td>${l.duracion}</td>
-    <td><span class="badge badge-azul">${l.intensidad}</span></td><td>${l.obs||"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('lluvias','${l.id}')">✕</button></td></tr>`).join("");
+    <td><span class="badge badge-azul">${l.intensidad}</span></td><td>${l.obs||""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('lluvias','${l.id}')"></button></td></tr>`).join("");
 }
 
 // ======================================================
@@ -2468,10 +2926,10 @@ function agregarEPP() {
 }
 function renderEpp() {
   document.getElementById("tbody-epp").innerHTML=DATA.epp.map((e,i)=>`<tr>
-    <td>${i+1}</td><td>${e.nombre}</td><td>${e.cedula}</td><td>${e.cargo||"—"}</td>
+    <td>${i+1}</td><td>${e.nombre}</td><td>${e.cedula}</td><td>${e.cargo||""}</td>
     <td>${e.item}</td><td>${e.cant}</td><td>${e.motivo}</td>
-    <td><span class="badge ${e.conforme==="Sí"?"badge-verde":"badge-rojo"}">${e.conforme}</span></td>
-    <td><button class="btn btn-rojo" onclick="eliminar('epp','${e.id}')">✕</button></td></tr>`).join("");
+    <td><span class="badge ${e.conforme==="Si"?"badge-verde":"badge-rojo"}">${e.conforme}</span></td>
+    <td><button class="btn btn-rojo" onclick="eliminar('epp','${e.id}')"></button></td></tr>`).join("");
   refrescarDashboard();
 }
 
@@ -2486,11 +2944,11 @@ function agregarResiduo() {
   ["r-cant","r-punto","r-resp","r-obs"].forEach(id=>sv(id,""));
 }
 function renderR() {
-  const cc={"Aprovechable":"badge-verde","No aprovechable":"badge-gris","Peligroso (RESPEL)":"badge-rojo","Orgánico":"badge-amarillo"};
+  const cc={"Aprovechable":"badge-verde","No aprovechable":"badge-gris","Peligroso (RESPEL)":"badge-rojo","Organico":"badge-amarillo"};
   document.getElementById("tbody-r").innerHTML=DATA.residuos.map((r,i)=>`<tr>
     <td>${i+1}</td><td>${r.tipo}</td><td><span class="badge ${cc[r.clase]||'badge-gris'}">${r.clase}</span></td>
-    <td>${r.cant}</td><td>${r.unidad}</td><td>${r.disp}</td><td>${r.resp||"—"}</td>
-    <td><button class="btn btn-rojo" onclick="eliminar('residuos','${r.id}')">✕</button></td></tr>`).join("");
+    <td>${r.cant}</td><td>${r.unidad}</td><td>${r.disp}</td><td>${r.resp||""}</td>
+    <td><button class="btn btn-rojo" onclick="eliminar('residuos','${r.id}')"></button></td></tr>`).join("");
 }
 
 // ======================================================
@@ -2552,7 +3010,7 @@ function verFoto(id) {
   const f=DATA.fotos.find(x=>x.id===id); if(!f) return;
   document.getElementById("modal-foto-img").src=f.data;
   document.getElementById("modal-foto-titulo").textContent=(f.desc||f.nombre||"Evidencia");
-  document.getElementById("modal-foto-desc").textContent=`Por: ${f.autor||"—"} | ${new Date(f.ts).toLocaleString("es-CO")}`;
+  document.getElementById("modal-foto-desc").textContent=`Por: ${f.autor||""} | ${new Date(f.ts).toLocaleString("es-CO")}`;
   document.getElementById("modal-foto").classList.add("abierto");
 }
 
@@ -2575,11 +3033,38 @@ function refrescarDashboard() {
   document.getElementById("st-autoreporte").textContent=(DATA.autorreportes||[]).length;
   document.getElementById("st-epp").textContent=DATA.epp.length;
   document.getElementById("st-fotos").textContent=DATA.fotos.length;
-  // Alertas salud
-  const enAlerta=(DATA.autorreportes||[]).filter(ar=>ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
+  // Alertas de documentos vencidos/proximos en planta activa
+  if(typeof DOCS_CONFIG !== 'undefined' && plantaGlobal.length) {
+    const hoy=new Date(); hoy.setHours(0,0,0,0);
+    const alertasDoc=[];
+    plantaGlobal.filter(p=>p.activo).forEach(p=>{
+      const docs=p.docs||{};
+      DOCS_CONFIG.forEach(d=>{
+        const f=docs[d.id];
+        if(!f) return;
+        const venc=new Date(f+'T00:00:00'); venc.setHours(0,0,0,0);
+        const dias=Math.round((venc-hoy)/86400000);
+        if(dias<0) alertasDoc.push({nombre:p.nombre,doc:d.label,dias,estado:'vencido'});
+        else if(dias<=DIAS_ALERTA) alertasDoc.push({nombre:p.nombre,doc:d.label,dias,estado:'proximo'});
+      });
+    });
+    const docAlertEl=document.getElementById("alertas-docs-colab");
+    if(docAlertEl){
+      if(alertasDoc.length){
+        docAlertEl.innerHTML=alertasDoc.map(a=>
+          '<div class="alerta '+(a.estado==='vencido'?'alerta-err':'alerta-warn')+'" style="font-size:12px">'+
+          (a.estado==='vencido'?'VENCIDO':'PROXIMO') +': <strong>'+a.nombre+'</strong> — '+a.doc+
+          (a.estado==='vencido'?' (vencio hace '+Math.abs(a.dias)+' dias)':' (vence en '+a.dias+' dias)')+'</div>'
+        ).join('');
+        docAlertEl.style.display='block';
+      } else {
+        docAlertEl.style.display='none';
+      }
+    }
+  }
   const alertaEl=document.getElementById("alertas-salud-colab");
   if(alertaEl) alertaEl.innerHTML=enAlerta.map(ar=>
-    `<div class="alerta alerta-err">🔴 <strong>${ar.nombre}</strong> – ${ar.condiciones.join(", ")} | Decisión: ${ar.decision}</div>`).join("");
+    `<div class="alerta alerta-err"> <strong>${ar.nombre}</strong>  ${ar.condiciones.join(", ")} | Decision: ${ar.decision}</div>`).join("");
   // Avance actividades
   const av=document.getElementById("avance-lista");
   if(!DATA.actividades.length){av.innerHTML='<div class="texto-muted">Sin actividades.</div>';return;}
@@ -2587,12 +3072,12 @@ function refrescarDashboard() {
     <div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600">${a.desc}</span>
     <span style="color:var(--naranja);font-weight:700;font-size:13px">${a.avance}%</span></div>
     <div class="progreso-bar-wrap"><div class="progreso-bar" style="width:${a.avance}%"></div></div>
-    <div class="texto-muted" style="margin-top:2px">${a.ejec}/${a.prog} ${a.unidad} – ${a.estado}</div>
+    <div class="texto-muted" style="margin-top:2px">${a.ejec}/${a.prog} ${a.unidad}  ${a.estado}</div>
   </div>`).join("");
 }
 
 // ======================================================
-//  VISTA ADMINISTRADOR – RENDER
+//  VISTA ADMINISTRADOR  RENDER
 // ======================================================
 function renderAdmin() {
   const frentes = Object.values(todosFrente);
@@ -2619,14 +3104,14 @@ function renderAdmin() {
   document.getElementById("adm-st-charlas").textContent=totCharlas;
   const alertaAT=document.getElementById("adm-alerta-accidentes");
   const alertaSalud=document.getElementById("adm-alerta-salud");
-  if(totAT>0){alertaAT.style.display="block";alertaAT.className="alerta alerta-err";alertaAT.textContent=`🚨 ${totAT} accidente(s) reportados el ${fecha}.`;}
+  if(totAT>0){alertaAT.style.display="block";alertaAT.className="alerta alerta-err";alertaAT.textContent=` ${totAT} accidente(s) reportados el ${fecha}.`;}
   else alertaAT.style.display="none";
-  if(totSalud>0){alertaSalud.style.display="block";alertaSalud.textContent=`⚠ ${totSalud} trabajador(es) con condiciones de salud restrictivas.`;}
+  if(totSalud>0){alertaSalud.style.display="block";alertaSalud.textContent=` ${totSalud} trabajador(es) con condiciones de salud restrictivas.`;}
   else alertaSalud.style.display="none";
 
   const lista=document.getElementById("adm-frentes-lista");
   if(!frentes.length){
-    lista.innerHTML=`<div class="alerta alerta-warn">Sin frentes activos. Ve a ⚙ Gestión Frentes para crearlos.</div>`;
+    lista.innerHTML=`<div class="alerta alerta-warn">Sin frentes activos. Ve a  Gestion Frentes para crearlos.</div>`;
     return;
   }
 
@@ -2645,23 +3130,23 @@ function renderAdmin() {
     return `<div class="admin-frente-card" style="${sinDatos?'opacity:.75;border-left:3px solid #ccc':''}">
       <div class="admin-frente-header" onclick="toggleFrenteAdmin('${key}')">
         <div style="flex:1">
-          <div class="admin-frente-titulo">📍 ${s.frente||"Sin nombre"}
+          <div class="admin-frente-titulo"> ${s.frente||"Sin nombre"}
             ${sinDatos?`<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:10px;margin-left:8px;font-weight:600">SIN REGISTRO HOY</span>`:""}
           </div>
-          <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||"—"} | ${fecha}</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Responsable: ${s.responsable||""} | ${fecha}</div>
         </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          ${atF>0?`<span class="badge badge-rojo">🚨 ${atF} AT</span>`:""}
-          ${alertasSaludF.length>0?`<span class="badge badge-amarillo">⚠ ${alertasSaludF.length} salud</span>`:""}
+          ${atF>0?`<span class="badge badge-rojo"> ${atF} AT</span>`:""}
+          ${alertasSaludF.length>0?`<span class="badge badge-amarillo"> ${alertasSaludF.length} salud</span>`:""}
           ${!sinDatos?`<span class="badge badge-azul">${pres} presentes</span><span class="badge badge-verde">${Math.round(hh*100)/100} HH</span>`:""}
-          <span style="color:var(--amarillo);font-size:18px">▼</span>
+          <span style="color:var(--amarillo);font-size:18px"></span>
         </div>
       </div>
       <div class="admin-frente-body" id="${key}">
         ${sinDatos
           ? `<div style="padding:12px;color:var(--texto-muted);font-size:13px;text-align:center">
-              📭 Sin datos registrados para este frente el ${fecha}.<br>
-              <span style="font-size:11px">El colaborador aún no ha iniciado sesión hoy.</span>
+               Sin datos registrados para este frente el ${fecha}.<br>
+              <span style="font-size:11px">El colaborador aun no ha iniciado sesion hoy.</span>
              </div>`
           : `<div class="admin-kpi-row">
               <div class="admin-kpi"><div class="admin-kpi-num">${pres}</div><div class="admin-kpi-label">Presentes</div></div>
@@ -2677,8 +3162,8 @@ function renderAdmin() {
         }
         <!-- Acciones del frente -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--borde);margin-top:10px">
-          ${!sinDatos?`<button class="btn btn-verde" style="font-size:12px;padding:7px 14px" onclick="exportarXLSDiarioFrente('${nombreFrente}','${fecha}')">⬇ Excel diario</button>`:""}
-          <button class="btn btn-rojo" style="font-size:12px;padding:7px 14px" onclick="darDeBajaFrenteDesdeAdmin('${fKey}','${nombreFrente}')">🔒 Dar de baja</button>
+          ${!sinDatos?`<button class="btn btn-verde" style="font-size:12px;padding:7px 14px" onclick="exportarXLSDiarioFrente('${nombreFrente}','${fecha}')"> Excel diario</button>`:""}
+          <button class="btn btn-rojo" style="font-size:12px;padding:7px 14px" onclick="darDeBajaFrenteDesdeAdmin('${fKey}','${nombreFrente}')"> Dar de baja</button>
         </div>
       </div>
     </div>`;
@@ -2689,19 +3174,19 @@ function renderAdmin() {
   renderAdmTablaInspecciones(frentes);
 }
 
-// Excel de TODOS los frentes del día seleccionado
+// Excel de TODOS los frentes del dia seleccionado
 function exportarXLSTodosFrente() {
   const fecha = document.getElementById("adm-fecha-filtro").value || FECHA_HOY;
   const frentes = Object.values(todosFrente).filter(f=>!f.sinDatos);
   if(!frentes.length) {
-    mostrarToast("⚠ Primero carga los datos del día","naranja"); return;
+    mostrarToast(" Primero carga los datos del dia","naranja"); return;
   }
   try {
     const WB = XLSX.utils.book_new();
 
-    // Hoja resumen del día
+    // Hoja resumen del dia
     const resRows=[
-      ["ISIS PROYECTOS DE INGENIERÍA S.A.S. – INFORME DIARIO CONSOLIDADO"],
+      ["ISIS PROYECTOS DE INGENIERÍA S.A.S.  INFORME DIARIO CONSOLIDADO"],
       [`Fecha: ${fecha}`],[`Generado: ${new Date().toLocaleString("es-CO")}`],[],
       ["Frente","Responsable","Presentes","HH Total","Actividades","Charlas","EPP","Ausentismo","Accidentes AT","Inspecciones"]
     ];
@@ -2710,23 +3195,23 @@ function exportarXLSTodosFrente() {
       const asist=(d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha);
       const pres=asist.filter(t=>t.asistencia==="presente").length;
       const hh=asist.filter(t=>t.asistencia==="presente").reduce((s,t)=>s+(t.hh||0),0);
-      resRows.push([s.frente||"—",s.responsable||"—",pres,Math.round(hh*100)/100,
+      resRows.push([s.frente||"",s.responsable||"",pres,Math.round(hh*100)/100,
         (d.actividades||[]).length,(d.charlas||[]).length,(d.epp||[]).length,
         (d.ausentismo||[]).length,(d.accidentes||[]).length,(d.inspecciones||[]).length]);
     });
     const ws0=XLSX.utils.aoa_to_sheet(resRows);
     ws0["!cols"]=[{wch:28},{wch:22},{wch:10},{wch:10},{wch:12},{wch:10},{wch:8},{wch:12},{wch:14},{wch:12}];
-    XLSX.utils.book_append_sheet(WB, ws0, "Resumen del Día");
+    XLSX.utils.book_append_sheet(WB, ws0, "Resumen del Dia");
 
     // Hoja trabajadores de todos los frentes
-    const tRows=[["Frente","Responsable","Trabajador","Cédula","Nivel","Cargo","Empresa","Asistencia","Entrada","Almuerzo Ini","Almuerzo Fin","Salida","HH"]];
+    const tRows=[["Frente","Responsable","Trabajador","Cedula","Nivel","Cargo","Empresa","Asistencia","Entrada","Almuerzo Ini","Almuerzo Fin","Salida","HH"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
       (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(a=>{
         const p=plantaGlobal.find(x=>x.id===a.plantaId)||{};
-        tRows.push([s.frente||"—",s.responsable||"—",p.nombre||a.nombre||"—",p.cedula||"—",
-          p.nivel||"—",p.cargo||"—",p.empresa||"—",a.asistencia||"—",
-          a.entrada||"—",a.almuerzoIni||"—",a.almuerzoFin||"—",a.salida||"—",a.hh||0]);
+        tRows.push([s.frente||"",s.responsable||"",p.nombre||a.nombre||"",p.cedula||"",
+          p.nivel||"",p.cargo||"",p.empresa||"",a.asistencia||"",
+          a.entrada||"",a.almuerzoIni||"",a.almuerzoFin||"",a.salida||"",a.hh||0]);
       });
     });
     const ws1=XLSX.utils.aoa_to_sheet(tRows);
@@ -2734,10 +3219,10 @@ function exportarXLSTodosFrente() {
     XLSX.utils.book_append_sheet(WB, ws1, "Trabajadores y HH");
 
     // Hoja actividades
-    const aRows=[["Frente","Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicación","Observaciones"]];
+    const aRows=[["Frente","Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicacion","Observaciones"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.actividades||[]).forEach(a=>aRows.push([s.frente||"—",a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
+      (d.actividades||[]).forEach(a=>aRows.push([s.frente||"",a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
     });
     const ws2=XLSX.utils.aoa_to_sheet(aRows);
     ws2["!cols"]=[{wch:24},{wch:40},{wch:10},{wch:12},{wch:12},{wch:10},{wch:20},{wch:35}];
@@ -2747,56 +3232,56 @@ function exportarXLSTodosFrente() {
     const cRows=[["Frente","Tema","Inicio","Fin","Facilitador","Asistentes","Contenido"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.charlas||[]).forEach(c=>cRows.push([s.frente||"—",c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||0,c.contenido||""]));
+      (d.charlas||[]).forEach(c=>cRows.push([s.frente||"",c.tema||"",c.inicio||"",c.fin||"",c.facilitador||"",c.asistentes||0,c.contenido||""]));
     });
     const ws3=XLSX.utils.aoa_to_sheet(cRows);
     ws3["!cols"]=[{wch:24},{wch:35},{wch:10},{wch:10},{wch:24},{wch:12},{wch:50}];
     XLSX.utils.book_append_sheet(WB, ws3, "Charlas SST");
 
     // Hoja EPP
-    const eRows=[["Frente","Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+    const eRows=[["Frente","Trabajador","Cedula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.epp||[]).forEach(e=>eRows.push([s.frente||"—",e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
+      (d.epp||[]).forEach(e=>eRows.push([s.frente||"",e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
     });
     const ws4=XLSX.utils.aoa_to_sheet(eRows);
     ws4["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:20},{wch:28},{wch:10},{wch:20},{wch:10}];
     XLSX.utils.book_append_sheet(WB, ws4, "EPP");
 
     // Hoja ausentismo
-    const auRows=[["Frente","Trabajador","Cédula","Cargo","Causa","Días","N° Incapacidad","Reemplazo"]];
+    const auRows=[["Frente","Trabajador","Cedula","Cargo","Causa","Dias","N° Incapacidad","Reemplazo"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.ausentismo||[]).forEach(a=>auRows.push([s.frente||"—",a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||""]));
+      (d.ausentismo||[]).forEach(a=>auRows.push([s.frente||"",a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||""]));
     });
     const ws5=XLSX.utils.aoa_to_sheet(auRows);
     ws5["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:20},{wch:30},{wch:8},{wch:16},{wch:24}];
     XLSX.utils.book_append_sheet(WB, ws5, "Ausentismo");
 
     // Hoja accidentes
-    const atRows=[["Frente","Trabajador","Cédula","Tipo","Fecha/Hora","Lesión","Agente","Atención","FURAT","Descripción"]];
+    const atRows=[["Frente","Trabajador","Cedula","Tipo","Fecha/Hora","Lesion","Agente","Atencion","FURAT","Descripcion"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.accidentes||[]).forEach(a=>atRows.push([s.frente||"—",a.nombre||"",a.cedula||"",a.tipo||"",a.fecha||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
+      (d.accidentes||[]).forEach(a=>atRows.push([s.frente||"",a.nombre||"",a.cedula||"",a.tipo||"",a.fecha||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
     });
     const ws6=XLSX.utils.aoa_to_sheet(atRows);
     ws6["!cols"]=[{wch:24},{wch:26},{wch:14},{wch:28},{wch:16},{wch:18},{wch:18},{wch:20},{wch:12},{wch:50}];
     XLSX.utils.book_append_sheet(WB, ws6, "Accidentes AT");
 
     // Hoja inspecciones
-    const insRows=[["Frente","Tipo","Inspector","Hora","Novedades","Plan de acción"]];
+    const insRows=[["Frente","Tipo","Inspector","Hora","Novedades","Plan de accion"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
-      (d.inspecciones||[]).forEach(i=>insRows.push([s.frente||"—",i.tipo||"",i.inspector||"",i.hora||"",i.hallazgos||"",i.acciones||""]));
+      (d.inspecciones||[]).forEach(i=>insRows.push([s.frente||"",i.tipo||"",i.inspector||"",i.hora||"",i.hallazgos||"",i.acciones||""]));
     });
     const ws7=XLSX.utils.aoa_to_sheet(insRows);
     ws7["!cols"]=[{wch:24},{wch:30},{wch:24},{wch:10},{wch:45},{wch:45}];
     XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
 
     XLSX.writeFile(WB, `Informe_Diario_ISIS_${fecha}.xlsx`);
-    mostrarToast("✔ Excel diario descargado","verde");
+    mostrarToast(" Excel diario descargado","verde");
   } catch(err) {
-    mostrarToast("⚠ Error: "+err.message,"rojo");
+    mostrarToast(" Error: "+err.message,"rojo");
     console.error(err);
   }
 }
@@ -2805,17 +3290,17 @@ function exportarXLSTodosFrente() {
 function descargarExcelSemanal() {
   const inicio=document.getElementById("sem-inicio").value;
   const fin=document.getElementById("sem-fin").value;
-  if(!inicio||!fin){ mostrarToast("⚠ Selecciona el rango de fechas","naranja"); return; }
-  mostrarToast("⏳ Cargando datos de la semana…","naranja");
-  // Reutilizar lógica de cargarDatosSemana y exportarXLSSemanal
+  if(!inicio||!fin){ mostrarToast(" Selecciona el rango de fechas","naranja"); return; }
+  mostrarToast(" Cargando datos de la semana","naranja");
+  // Reutilizar logica de cargarDatosSemana y exportarXLSSemanal
   cargarDatosSemana().then(()=>{
     exportarXLSSemanal();
   }).catch(()=>exportarXLSSemanal());
 }
 
 function darDeBajaFrenteDesdeAdmin(fKey, nombre) {
-  if(!fKey||!nombre){ mostrarToast("⚠ No se pudo identificar el frente","rojo"); return; }
-  const motivo=prompt(`¿Motivo del cierre de "${nombre}"?\n(Ej: Proyecto finalizado, Emergencia atendida…)`);
+  if(!fKey||!nombre){ mostrarToast(" No se pudo identificar el frente","rojo"); return; }
+  const motivo=prompt(`¿Motivo del cierre de "${nombre}"?\n(Ej: Proyecto finalizado, Emergencia atendida)`);
   if(motivo===null) return;
   if(!frentesConfig[fKey]) frentesConfig[fKey]={nombre};
   frentesConfig[fKey].estado="cerrado";
@@ -2823,7 +3308,7 @@ function darDeBajaFrenteDesdeAdmin(fKey, nombre) {
   frentesConfig[fKey].motivo=motivo||"Sin especificar";
   if(usandoFirebase) db.ref("frentes_config/"+fKey).set(frentesConfig[fKey]);
   else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
-  mostrarToast(`🔒 Frente "${nombre}" dado de baja`,"naranja");
+  mostrarToast(` Frente "${nombre}" dado de baja`,"naranja");
   // Recargar vista
   setTimeout(()=>cargarTodosFrente(), 800);
 }
@@ -2835,18 +3320,18 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
       f.sesion && f.sesion.frente && _fKey(f.sesion.frente)===_fKey(nombreFrente)
     );
     if(!entrada || entrada.sinDatos) {
-      mostrarToast("⚠ Sin datos registrados para exportar","naranja"); return;
+      mostrarToast(" Sin datos registrados para exportar","naranja"); return;
     }
     const d = entrada.data || {};
     const s = entrada.sesion || {};
     const WB = XLSX.utils.book_new();
 
-    // == Hoja 1: Resumen del día ==
+    // == Hoja 1: Resumen del dia ==
     const resumen = [
-      ["ISIS PROYECTOS DE INGENIERÍA S.A.S. – INFORME DIARIO SST"],
+      ["ISIS PROYECTOS DE INGENIERÍA S.A.S.  INFORME DIARIO SST"],
       [`Frente: ${s.frente||nombreFrente}`],
       [`Fecha: ${fecha}`],
-      [`Responsable: ${s.responsable||"—"}`],
+      [`Responsable: ${s.responsable||""}`],
       [`Generado: ${new Date().toLocaleString("es-CO")}`],
       [],
       ["MÓDULO","TOTAL"],
@@ -2865,17 +3350,17 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     XLSX.utils.book_append_sheet(WB, ws1, "Resumen");
 
     // == Hoja 2: Trabajadores ==
-    const tRows=[["Nombre","Cédula","Nivel","Cargo","Empresa","Asistencia","Entrada","Salida","HH"]];
+    const tRows=[["Nombre","Cedula","Nivel","Cargo","Empresa","Asistencia","Entrada","Salida","HH"]];
     (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(t=>{
       const p=plantaGlobal.find(x=>x.id===t.plantaId)||{};
-      tRows.push([p.nombre||t.nombre||"—",p.cedula||t.cedula||"—",p.nivel||"—",p.cargo||"—",p.empresa||"—",t.asistencia||"—",t.entrada||"—",t.salida||"—",t.hh||0]);
+      tRows.push([p.nombre||t.nombre||"",p.cedula||t.cedula||"",p.nivel||"",p.cargo||"",p.empresa||"",t.asistencia||"",t.entrada||"",t.salida||"",t.hh||0]);
     });
     const ws2=XLSX.utils.aoa_to_sheet(tRows);
     ws2["!cols"]=[{wch:28},{wch:14},{wch:14},{wch:22},{wch:22},{wch:18},{wch:10},{wch:10},{wch:8}];
     XLSX.utils.book_append_sheet(WB, ws2, "Trabajadores");
 
     // == Hoja 3: Actividades ==
-    const aRows=[["Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicación","Observaciones"]];
+    const aRows=[["Actividad","Unidad","Programado","Ejecutado","Avance %","Ubicacion","Observaciones"]];
     (d.actividades||[]).forEach(a=>aRows.push([a.desc||"",a.unidad||"",a.prog||0,a.ejec||0,(a.avance||0)+"%",a.ubic||"",a.obs||""]));
     const ws3=XLSX.utils.aoa_to_sheet(aRows);
     ws3["!cols"]=[{wch:40},{wch:10},{wch:12},{wch:12},{wch:10},{wch:22},{wch:35}];
@@ -2889,21 +3374,21 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     XLSX.utils.book_append_sheet(WB, ws4, "Charlas SST");
 
     // == Hoja 5: EPP ==
-    const eRows=[["Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+    const eRows=[["Trabajador","Cedula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
     (d.epp||[]).forEach(e=>eRows.push([e.nombre||"",e.cedula||"",e.cargo||"",e.item||"",e.cant||0,e.motivo||"",e.conforme||""]));
     const ws5=XLSX.utils.aoa_to_sheet(eRows);
     ws5["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:28},{wch:10},{wch:22},{wch:10}];
     XLSX.utils.book_append_sheet(WB, ws5, "EPP");
 
     // == Hoja 6: Accidentes ==
-    const atRows=[["Fecha/Hora","Tipo","Trabajador","Cédula","Cargo","Parte","Lesión","Agente","Atención","FURAT","Descripción"]];
+    const atRows=[["Fecha/Hora","Tipo","Trabajador","Cedula","Cargo","Parte","Lesion","Agente","Atencion","FURAT","Descripcion"]];
     (d.accidentes||[]).forEach(a=>atRows.push([a.fecha||"",a.tipo||"",a.nombre||"",a.cedula||"",a.cargo||"",a.parte||"",a.lesion||"",a.agente||"",a.atencion||"",a.furat||"",a.desc||""]));
     const ws6=XLSX.utils.aoa_to_sheet(atRows);
     ws6["!cols"]=[{wch:16},{wch:30},{wch:28},{wch:14},{wch:20},{wch:16},{wch:18},{wch:18},{wch:22},{wch:12},{wch:50}];
     XLSX.utils.book_append_sheet(WB, ws6, "Accidentes AT");
 
     // == Hoja 7: Ausentismo ==
-    const auRows=[["Trabajador","Cédula","Cargo","Causa","Días","N° Incapacidad","Reemplazo","Observaciones"]];
+    const auRows=[["Trabajador","Cedula","Cargo","Causa","Dias","N° Incapacidad","Reemplazo","Observaciones"]];
     (d.ausentismo||[]).forEach(a=>auRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.causa||"",a.dias||"",a.numInc||"",a.reemplazo||"",a.obs||""]));
     const ws7=XLSX.utils.aoa_to_sheet(auRows);
     ws7["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:30},{wch:8},{wch:16},{wch:24},{wch:40}];
@@ -2917,17 +3402,17 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
     XLSX.utils.book_append_sheet(WB, ws8, "Inspecciones");
 
     // == Hoja 9: Autorreportes Salud ==
-    const arRows=[["Trabajador","Cédula","Cargo","Hora","Condiciones","Decisión","Validado por"]];
+    const arRows=[["Trabajador","Cedula","Cargo","Hora","Condiciones","Decision","Validado por"]];
     (d.autorreportes||[]).forEach(a=>arRows.push([a.nombre||"",a.cedula||"",a.cargo||"",a.hora||"",(a.condiciones||[]).join(", "),a.decision||"",a.validador||""]));
     const ws9=XLSX.utils.aoa_to_sheet(arRows);
     ws9["!cols"]=[{wch:28},{wch:14},{wch:20},{wch:10},{wch:50},{wch:22},{wch:24}];
     XLSX.utils.book_append_sheet(WB, ws9, "Autorreportes Salud");
 
     // == Hoja 10: Clima y Tiempos Muertos ==
-    const clRows=[["Condición","Temperatura","Impacto","Observaciones"]];
+    const clRows=[["Condicion","Temperatura","Impacto","Observaciones"]];
     if(d.clima&&d.clima.cond) clRows.push([d.clima.cond||"",d.clima.temp||"",d.clima.impacto||"",d.clima.obs||""]);
     clRows.push([]);
-    clRows.push(["Evento de lluvia","Inicio","Fin","Duración","Intensidad","Observaciones"]);
+    clRows.push(["Evento de lluvia","Inicio","Fin","Duracion","Intensidad","Observaciones"]);
     (d.lluvias||[]).forEach(l=>clRows.push(["Lluvia",l.ini||"",l.fin||"",l.duracion||"",l.intensidad||"",l.obs||""]));
     const ws10=XLSX.utils.aoa_to_sheet(clRows);
     ws10["!cols"]=[{wch:24},{wch:14},{wch:22},{wch:12},{wch:12},{wch:16},{wch:40}];
@@ -2935,10 +3420,10 @@ function exportarXLSDiarioFrente(nombreFrente, fecha) {
 
     const nombreArchivo=`Informe_Diario_${(s.frente||nombreFrente).replace(/[^a-zA-Z0-9]/g,"_")}_${fecha}.xlsx`;
     XLSX.writeFile(WB, nombreArchivo);
-    mostrarToast("✔ Excel diario exportado","verde");
+    mostrarToast(" Excel diario exportado","verde");
   } catch(err) {
     console.error("Error exportando Excel diario:", err);
-    mostrarToast("⚠ Error al exportar: "+err.message,"rojo");
+    mostrarToast(" Error al exportar: "+err.message,"rojo");
   }
 }
 
@@ -2953,22 +3438,22 @@ function renderFrenteDetalleAdmin(d) {
   const totalHH   = presentes.reduce((s,t)=>s+(t.hh||0),0);
   if(asistHoy.length) {
     html+=`<div class="resumen-bloque" style="background:#F0F7FF;border-left:3px solid var(--azul);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">👷 PERSONAL DEL DÍA</div>
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> PERSONAL DEL DÍA</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px">
-        <span>✅ Presentes: <strong>${presentes.length}</strong></span>
-        <span>❌ Ausentes: <strong>${ausentes.length}</strong></span>
-        <span>⏱ HH totales: <strong style="color:var(--naranja)">${Math.round(totalHH*100)/100}</strong></span>
+        <span> Presentes: <strong>${presentes.length}</strong></span>
+        <span> Ausentes: <strong>${ausentes.length}</strong></span>
+        <span> HH totales: <strong style="color:var(--naranja)">${Math.round(totalHH*100)/100}</strong></span>
       </div>`;
     if(presentes.length) {
       html+=`<div style="margin-top:6px;font-size:11px;color:#555">`;
-      html+=presentes.map(t=>`<span style="display:inline-block;margin:2px 4px 2px 0;background:#E8F4FD;padding:2px 8px;border-radius:10px">${t.nombre||"—"} <span style="color:var(--naranja);font-weight:700">${t.hh||0}HH</span></span>`).join("");
+      html+=presentes.map(t=>`<span style="display:inline-block;margin:2px 4px 2px 0;background:#E8F4FD;padding:2px 8px;border-radius:10px">${t.nombre||""} <span style="color:var(--naranja);font-weight:700">${t.hh||0}HH</span></span>`).join("");
       html+=`</div>`;
     }
     if(ausentes.length) {
       html+=`<div style="margin-top:4px;font-size:11px;color:var(--rojo)">`;
       html+=ausentes.map(t=>{
         const p=(d.planta||[]).find(x=>x.id===t.plantaId)||{};
-        return `<span style="display:inline-block;margin:2px 4px 2px 0;background:#FFF0F0;padding:2px 8px;border-radius:10px">${p.nombre||t.nombre||"—"} (${t.asistencia})</span>`;
+        return `<span style="display:inline-block;margin:2px 4px 2px 0;background:#FFF0F0;padding:2px 8px;border-radius:10px">${p.nombre||t.nombre||""} (${t.asistencia})</span>`;
       }).join("");
       html+=`</div>`;
     }
@@ -2978,7 +3463,7 @@ function renderFrenteDetalleAdmin(d) {
   // == ACTIVIDADES ====================================
   if((d.actividades||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid var(--naranja);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">⚙ ACTIVIDADES (${d.actividades.length})</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> ACTIVIDADES (${d.actividades.length})</div>`;
     html+=d.actividades.map(a=>`
       <div style="margin-bottom:6px">
         <div style="display:flex;justify-content:space-between;font-size:12px;align-items:center">
@@ -2986,7 +3471,7 @@ function renderFrenteDetalleAdmin(d) {
           <span style="color:var(--naranja);font-weight:700;white-space:nowrap;margin-left:8px">${a.avance||0}%</span>
         </div>
         <div class="progreso-bar-wrap" style="margin:3px 0"><div class="progreso-bar" style="width:${a.avance||0}%"></div></div>
-        <div style="font-size:11px;color:#666">${a.ejec||0}/${a.prog||0} ${a.unidad||""} ${a.ubic?'· 📍'+a.ubic:""} ${a.obs?'· '+a.obs:""}</div>
+        <div style="font-size:11px;color:#666">${a.ejec||0}/${a.prog||0} ${a.unidad||""} ${a.ubic?'· '+a.ubic:""} ${a.obs?'· '+a.obs:""}</div>
       </div>`).join("");
     html+=`</div>`;
   }
@@ -3001,40 +3486,40 @@ function renderFrenteDetalleAdmin(d) {
   const hhMuertas = Math.round(totalMinLluvia/60*presentes.length*100)/100;
 
   html+=`<div class="resumen-bloque" style="background:#F0F8FF;border-left:3px solid #1B6FA8;border-radius:4px;padding:10px 12px;margin-top:10px">
-    <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🌤 CLIMA Y TIEMPOS MUERTOS</div>`;
+    <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> CLIMA Y TIEMPOS MUERTOS</div>`;
   if(d.clima&&d.clima.cond) {
-    const impColor = d.clima.impacto==="Sin impacto"?"#1A7A4A":d.clima.impacto==="Suspensión total"?"#C0392B":"#E67E22";
+    const impColor = d.clima.impacto==="Sin impacto"?"#1A7A4A":d.clima.impacto==="Suspension total"?"#C0392B":"#E67E22";
     html+=`<div style="font-size:12px;margin-bottom:4px">
-      Condición: <strong>${d.clima.cond}</strong>
+      Condicion: <strong>${d.clima.cond}</strong>
       ${d.clima.temp?`· <strong>${d.clima.temp}°C</strong>`:""}
-      · Impacto: <strong style="color:${impColor}">${d.clima.impacto||"—"}</strong>
+      · Impacto: <strong style="color:${impColor}">${d.clima.impacto||""}</strong>
     </div>`;
-    if(d.clima.obs) html+=`<div style="font-size:11px;color:#666;margin-bottom:4px">📝 ${d.clima.obs}</div>`;
+    if(d.clima.obs) html+=`<div style="font-size:11px;color:#666;margin-bottom:4px"> ${d.clima.obs}</div>`;
   }
   if(lluvias.length) {
     html+=`<div style="margin-top:6px">`;
     html+=lluvias.map(l=>`<div style="font-size:11px;background:#E8F4FF;padding:4px 8px;border-radius:4px;margin-bottom:3px">
-      🌧 <strong>${l.intensidad||"Lluvia"}</strong> · ${l.ini||"?"} – ${l.fin||"?"} · Duración: <strong>${l.duracion||"—"}</strong>
+       <strong>${l.intensidad||"Lluvia"}</strong> · ${l.ini||"?"}  ${l.fin||"?"} · Duracion: <strong>${l.duracion||""}</strong>
       ${l.obs?`<span style="color:#666"> · ${l.obs}</span>`:""}
     </div>`).join("");
     html+=`</div>`;
     html+=`<div style="margin-top:6px;padding:6px 10px;background:#FFF3E0;border-radius:4px;font-size:12px">
-      ⏱ Tiempo total lluvia: <strong style="color:var(--rojo)">${totalMinLluvia} min</strong>
+       Tiempo total lluvia: <strong style="color:var(--rojo)">${totalMinLluvia} min</strong>
       ${presentes.length?`· HH no ejecutadas por clima: <strong style="color:var(--rojo)">${hhMuertas} HH</strong> (${presentes.length} trabajadores × ${Math.round(totalMinLluvia/60*100)/100}h)`:""}
     </div>`;
   } else if(!d.clima||!d.clima.cond) {
-    html+=`<div style="font-size:11px;color:var(--texto-muted)">Sin registro de clima para este día.</div>`;
+    html+=`<div style="font-size:11px;color:var(--texto-muted)">Sin registro de clima para este dia.</div>`;
   } else {
-    html+=`<div style="font-size:11px;color:var(--verde)">✅ Sin eventos de lluvia registrados.</div>`;
+    html+=`<div style="font-size:11px;color:var(--verde)"> Sin eventos de lluvia registrados.</div>`;
   }
   html+=`</div>`;
 
   // == CHARLAS SST ====================================
   if((d.charlas||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F5F0FF;border-left:3px solid var(--morado);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📢 CHARLAS SST (${d.charlas.length})</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> CHARLAS SST (${d.charlas.length})</div>`;
     html+=d.charlas.map(c=>`<div style="font-size:12px;margin-bottom:4px">
-      📌 <strong>${c.tema}</strong> · ${c.inicio||""}–${c.fin||""} · Facilitador: ${c.facilitador||"—"} · <strong>${c.asistentes||0} asistentes</strong>
+       <strong>${c.tema}</strong> · ${c.inicio||""}${c.fin||""} · Facilitador: ${c.facilitador||""} · <strong>${c.asistentes||0} asistentes</strong>
     </div>`).join("");
     html+=`</div>`;
   }
@@ -3042,9 +3527,9 @@ function renderFrenteDetalleAdmin(d) {
   // == EPP ============================================
   if((d.epp||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F0FFF4;border-left:3px solid var(--verde);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🦺 EPP ENTREGADO (${d.epp.length} entregas)</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> EPP ENTREGADO (${d.epp.length} entregas)</div>`;
     html+=d.epp.map(e=>`<div style="font-size:12px;margin-bottom:3px">
-      • ${e.nombre} – <strong>${e.item}</strong> ×${e.cant} · ${e.motivo}
+       ${e.nombre}  <strong>${e.item}</strong> ×${e.cant} · ${e.motivo}
     </div>`).join("");
     html+=`</div>`;
   }
@@ -3052,9 +3537,9 @@ function renderFrenteDetalleAdmin(d) {
   // == AUSENTISMO =====================================
   if((d.ausentismo||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#FFF8F0;border-left:3px solid var(--amarillo);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🏥 AUSENTISMO (${d.ausentismo.length})</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> AUSENTISMO (${d.ausentismo.length})</div>`;
     html+=d.ausentismo.map(a=>`<div style="font-size:12px;margin-bottom:3px">
-      • <strong>${a.nombre}</strong> – ${a.causa} · ${a.dias} día(s) ${a.numInc?'· Inc. '+a.numInc:""}
+       <strong>${a.nombre}</strong>  ${a.causa} · ${a.dias} dia(s) ${a.numInc?'· Inc. '+a.numInc:""}
     </div>`).join("");
     html+=`</div>`;
   }
@@ -3062,11 +3547,11 @@ function renderFrenteDetalleAdmin(d) {
   // == ACCIDENTES =====================================
   if((d.accidentes||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#FFF0F0;border-left:3px solid var(--rojo);border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--rojo);margin-bottom:6px">🚨 ACCIDENTES / INCIDENTES (${d.accidentes.length})</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--rojo);margin-bottom:6px"> ACCIDENTES / INCIDENTES (${d.accidentes.length})</div>`;
     html+=d.accidentes.map(a=>`<div style="font-size:12px;margin-bottom:4px;padding:6px;background:#FFF5F5;border-radius:4px">
-      <strong>${a.tipo}</strong> · ${a.fecha||"—"}<br>
-      Accidentado: <strong>${a.nombre}</strong> · Lesión: ${a.lesion||"—"} · Agente: ${a.agente||"—"}<br>
-      Atención: ${a.atencion||"—"} · FURAT: <strong>${a.furat||"Pendiente"}</strong>
+      <strong>${a.tipo}</strong> · ${a.fecha||""}<br>
+      Accidentado: <strong>${a.nombre}</strong> · Lesion: ${a.lesion||""} · Agente: ${a.agente||""}<br>
+      Atencion: ${a.atencion||""} · FURAT: <strong>${a.furat||"Pendiente"}</strong>
     </div>`).join("");
     html+=`</div>`;
   }
@@ -3075,13 +3560,13 @@ function renderFrenteDetalleAdmin(d) {
   if((d.inspecciones||[]).length) {
     const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
     html+=`<div class="resumen-bloque" style="background:#F8F9FA;border-left:3px solid #5D6D7E;border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">🔍 INSPECCIONES (${d.inspecciones.length}) ${nc?`<span style="color:var(--rojo)">· ${nc} no conforme(s)</span>`:""}</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> INSPECCIONES (${d.inspecciones.length}) ${nc?`<span style="color:var(--rojo)">· ${nc} no conforme(s)</span>`:""}</div>`;
     html+=d.inspecciones.map(ins=>{
       const rc={"conforme":"#1A7A4A","no-conforme":"#C0392B","parcial":"#E67E22"};
       return `<div style="font-size:12px;margin-bottom:3px">
-        • <strong>${ins.tipo}</strong> · ${ins.zona||"—"} · Inspector: ${ins.inspector||"—"}
-        · <span style="color:${rc[ins.resultado]||'#666'};font-weight:700">${ins.resultado||"—"}</span>
-        ${ins.hallazgos?`<br><span style="font-size:11px;color:#666;margin-left:8px">⚠ ${ins.hallazgos.slice(0,100)}</span>`:""}
+         <strong>${ins.tipo}</strong> · ${ins.zona||""} · Inspector: ${ins.inspector||""}
+        · <span style="color:${rc[ins.resultado]||'#666'};font-weight:700">${ins.resultado||""}</span>
+        ${ins.hallazgos?`<br><span style="font-size:11px;color:#666;margin-left:8px"> ${ins.hallazgos.slice(0,100)}</span>`:""}
       </div>`;
     }).join("");
     html+=`</div>`;
@@ -3091,11 +3576,11 @@ function renderFrenteDetalleAdmin(d) {
   const arConAlerta=(d.autorreportes||[]).filter(ar=>ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)"));
   if((d.autorreportes||[]).length) {
     html+=`<div class="resumen-bloque" style="background:${arConAlerta.length?"#FFF0F0":"#F0FFF4"};border-left:3px solid ${arConAlerta.length?"var(--rojo)":"var(--verde)"};border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">💊 AUTORREPORTE SALUD (${d.autorreportes.length}) ${arConAlerta.length?`<span style="color:var(--rojo)">· ⚠ ${arConAlerta.length} con restricciones</span>`:""}</div>`;
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> AUTORREPORTE SALUD (${d.autorreportes.length}) ${arConAlerta.length?`<span style="color:var(--rojo)">·  ${arConAlerta.length} con restricciones</span>`:""}</div>`;
     html+=(d.autorreportes||[]).map(ar=>{
       const alerta=ar.condiciones&&ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
       return `<div style="font-size:12px;margin-bottom:3px${alerta?";color:var(--rojo)":""}">
-        ${alerta?"🔴":"✅"} <strong>${ar.nombre}</strong> · ${ar.decision||"—"}
+        ${alerta?"":""} <strong>${ar.nombre}</strong> · ${ar.decision||""}
         ${alerta?`<br><span style="font-size:11px;margin-left:12px">${(ar.condiciones||[]).join(", ")}</span>`:""}
       </div>`;
     }).join("");
@@ -3105,8 +3590,8 @@ function renderFrenteDetalleAdmin(d) {
   // == MATERIALES =====================================
   if((d.materiales||[]).length) {
     html+=`<div class="resumen-bloque" style="background:#F9F9F9;border-left:3px solid #888;border-radius:4px;padding:10px 12px;margin-top:10px">
-      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px">📦 MATERIALES (${d.materiales.length})</div>`;
-    html+=d.materiales.map(m=>`<div style="font-size:12px;margin-bottom:3px">• ${m.nombre} – ${m.cant||0} ${m.unidad||""} · ${m.estado||""}</div>`).join("");
+      <div style="font-weight:700;font-size:12px;color:var(--azul);margin-bottom:6px"> MATERIALES (${d.materiales.length})</div>`;
+    html+=d.materiales.map(m=>`<div style="font-size:12px;margin-bottom:3px"> ${m.nombre}  ${m.cant||0} ${m.unidad||""} · ${m.estado||""}</div>`).join("");
     html+=`</div>`;
   }
 
@@ -3124,16 +3609,16 @@ function renderAdmTablaAccidentes(frentes) {
   frentes.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
     (d.accidentes||[]).forEach((a,i)=>{
-      rows+=`<tr><td>${s.frente||"—"}</td><td>${a.fecha||"—"}</td>
+      rows+=`<tr><td>${s.frente||""}</td><td>${a.fecha||""}</td>
         <td><span class="badge badge-rojo">${a.tipo}</span></td>
-        <td>${a.nombre}</td><td>${a.cedula||"—"}</td><td>${a.cargo||"—"}</td>
+        <td>${a.nombre}</td><td>${a.cedula||""}</td><td>${a.cargo||""}</td>
         <td>${a.lesion}</td><td>${a.agente}</td><td>${a.atencion}</td>
-        <td>${a.furat||"Pendiente"}</td><td>${a.desc?a.desc.slice(0,80)+"…":"—"}</td></tr>`;
+        <td>${a.furat||"Pendiente"}</td><td>${a.desc?a.desc.slice(0,80)+"":""}</td></tr>`;
     });
   });
   document.getElementById("adm-tabla-accidentes").innerHTML=!rows?
-    '<div class="alerta alerta-ok">✔ Sin accidentes de trabajo registrados en esta fecha.</div>':
-    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Cédula</th><th>Cargo</th><th>Lesión</th><th>Agente</th><th>Atención</th><th>FURAT</th><th>Descripción</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    '<div class="alerta alerta-ok"> Sin accidentes de trabajo registrados en esta fecha.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Fecha/Hora</th><th>Tipo</th><th>Accidentado</th><th>Cedula</th><th>Cargo</th><th>Lesion</th><th>Agente</th><th>Atencion</th><th>FURAT</th><th>Descripcion</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderAdmTablaAusentismo(frentes) {
@@ -3141,13 +3626,13 @@ function renderAdmTablaAusentismo(frentes) {
   frentes.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
     (d.ausentismo||[]).forEach(a=>{
-      rows+=`<tr><td>${s.frente||"—"}</td><td>${a.nombre}</td><td>${a.cedula||"—"}</td>
-        <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||"—"}</td><td>${a.reemplazo||"—"}</td></tr>`;
+      rows+=`<tr><td>${s.frente||""}</td><td>${a.nombre}</td><td>${a.cedula||""}</td>
+        <td>${a.causa}</td><td>${a.dias}</td><td>${a.numInc||""}</td><td>${a.reemplazo||""}</td></tr>`;
     });
   });
   document.getElementById("adm-tabla-ausentismo").innerHTML=!rows?
-    '<div class="alerta alerta-ok">✔ Sin ausentismo registrado.</div>':
-    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cédula</th><th>Causa</th><th>Días</th><th>N° Inc.</th><th>Reemplazo</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    '<div class="alerta alerta-ok"> Sin ausentismo registrado.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cedula</th><th>Causa</th><th>Dias</th><th>N° Inc.</th><th>Reemplazo</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderAdmTablaAutorreportes(frentes) {
@@ -3159,33 +3644,33 @@ function renderAdmTablaAutorreportes(frentes) {
     (d.autorreportes||[]).forEach(ar=>{
       const alerta=ar.condiciones.length&&!ar.condiciones.includes("Ninguna (apto)");
       rows+=`<tr style="${alerta?"background:#FFF3F0":""}">
-        <td>${s.frente||"—"}</td><td>${ar.nombre}${alerta?" 🔴":""}</td><td>${ar.cedula||"—"}</td>
-        <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||"—"}</td>
-        <td style="font-size:11px">${ar.condiciones.join(", ")||"—"}</td>
+        <td>${s.frente||""}</td><td>${ar.nombre}${alerta?" ":""}</td><td>${ar.cedula||""}</td>
+        <td>${nivelBadge(ar.nivel)} ${ar.cargo||""}</td><td>${ar.hora||""}</td>
+        <td style="font-size:11px">${ar.condiciones.join(", ")||""}</td>
         <td><span class="badge ${dc[ar.decision]||'badge-gris'}">${dl[ar.decision]||ar.decision}</span></td>
-        <td>${ar.validador||"—"}</td></tr>`;
+        <td>${ar.validador||""}</td></tr>`;
     });
   });
   document.getElementById("adm-tabla-autorreportes").innerHTML=!rows?
-    '<div class="alerta alerta-ok">✔ Sin autorreportes registrados.</div>':
-    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cédula</th><th>Nivel/Cargo</th><th>Hora</th><th>Condiciones reportadas</th><th>Decisión</th><th>Validado por</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    '<div class="alerta alerta-ok"> Sin autorreportes registrados.</div>':
+    `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Trabajador</th><th>Cedula</th><th>Nivel/Cargo</th><th>Hora</th><th>Condiciones reportadas</th><th>Decision</th><th>Validado por</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderAdmTablaInspecciones(frentes) {
   const rc={"conforme":"badge-verde","no-conforme":"badge-rojo","parcial":"badge-amarillo"};
-  const rt={"conforme":"Conforme ✔","no-conforme":"No conforme ✘","parcial":"Parcial"};
+  const rt={"conforme":"Conforme ","no-conforme":"No conforme ","parcial":"Parcial"};
   let rows="";
   frentes.forEach(f=>{
     const d=f.data||{}, s=f.sesion||{};
     (d.inspecciones||[]).forEach(ins=>{
-      rows+=`<tr><td>${s.frente||"—"}</td><td>${ins.tipo}</td><td>${ins.inspector}</td>
-        <td>${nivelBadge(ins.nivel)}</td><td>${ins.zona||"—"}</td><td>${ins.hora||"—"}</td>
+      rows+=`<tr><td>${s.frente||""}</td><td>${ins.tipo}</td><td>${ins.inspector}</td>
+        <td>${nivelBadge(ins.nivel)}</td><td>${ins.zona||""}</td><td>${ins.hora||""}</td>
         <td><span class="badge ${rc[ins.resultado]||'badge-gris'}">${rt[ins.resultado]||ins.resultado}</span></td>
-        <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+"…":"—"}</td></tr>`;
+        <td style="font-size:11px;max-width:180px">${ins.hallazgos?ins.hallazgos.slice(0,80)+"":""}</td></tr>`;
     });
   });
   document.getElementById("adm-tabla-inspecciones").innerHTML=!rows?
-    '<div class="alerta alerta-ok">✔ Sin inspecciones registradas.</div>':
+    '<div class="alerta alerta-ok"> Sin inspecciones registradas.</div>':
     `<div class="tabla-wrap"><table><thead><tr><th>Frente</th><th>Tipo</th><th>Inspector</th><th>Nivel</th><th>Zona</th><th>Hora</th><th>Resultado</th><th>Hallazgos</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -3201,7 +3686,7 @@ function previsualizarAdmin() {
 
   // Si no hay datos cargados, cargarlos primero
   if(Object.keys(todosFrente).length === 0) {
-    mostrarToast("⏳ Cargando datos antes de generar informe…","naranja");
+    mostrarToast(" Cargando datos antes de generar informe","naranja");
     // Sincronizar fecha en el filtro principal
     const filtroEl = document.getElementById("adm-fecha-filtro");
     if(filtroEl) filtroEl.value = fecha;
@@ -3215,14 +3700,14 @@ function previsualizarAdmin() {
 function _generarPreviewInforme(fecha) {
   const frentes=Object.values(todosFrente).filter(f=>!f.sinDatos);
   if(!frentes.length) {
-    mostrarToast("⚠ Sin datos para mostrar. Carga los datos en Consolidado primero.","naranja");
+    mostrarToast(" Sin datos para mostrar. Carga los datos en Consolidado primero.","naranja");
     return;
   }
   // Poblar selector de frentes en el formulario
   const selFrente = document.getElementById("adm-inf-frente");
   if(selFrente) {
     selFrente.innerHTML = `<option value="">Todos los frentes</option>` +
-      frentes.map(f=>`<option value="${(f.sesion||{}).frente||""}">${(f.sesion||{}).frente||"—"}</option>`).join("");
+      frentes.map(f=>`<option value="${(f.sesion||{}).frente||""}">${(f.sesion||{}).frente||""}</option>`).join("");
   }
   const filtroFrente = selFrente ? selFrente.value : "";
   const frentesAMostrar = filtroFrente
@@ -3265,8 +3750,8 @@ function _generarPreviewInforme(fecha) {
     const pres=asistHoy.filter(t=>t.asistencia==="presente").length;
     const hhF=asistHoy.reduce((acc,t)=>acc+(t.hh||0),0);
     html+=`<div style="border-left:4px solid var(--naranja);padding-left:12px;margin-bottom:18px;page-break-inside:avoid">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--azul)">${s.frente||"—"}</div>
-      <div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">Responsable: ${s.responsable||"—"}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:var(--azul)">${s.frente||""}</div>
+      <div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">Responsable: ${s.responsable||""}</div>
       <p style="font-size:13px">Presentes: <strong>${pres}</strong> | HH: <strong>${Math.round(hhF*100)/100}</strong> | Ausentismo: <strong>${(d.ausentismo||[]).length}</strong> | EPP: <strong>${(d.epp||[]).length}</strong></p>`;
     if((d.actividades||[]).length) {
       html+=`<p style="font-size:12px;margin-top:6px"><strong>Actividades:</strong> `;
@@ -3274,30 +3759,30 @@ function _generarPreviewInforme(fecha) {
       html+="</p>";
     }
     if((d.accidentes||[]).length) {
-      html+=`<div style="background:#FDDEDE;padding:8px 10px;border-radius:4px;margin-top:8px;font-size:12px">🚨 `;
-      html+=d.accidentes.map(a=>`AT: ${a.nombre||"—"} – ${a.lesion||"—"} – ${a.atencion||"—"}`).join(" | ");
+      html+=`<div style="background:#FDDEDE;padding:8px 10px;border-radius:4px;margin-top:8px;font-size:12px"> `;
+      html+=d.accidentes.map(a=>`AT: ${a.nombre||""}  ${a.lesion||""}  ${a.atencion||""}`).join(" | ");
       html+="</div>";
     }
-    if((d.charlas||[]).length) html+=`<p style="font-size:12px;margin-top:6px"><strong>Charlas SST:</strong> ${d.charlas.map(c=>c.tema||"—").join(", ")}</p>`;
+    if((d.charlas||[]).length) html+=`<p style="font-size:12px;margin-top:6px"><strong>Charlas SST:</strong> ${d.charlas.map(c=>c.tema||"").join(", ")}</p>`;
     if((d.inspecciones||[]).length) {
       const nc=(d.inspecciones||[]).filter(i=>i.resultado==="no-conforme").length;
-      html+=`<p style="font-size:12px;margin-top:4px"><strong>Inspecciones:</strong> ${(d.inspecciones||[]).length} realizadas${nc>0?` | <span style="color:var(--rojo)">${nc} no conformes</span>`:" ✔"}</p>`;
+      html+=`<p style="font-size:12px;margin-top:4px"><strong>Inspecciones:</strong> ${(d.inspecciones||[]).length} realizadas${nc>0?` | <span style="color:var(--rojo)">${nc} no conformes</span>`:" "}</p>`;
     }
     // Clima y tiempos muertos
-    if(d.clima&&d.clima.cond) html+=`<p style="font-size:12px;margin-top:4px"><strong>Clima:</strong> ${d.clima.cond}${d.clima.temp?" – "+d.clima.temp+"°C":""} | Impacto: ${d.clima.impacto||"—"}</p>`;
+    if(d.clima&&d.clima.cond) html+=`<p style="font-size:12px;margin-top:4px"><strong>Clima:</strong> ${d.clima.cond}${d.clima.temp?"  "+d.clima.temp+"°C":""} | Impacto: ${d.clima.impacto||""}</p>`;
     if((d.lluvias||[]).length) {
       const minLluvia=(d.lluvias||[]).reduce((s,l)=>{
         if(!l.ini||!l.fin) return s;
         const [hi,mi]=l.ini.split(":").map(Number),[hf,mf]=l.fin.split(":").map(Number);
         return s+Math.max(0,(hf*60+mf)-(hi*60+mi));
       },0);
-      html+=`<p style="font-size:12px;margin-top:4px"><strong>⏱ Tiempo muerto por lluvia:</strong> <span style="color:var(--rojo)">${minLluvia} min</span> · HH no ejecutadas: <strong style="color:var(--rojo)">${Math.round(minLluvia/60*pres*10)/10} HH</strong></p>`;
+      html+=`<p style="font-size:12px;margin-top:4px"><strong> Tiempo muerto por lluvia:</strong> <span style="color:var(--rojo)">${minLluvia} min</span> · HH no ejecutadas: <strong style="color:var(--rojo)">${Math.round(minLluvia/60*pres*10)/10} HH</strong></p>`;
     }
     html+="</div>";
   });
 
   html+=`<div style="margin-top:20px;border-top:1px solid var(--borde);padding-top:12px;font-size:11px;color:var(--texto-muted)">
-    Generado por: Administrador ISIS Proyectos de Ingeniería | ${new Date().toLocaleString("es-CO")}
+    Generado por: Administrador ISIS Proyectos de Ingenieria | ${new Date().toLocaleString("es-CO")}
   </div>`;
   document.getElementById("adm-preview-contenido").innerHTML=html;
   document.getElementById("adm-preview").style.display="block";
@@ -3309,7 +3794,7 @@ function exportarInformeAdmin() {
   setTimeout(()=>{
     const preview=document.getElementById("adm-preview-contenido");
     if(!preview||!preview.innerHTML.trim()){
-      mostrarToast("⚠ Primero previsualiza el informe","naranja"); return;
+      mostrarToast(" Primero previsualiza el informe","naranja"); return;
     }
     try {
       const {jsPDF}=window.jspdf;
@@ -3321,7 +3806,7 @@ function exportarInformeAdmin() {
         x:30,y:30,width:530,windowWidth:680,autoPaging:"text"
       });
     } catch(err){
-      mostrarToast("⚠ Error al exportar PDF: "+err.message,"rojo");
+      mostrarToast(" Error al exportar PDF: "+err.message,"rojo");
     }
   },1200);
 }
@@ -3337,11 +3822,77 @@ function exportarJSONAdmin() {
 document.getElementById("modal-foto").addEventListener("click",function(e){if(e.target===this)cerrarModal();});
 
 // ======================================================
-//  PLANTA GLOBAL — GESTIÓN DESDE ADMIN
+//  PLANTA GLOBAL  GESTIÓN DESDE ADMIN
 // ======================================================
 
+// ======================================================
+//  DOCUMENTOS Y VIGENCIAS
+// ======================================================
+const DOCS_CONFIG = [
+  {id:"examen",   label:"Examen medico ocupacional",          corto:"Exam.Med",  vigenciaMeses:12},
+  {id:"alturas",  label:"Curso trabajo en alturas (Res 4272)",corto:"Alturas",   vigenciaMeses:12},
+  {id:"conte",    label:"Certificado CONTE (electricista)",   corto:"CONTE",     vigenciaMeses:36},
+  {id:"defensivo",label:"Manejo defensivo",                   corto:"Man.Def",   vigenciaMeses:36}
+];
+const DIAS_ALERTA = 15;
+
+function abrirModalDocs(plantaId) {
+  const p = plantaGlobal.find(x=>x.id===plantaId);
+  if(!p) return;
+  const docs = p.docs||{};
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let html = '<div style="margin-bottom:14px"><div style="font-size:12px;color:var(--texto-muted);margin-bottom:10px">Ingresa o actualiza las fechas de vencimiento de cada documento.</div>';
+  DOCS_CONFIG.forEach(d=>{
+    const f = docs[d.id]||'';
+    let estadoHtml = '';
+    if(f){
+      const venc=new Date(f+'T00:00:00'); venc.setHours(0,0,0,0);
+      const dias=Math.round((venc-hoy)/86400000);
+      if(dias<0) estadoHtml='<span style="color:#C0392B;font-size:11px;font-weight:700">VENCIDO hace '+Math.abs(dias)+' dias</span>';
+      else if(dias<=DIAS_ALERTA) estadoHtml='<span style="color:#E67E22;font-size:11px;font-weight:700">Vence en '+dias+' dias</span>';
+      else estadoHtml='<span style="color:#1A7A4A;font-size:11px;font-weight:700">Vigente — '+dias+' dias</span>';
+    } else {
+      estadoHtml='<span style="color:#aaa;font-size:11px">Sin registro</span>';
+    }
+    html += '<div style="margin-bottom:12px;padding:12px;background:#F8F9FA;border-radius:6px;border-left:3px solid var(--azul)">';
+    html += '<div style="font-weight:700;font-size:13px;color:var(--azul);margin-bottom:6px">'+d.label+'</div>';
+    html += '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
+    html += '<div><label style="font-size:11px;color:var(--texto-muted);display:block;margin-bottom:3px">Fecha vencimiento</label>';
+    html += '<input type="date" id="doc-'+d.id+'" value="'+f+'" style="border:1px solid var(--borde);border-radius:4px;padding:6px 10px;font-size:14px;min-height:40px">';
+    html += '</div><div>'+estadoHtml+'</div></div>';
+    html += '<div style="margin-top:6px"><button onclick="autoVencimiento(\''+d.id+'\','+d.vigenciaMeses+')" style="background:none;border:1px solid var(--borde);border-radius:4px;padding:4px 10px;font-size:11px;cursor:pointer;color:var(--texto-muted)">Calcular desde hoy ('+d.vigenciaMeses+' meses)</button></div>';
+    html += '</div>';
+  });
+  html += '</div><div id="docs-plantaId" style="display:none">'+plantaId+'</div>';
+  document.getElementById("perfil-nombre").textContent = p.nombre+' — Documentos y Vigencias';
+  document.getElementById("perfil-contenido").innerHTML = html +
+    '<div class="btn-row"><button class="btn btn-primario" onclick="guardarDocs()">Guardar vigencias</button>'+
+    '<button class="btn btn-secundario" onclick="cerrarPerfilTrabajador()">Cancelar</button></div>';
+  document.getElementById("modal-perfil").style.display="flex";
+}
+
+function autoVencimiento(docId, meses) {
+  const d=new Date();
+  d.setMonth(d.getMonth()+meses);
+  const el=document.getElementById('doc-'+docId);
+  if(el) el.value=d.toISOString().split('T')[0];
+}
+
+function guardarDocs() {
+  const idEl=document.getElementById('docs-plantaId');
+  if(!idEl) return;
+  const p=plantaGlobal.find(x=>x.id===idEl.textContent);
+  if(!p) return;
+  if(!p.docs) p.docs={};
+  DOCS_CONFIG.forEach(d=>{ const el=document.getElementById('doc-'+d.id); if(el) p.docs[d.id]=el.value||''; });
+  guardarPlantaGlobal();
+  cerrarPerfilTrabajador();
+  renderPlantaAdmin();
+  mostrarToast('Documentos de '+p.nombre+' actualizados','verde');
+}
+
 function cargarPlantaAdmin() {
-  document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando trabajadores desde Firebase…</div>`;
+  document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)"> Cargando trabajadores desde Firebase</div>`;
   if(usandoFirebase){
     db.ref("planta_global").once("value", snap=>{
       try {
@@ -3349,7 +3900,7 @@ function cargarPlantaAdmin() {
         if(!val) {
           plantaGlobal = [];
         } else if(Array.isArray(val)) {
-          // Array normal — filtrar nulls que Firebase puede insertar
+          // Array normal  filtrar nulls que Firebase puede insertar
           plantaGlobal = val.filter(x=>x&&x.id);
         } else if(typeof val === "object") {
           // Firebase convierte arrays con huecos en objetos
@@ -3359,11 +3910,11 @@ function cargarPlantaAdmin() {
         }
         renderPlantaAdmin();
       } catch(err) {
-        document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err">⚠ Error al cargar planta: ${err.message}<br><small>Intenta recargar la página.</small></div>`;
+        document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err"> Error al cargar planta: ${err.message}<br><small>Intenta recargar la pagina.</small></div>`;
         console.error("Error cargarPlantaAdmin:", err);
       }
     }, err=>{
-      document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err">⚠ Error Firebase: ${err.message}</div>`;
+      document.getElementById("pg-lista").innerHTML=`<div class="alerta alerta-err"> Error Firebase: ${err.message}</div>`;
     });
   } else {
     try{ 
@@ -3377,68 +3928,103 @@ function cargarPlantaAdmin() {
 function renderPlantaAdmin() {
   const buscar=(document.getElementById("pg-buscar")||{}).value?.toLowerCase()||"";
   const filtro=(document.getElementById("pg-filtro")||{}).value||"todos";
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+
+  // Calcular alertas de documentos
+  const alertasDoc=[];
+  plantaGlobal.filter(p=>p.activo).forEach(p=>{
+    const docs=p.docs||{};
+    DOCS_CONFIG.forEach(d=>{
+      const f=docs[d.id];
+      if(!f) { alertasDoc.push({nombre:p.nombre,doc:d.label,estado:'sin-registro',dias:null}); return; }
+      const venc=new Date(f+'T00:00:00'); venc.setHours(0,0,0,0);
+      const dias=Math.round((venc-hoy)/86400000);
+      if(dias<0) alertasDoc.push({nombre:p.nombre,doc:d.label,estado:'vencido',dias});
+      else if(dias<=15) alertasDoc.push({nombre:p.nombre,doc:d.label,estado:'proximo',dias});
+    });
+  });
+
+  // Mostrar panel de alertas si hay
+  const panelAlertas=document.getElementById("pg-alertas");
+  if(panelAlertas){
+    if(alertasDoc.length){
+      const vencidos=alertasDoc.filter(a=>a.estado==='vencido');
+      const proximos=alertasDoc.filter(a=>a.estado==='proximo');
+      const sinReg=alertasDoc.filter(a=>a.estado==='sin-registro');
+      let htm='';
+      if(vencidos.length) htm+=`<div class="alerta alerta-err" style="margin-bottom:6px"><strong>VENCIDOS (${vencidos.length}):</strong> `+vencidos.map(a=>`${a.nombre} — ${a.doc}`).join(' | ')+'</div>';
+      if(proximos.length) htm+=`<div class="alerta alerta-warn" style="margin-bottom:6px"><strong>PROXIMOS A VENCER (${proximos.length}):</strong> `+proximos.map(a=>`${a.nombre} — ${a.doc} (${a.dias}d)`).join(' | ')+'</div>';
+      if(sinReg.length) htm+=`<div class="alerta alerta-info"><strong>SIN REGISTRO (${sinReg.length}):</strong> `+sinReg.slice(0,5).map(a=>`${a.nombre} — ${a.doc}`).join(' | ')+(sinReg.length>5?'...':'')+'</div>';
+      panelAlertas.innerHTML=htm;
+      panelAlertas.style.display='block';
+    } else {
+      panelAlertas.innerHTML='<div class="alerta alerta-ok">Todos los documentos vigentes.</div>';
+      panelAlertas.style.display='block';
+    }
+  }
+
   const lista=plantaGlobal.filter(p=>{
     const matchB=!buscar||(p.nombre||"").toLowerCase().includes(buscar)||(p.cedula||"").includes(buscar)||(p.cargo||"").toLowerCase().includes(buscar);
     const matchF=filtro==="todos"||(filtro==="activo"&&p.activo)||(filtro==="retirado"&&!p.activo);
     return matchB&&matchF;
   });
-  document.getElementById("pg-conteo").textContent=`${plantaGlobal.filter(p=>p.activo).length} activos / ${plantaGlobal.length} total`;
+  document.getElementById("pg-conteo").textContent=plantaGlobal.filter(p=>p.activo).length+' activos / '+plantaGlobal.length+' total';
   if(!lista.length){
-    document.getElementById("pg-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">📭 Sin resultados.</div>`;
+    document.getElementById("pg-lista").innerHTML='<div style="text-align:center;padding:24px;color:var(--texto-muted)">Sin resultados.</div>';
     return;
   }
-  document.getElementById("pg-lista").innerHTML=`
-    <div class="tabla-wrap">
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
-      <thead><tr style="background:var(--azul-oscuro);color:#fff">
-        <th style="padding:8px 10px;text-align:left">#</th>
-        <th style="padding:8px 10px;text-align:left">Nombre</th>
-        <th style="padding:8px 10px;text-align:left">Cédula</th>
-        <th style="padding:8px 10px;text-align:left">Nivel</th>
-        <th style="padding:8px 10px;text-align:left">Cargo</th>
-        <th style="padding:8px 10px;text-align:left">Empresa</th>
-        <th style="padding:8px 10px;text-align:center">Apto</th>
-        <th style="padding:8px 10px;text-align:center">Estado</th>
-        <th style="padding:8px 10px;text-align:center">Acciones</th>
-      </tr></thead>
-      <tbody>
-      ${lista.map((p,i)=>{
-        const abApto=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
-        return `<tr style="background:${i%2===0?'#fff':'#F9FAFB'};${!p.activo?'opacity:.6':''}">
-          <td style="padding:8px 10px">${i+1}</td>
-          <td style="padding:8px 10px;font-weight:600">${p.nombre||"—"}</td>
-          <td style="padding:8px 10px">${p.cedula||"—"}</td>
-          <td style="padding:8px 10px">${nivelBadge(p.nivel||"operativo")}</td>
-          <td style="padding:8px 10px">${p.cargo||"—"}</td>
-          <td style="padding:8px 10px">${p.empresa||"—"}</td>
-          <td style="padding:8px 10px;text-align:center"><span class="badge ${abApto}">${p.apto||"—"}</span></td>
-          <td style="padding:8px 10px;text-align:center">
-            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${p.activo?"#1A7A4A":"#C0392B"};color:#fff">
-              ${p.activo?"✅ Activo":"🔴 Retirado"}
-            </span>
-          </td>
-          <td style="padding:8px 10px;text-align:center">
-            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-              ${p.activo
-                ?`<button class="btn btn-rojo" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="retirarTrabajadorAdmin('${p.id}','${(p.nombre||"").replace(/'/g,"\\'")}')">Retirar</button>`
-                :`<button class="btn btn-verde" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="reactivarTrabajadorAdmin('${p.id}')">Reactivar</button>`
-              }
-              <button class="btn btn-secundario" style="font-size:11px;padding:5px 10px;min-height:32px" onclick="editarTrabajadorAdmin('${p.id}')">✏ Editar</button>
-            </div>
-          </td>
-        </tr>`;
-      }).join("")}
-      </tbody>
-    </table>
-    </div>`;
+
+  let tbl='<div class="tabla-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  tbl+='<thead><tr style="background:var(--azul-oscuro);color:#fff">';
+  tbl+='<th style="padding:7px 8px">#</th><th style="padding:7px 8px">Nombre</th><th style="padding:7px 8px">Cedula</th>';
+  tbl+='<th style="padding:7px 8px">Cargo</th><th style="padding:7px 8px">Empresa</th><th style="padding:7px 8px;text-align:center">Apto</th>';
+  DOCS_CONFIG.forEach(d=>{ tbl+=`<th style="padding:7px 6px;text-align:center;max-width:80px">${d.corto}</th>`; });
+  tbl+='<th style="padding:7px 8px;text-align:center">Estado</th><th style="padding:7px 8px;text-align:center">Acciones</th>';
+  tbl+='</tr></thead><tbody>';
+
+  lista.forEach((p,i)=>{
+    const abApto=p.apto==="si"?"badge-verde":p.apto==="no"?"badge-rojo":"badge-amarillo";
+    const docs=p.docs||{};
+    let docCells='';
+    let tieneAlerta=false;
+    DOCS_CONFIG.forEach(d=>{
+      const f=docs[d.id];
+      if(!f){ docCells+=`<td style="padding:6px;text-align:center"><span style="font-size:10px;color:#aaa">—</span></td>`; tieneAlerta=true; return; }
+      const venc=new Date(f+'T00:00:00'); venc.setHours(0,0,0,0);
+      const dias=Math.round((venc-hoy)/86400000);
+      let color,txt,bg;
+      if(dias<0){ color='#C0392B';bg='#FFF0F0';txt='VENCIDO';tieneAlerta=true; }
+      else if(dias<=15){ color='#E67E22';bg='#FFF8E8';txt=dias+'d';tieneAlerta=true; }
+      else{ color='#1A7A4A';bg='#F0FFF4';txt=dias+'d'; }
+      docCells+=`<td style="padding:6px;text-align:center;background:${bg}"><div style="font-size:10px;font-weight:700;color:${color}">${txt}</div><div style="font-size:9px;color:#888">${f.slice(5)}</div></td>`;
+    });
+    tbl+=`<tr style="background:${i%2===0?'#fff':'#F9FAFB'};${!p.activo?'opacity:.55':''}${tieneAlerta&&p.activo?';border-left:3px solid #E67E22':''}">`;
+    tbl+=`<td style="padding:7px 8px">${i+1}</td>`;
+    tbl+=`<td style="padding:7px 8px;font-weight:600">${p.nombre||''}</td>`;
+    tbl+=`<td style="padding:7px 8px">${p.cedula||''}</td>`;
+    tbl+=`<td style="padding:7px 8px">${p.cargo||''}</td>`;
+    tbl+=`<td style="padding:7px 8px">${p.empresa||''}</td>`;
+    tbl+=`<td style="padding:7px 8px;text-align:center"><span class="badge ${abApto}">${p.apto||''}</span></td>`;
+    tbl+=docCells;
+    tbl+=`<td style="padding:7px 8px;text-align:center"><span style="padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;background:${p.activo?'#1A7A4A':'#C0392B'};color:#fff">${p.activo?'Activo':'Retirado'}</span></td>`;
+    tbl+=`<td style="padding:7px 8px;text-align:center"><div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">`;
+    tbl+=`<button class="btn btn-primario" style="font-size:10px;padding:4px 8px;min-height:28px" onclick="abrirModalDocs('${p.id}')">Docs</button>`;
+    tbl+=(p.activo
+      ?`<button class="btn btn-rojo" style="font-size:10px;padding:4px 8px;min-height:28px" onclick="retirarTrabajadorAdmin('${p.id}','${(p.nombre||'').replace(/'/g,"\\'")}')">Retirar</button>`
+      :`<button class="btn btn-verde" style="font-size:10px;padding:4px 8px;min-height:28px" onclick="reactivarTrabajadorAdmin('${p.id}')">Reactivar</button>`);
+    tbl+=`<button class="btn btn-secundario" style="font-size:10px;padding:4px 8px;min-height:28px" onclick="editarTrabajadorAdmin('${p.id}')">Editar</button>`;
+    tbl+='</div></td></tr>';
+  });
+  tbl+='</tbody></table></div>';
+  document.getElementById("pg-lista").innerHTML=tbl;
 }
 
 function agregarTrabajadorAdmin() {
   const nombre=(document.getElementById("pg-nombre").value||"").trim();
   const cedula=(document.getElementById("pg-cedula").value||"").trim();
-  if(!nombre||!cedula){ alert("Nombre y cédula son obligatorios."); return; }
+  if(!nombre||!cedula){ alert("Nombre y cedula son obligatorios."); return; }
   if(plantaGlobal.find(p=>p.cedula===cedula)){
-    alert("Ya existe un trabajador con esa cédula en la planta global."); return;
+    alert("Ya existe un trabajador con esa cedula en la planta global."); return;
   }
   const p={id:uid(),nombre,cedula,
     nivel:document.getElementById("pg-nivel").value,
@@ -3450,7 +4036,7 @@ function agregarTrabajadorAdmin() {
   guardarPlantaGlobal();
   ["pg-nombre","pg-cedula","pg-cargo","pg-empresa"].forEach(id=>{ const el=document.getElementById(id); if(el)el.value=""; });
   renderPlantaAdmin();
-  mostrarToast(`✅ ${nombre} agregado a la planta global`,"verde");
+  mostrarToast(` ${nombre} agregado a la planta global`,"verde");
 }
 
 function retirarTrabajadorAdmin(id, nombre) {
@@ -3469,7 +4055,7 @@ function reactivarTrabajadorAdmin(id) {
   p.activo=true; delete p.fechaRetiro;
   guardarPlantaGlobal();
   renderPlantaAdmin();
-  mostrarToast(`✅ ${p.nombre} reactivado`,"verde");
+  mostrarToast(` ${p.nombre} reactivado`,"verde");
 }
 
 function editarTrabajadorAdmin(id) {
@@ -3477,9 +4063,9 @@ function editarTrabajadorAdmin(id) {
   if(!p) return;
   const nuevoNombre=prompt("Nombre completo:", p.nombre||"");
   if(nuevoNombre===null) return;
-  const nuevaCedula=prompt("Número de cédula:", p.cedula||"");
+  const nuevaCedula=prompt("Numero de cedula:", p.cedula||"");
   if(nuevaCedula===null) return;
-  const nuevoCargo=prompt("Cargo específico:", p.cargo||"");
+  const nuevoCargo=prompt("Cargo especifico:", p.cargo||"");
   if(nuevoCargo===null) return;
   const nuevaEmpresa=prompt("Empresa / Contratista:", p.empresa||"");
   if(nuevaEmpresa===null) return;
@@ -3489,12 +4075,12 @@ function editarTrabajadorAdmin(id) {
   if(nuevaEmpresa!==null) p.empresa=nuevaEmpresa.trim();
   guardarPlantaGlobal();
   renderPlantaAdmin();
-  mostrarToast(`✅ Datos de ${p.nombre} actualizados`,"verde");
+  mostrarToast(` Datos de ${p.nombre} actualizados`,"verde");
 }
 const FRENTES_CONFIG_KEY = "isis_frentes_config";
 let frentesConfig = {};
 
-function _fKey(nombre){ return (nombre||"").replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ]/g,"_").slice(0,60); }
+function _fKey(nombre){ return (nombre||"").replace(/[^a-zA-Z0-9aeiouÁÉÍÓÚnÑ]/g,"_").slice(0,60); }
 
 function generarClave() {
   const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -3510,28 +4096,28 @@ function crearFrenteAdmin() {
   const proyecto= (document.getElementById("gf-proyecto").value||"").trim();
   const inicio  = document.getElementById("gf-inicio").value;
   if(!nombre){ alert("El nombre del frente es obligatorio."); return; }
-  if(!clave) { alert("La clave de acceso es obligatoria. Usa el botón 🎲 Generar."); return; }
+  if(!clave) { alert("La clave de acceso es obligatoria. Usa el boton  Generar."); return; }
 
   const key = _fKey(nombre);
   const nuevo = {nombre, clave, responsable:resp, proyecto, fechaInicio:inicio,
-    estado:"activo", fechaCreacion:FECHA_HOY, ultimoRegistro:"—"};
+    estado:"activo", fechaCreacion:FECHA_HOY, ultimoRegistro:""};
   frentesConfig[key] = nuevo;
 
   // Guardar en Firebase o localStorage
   if(usandoFirebase) {
     db.ref("frentes_config/"+key).set(nuevo)
-      .then(()=>{ mostrarToast(`✅ Frente "${nombre}" creado y guardado en la nube`,"verde"); })
-      .catch(err=>{ mostrarToast("⚠ Error al guardar en Firebase: "+err.message,"rojo"); });
+      .then(()=>{ mostrarToast(` Frente "${nombre}" creado y guardado en la nube`,"verde"); })
+      .catch(err=>{ mostrarToast(" Error al guardar en Firebase: "+err.message,"rojo"); });
   } else {
     try {
       localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
-    } catch(e) { mostrarToast("⚠ Error al guardar localmente","rojo"); return; }
-    mostrarToast(`✅ Frente "${nombre}" creado`,"verde");
+    } catch(e) { mostrarToast(" Error al guardar localmente","rojo"); return; }
+    mostrarToast(` Frente "${nombre}" creado`,"verde");
   }
 
   // Mostrar credenciales para copiar
   const url = "https://aliadoestrategicosas-source.github.io/isis-frentes";
-  const msg = `📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n${resp?"👤 *Responsable:* "+resp+"\n":""}\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n⚠ No compartas esta clave con personas ajenas al frente.`;
+  const msg = ` *ISIS PROYECTOS  Credenciales de acceso a la app*\n\n *Link:* ${url}\n\n *Frente:* ${nombre}\n *Clave:* ${clave}\n${resp?" *Responsable:* "+resp+"\n":""}\n Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n No compartas esta clave con personas ajenas al frente.`;
   document.getElementById("gf-credenciales-texto").innerText = msg;
   document.getElementById("gf-credenciales-preview").style.display = "block";
   document.getElementById("gf-credenciales-preview").scrollIntoView({behavior:"smooth"});
@@ -3546,17 +4132,17 @@ function crearFrenteAdmin() {
 let _credMsg="";
 function copiarCredenciales() {
   const txt=document.getElementById("gf-credenciales-texto").innerText;
-  navigator.clipboard.writeText(txt).then(()=>mostrarToast("✔ Mensaje copiado — pégalo en WhatsApp","verde"))
+  navigator.clipboard.writeText(txt).then(()=>mostrarToast(" Mensaje copiado  pegalo en WhatsApp","verde"))
     .catch(()=>{ alert("Copia este mensaje:\n\n"+txt); });
 }
 
 function cargarGestionFrente() {
-  document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)">⏳ Cargando…</div>`;
+  document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:24px;color:var(--texto-muted)"> Cargando</div>`;
   frentesConfig={};
   if(usandoFirebase){
     db.ref("frentes_config").once("value", snap=>{
       frentesConfig=snap.val()||{};
-      // Descubrir último registro de cada frente
+      // Descubrir ultimo registro de cada frente
       db.ref("frentes").once("value", snap2=>{
         snap2.forEach(child=>{
           const v=child.val();
@@ -3584,7 +4170,7 @@ function renderGestionFrente() {
   const filtro=(document.getElementById("gf-filtro")||{}).value||"todos";
   const lista=Object.values(frentesConfig);
   if(!lista.length){
-    document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)">📭 No hay frentes creados aún. Crea el primero arriba ↑</div>`;
+    document.getElementById("gf-lista").innerHTML=`<div style="text-align:center;padding:30px;color:var(--texto-muted)"> No hay frentes creados aun. Crea el primero arriba </div>`;
     return;
   }
   const filtrados=lista.filter(f=>{
@@ -3610,35 +4196,35 @@ function renderGestionFrente() {
       <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div style="flex:1;min-width:200px">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-            <span style="font-weight:700;font-size:15px;color:var(--azul-oscuro)">${f.nombre||"—"}</span>
-            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${activo?"#1A7A4A":"#C0392B"};color:#fff">${activo?"✅ ACTIVO":"🔴 CERRADO"}</span>
+            <span style="font-weight:700;font-size:15px;color:var(--azul-oscuro)">${f.nombre||""}</span>
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${activo?"#1A7A4A":"#C0392B"};color:#fff">${activo?" ACTIVO":" CERRADO"}</span>
           </div>
-          ${f.proyecto?`<div style="font-size:12px;color:#555;margin-bottom:3px">📋 ${f.proyecto}</div>`:""}
-          ${f.responsable?`<div style="font-size:12px;color:#555;margin-bottom:3px">👤 ${f.responsable}</div>`:""}
+          ${f.proyecto?`<div style="font-size:12px;color:#555;margin-bottom:3px"> ${f.proyecto}</div>`:""}
+          ${f.responsable?`<div style="font-size:12px;color:#555;margin-bottom:3px"> ${f.responsable}</div>`:""}
           <div style="font-size:11px;color:#888;margin-top:4px">
-            🗓 Creado: <strong>${f.fechaCreacion||"—"}</strong>
+             Creado: <strong>${f.fechaCreacion||""}</strong>
             ${f.fechaInicio?" · Inicio obra: <strong>"+f.fechaInicio+"</strong>":""}
-            · Último registro: <strong>${f.ultimoRegistro||"—"}</strong>
+            · Último registro: <strong>${f.ultimoRegistro||""}</strong>
           </div>
-          ${!activo?`<div style="font-size:11px;color:var(--rojo);margin-top:4px">🔒 Cerrado: ${f.fechaCierre||"—"} · ${f.motivo||""}</div>`:""}
+          ${!activo?`<div style="font-size:11px;color:var(--rojo);margin-top:4px"> Cerrado: ${f.fechaCierre||""} · ${f.motivo||""}</div>`:""}
           <!-- Credenciales -->
           ${activo?`<div style="margin-top:10px;background:#fff;border:1px dashed #AED6F1;border-radius:6px;padding:8px 12px;font-size:12px">
-            <div style="font-weight:700;color:var(--azul);margin-bottom:4px">🔑 Credenciales para enviar:</div>
-            <div>📍 Frente: <strong>${f.nombre}</strong></div>
-            <div>🔑 Clave: <strong style="font-family:monospace;font-size:14px;color:var(--naranja)">${f.clave||"—"}</strong></div>
-            <div>🔗 <span style="font-size:11px;color:#666">${url}</span></div>
+            <div style="font-weight:700;color:var(--azul);margin-bottom:4px"> Credenciales para enviar:</div>
+            <div> Frente: <strong>${f.nombre}</strong></div>
+            <div> Clave: <strong style="font-family:monospace;font-size:14px;color:var(--naranja)">${f.clave||""}</strong></div>
+            <div> <span style="font-size:11px;color:#666">${url}</span></div>
             <button onclick="copiarMsgFrente('${(f.nombre||"").replace(/'/g,"\\'")}','${f.clave||""}','${(f.responsable||"").replace(/'/g,"\\'")}','${url}')" 
               style="margin-top:6px;background:var(--verde);color:#fff;border:none;border-radius:4px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer">
-              📋 Copiar mensaje WhatsApp
+               Copiar mensaje WhatsApp
             </button>
           </div>`:""}
         </div>
         <div style="display:flex;flex-direction:column;gap:8px">
           ${activo
-            ?`<button class="btn btn-rojo" style="font-size:12px;padding:8px 16px" onclick="darDeBajaFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')">🔒 Dar de baja</button>`
-            :`<button class="btn btn-secundario" style="font-size:12px;padding:8px 16px" onclick="reactivarFrente('${key}')">🔓 Reactivar</button>`
+            ?`<button class="btn btn-rojo" style="font-size:12px;padding:8px 16px" onclick="darDeBajaFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')"> Dar de baja</button>`
+            :`<button class="btn btn-secundario" style="font-size:12px;padding:8px 16px" onclick="reactivarFrente('${key}')"> Reactivar</button>`
           }
-          <button class="btn btn-amarillo" style="font-size:11px;padding:6px 12px" onclick="editarClaveFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')">🔑 Cambiar clave</button>
+          <button class="btn btn-amarillo" style="font-size:11px;padding:6px 12px" onclick="editarClaveFrente('${key}','${(f.nombre||"").replace(/'/g,"\\'")}')"> Cambiar clave</button>
         </div>
       </div>
     </div>`;
@@ -3646,13 +4232,13 @@ function renderGestionFrente() {
 }
 
 function copiarMsgFrente(nombre, clave, resp, url) {
-  const msg=`📋 *ISIS PROYECTOS – Credenciales de acceso a la app*\n\n🔗 *Link:* ${url}\n\n📍 *Frente:* ${nombre}\n🔑 *Clave:* ${clave}\n${resp?"👤 *Responsable:* "+resp+"\n":""}\n👉 Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n⚠ No compartas esta clave con personas ajenas al frente.`;
-  navigator.clipboard.writeText(msg).then(()=>mostrarToast("✔ Mensaje copiado — pégalo en WhatsApp","verde"))
+  const msg=` *ISIS PROYECTOS  Credenciales de acceso a la app*\n\n *Link:* ${url}\n\n *Frente:* ${nombre}\n *Clave:* ${clave}\n${resp?" *Responsable:* "+resp+"\n":""}\n Abre el link, selecciona *Colaborador / Campo*, ingresa el nombre del frente y la clave exactamente como aparecen arriba.\n\n No compartas esta clave con personas ajenas al frente.`;
+  navigator.clipboard.writeText(msg).then(()=>mostrarToast(" Mensaje copiado  pegalo en WhatsApp","verde"))
     .catch(()=>alert("Copia este mensaje:\n\n"+msg));
 }
 
 function darDeBajaFrente(key, nombre) {
-  const motivo=prompt(`¿Motivo del cierre del frente "${nombre}"?\n(Ej: Proyecto finalizado, Contrato terminado…)`);
+  const motivo=prompt(`¿Motivo del cierre del frente "${nombre}"?\n(Ej: Proyecto finalizado, Contrato terminado)`);
   if(motivo===null) return;
   if(!frentesConfig[key]) frentesConfig[key]={nombre};
   frentesConfig[key].estado="cerrado";
@@ -3661,7 +4247,7 @@ function darDeBajaFrente(key, nombre) {
   if(usandoFirebase) db.ref("frentes_config/"+key).set(frentesConfig[key]);
   else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
   renderGestionFrente();
-  mostrarToast(`🔒 Frente "${nombre}" dado de baja`,"naranja");
+  mostrarToast(` Frente "${nombre}" dado de baja`,"naranja");
 }
 
 function reactivarFrente(key) {
@@ -3674,17 +4260,17 @@ function reactivarFrente(key) {
   if(usandoFirebase) db.ref("frentes_config/"+key).set(frentesConfig[key]);
   else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
   renderGestionFrente();
-  mostrarToast(`✅ Frente "${nombre}" reactivado`,"verde");
+  mostrarToast(` Frente "${nombre}" reactivado`,"verde");
 }
 
 function editarClaveFrente(key, nombre) {
-  const nueva=prompt(`Nueva clave para "${nombre}":\n(Solo letras y números, sin espacios)`);
+  const nueva=prompt(`Nueva clave para "${nombre}":\n(Solo letras y numeros, sin espacios)`);
   if(!nueva||!nueva.trim()) return;
   frentesConfig[key].clave=nueva.trim().toUpperCase();
   if(usandoFirebase) db.ref("frentes_config/"+key+"/clave").set(frentesConfig[key].clave);
   else localStorage.setItem(FRENTES_CONFIG_KEY, JSON.stringify(frentesConfig));
   renderGestionFrente();
-  mostrarToast(`🔑 Clave de "${nombre}" actualizada`,"verde");
+  mostrarToast(` Clave de "${nombre}" actualizada`,"verde");
 }
 
 // ======================================================
@@ -3777,7 +4363,7 @@ function renderResumenSemanal(fechas) {
   document.getElementById("sem-st-charlas").textContent=totCharlas;
   document.getElementById("sem-st-ins").textContent=totIns;
 
-  // Tabla HH por frente x día
+  // Tabla HH por frente x dia
   const frentesArr=[...frentesSet].sort();
   let tablaHH=`<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr style="background:var(--azul-oscuro);color:#fff"><th style="padding:7px 9px;text-align:left">Frente</th>`;
@@ -3794,7 +4380,7 @@ function renderResumenSemanal(fechas) {
       const hhDia=fr ? (fr.data?.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).reduce((s,t)=>s+(t.hh||0),0) : 0;
       totalFila+=hhDia;
       const bg=hhDia>0?"background:#F0FFF4":"color:#ccc";
-      tablaHH+=`<td style="padding:6px 9px;text-align:center;${bg}">${hhDia>0?Math.round(hhDia*10)/10:"—"}</td>`;
+      tablaHH+=`<td style="padding:6px 9px;text-align:center;${bg}">${hhDia>0?Math.round(hhDia*10)/10:""}</td>`;
     });
     tablaHH+=`<td style="padding:6px 9px;text-align:center;font-weight:700;color:var(--naranja)">${Math.round(totalFila*10)/10}</td></tr>`;
   });
@@ -3828,7 +4414,7 @@ function renderResumenSemanal(fechas) {
   const trabArr=Object.values(trabajadoresMap).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   let tablaT=`<table style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:var(--azul-oscuro);color:#fff">
-      <th style="padding:6px 8px">Trabajador</th><th style="padding:6px 8px">Cédula</th><th style="padding:6px 8px">Cargo</th>`;
+      <th style="padding:6px 8px">Trabajador</th><th style="padding:6px 8px">Cedula</th><th style="padding:6px 8px">Cargo</th>`;
   fechas.forEach(f=>{
     const d=new Date(f+"T00:00:00");
     tablaT+=`<th style="padding:6px 8px;text-align:center">${d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit"})}</th>`;
@@ -3845,9 +4431,9 @@ function renderResumenSemanal(fechas) {
       if(dia){
         totalHH+=dia.hh;
         const color=dia.asistencia==="presente"?"#1A7A4A":dia.asistencia.includes("ausente")?"#C0392B":"#9A6A00";
-        tablaT+=`<td style="padding:5px 8px;text-align:center;font-size:10px"><span style="color:${color};font-weight:600">${dia.frente}</span><br><span style="color:#5D6D7E">${dia.hh>0?dia.hh+" HH":"—"}</span></td>`;
+        tablaT+=`<td style="padding:5px 8px;text-align:center;font-size:10px"><span style="color:${color};font-weight:600">${dia.frente}</span><br><span style="color:#5D6D7E">${dia.hh>0?dia.hh+" HH":""}</span></td>`;
       } else {
-        tablaT+=`<td style="padding:5px 8px;text-align:center;color:#ccc">—</td>`;
+        tablaT+=`<td style="padding:5px 8px;text-align:center;color:#ccc"></td>`;
       }
     });
     tablaT+=`<td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--naranja)">${Math.round(totalHH*10)/10}</td></tr>`;
@@ -3862,17 +4448,17 @@ async function exportarXLSSemanal() {
   const inicio=document.getElementById("sem-inicio").value;
   const fin=document.getElementById("sem-fin").value;
   if(!inicio||!fin){
-    mostrarToast("⚠ Selecciona el rango de fechas primero","naranja"); return;
+    mostrarToast(" Selecciona el rango de fechas primero","naranja"); return;
   }
   if(Object.keys(datosSemana).length===0){
-    mostrarToast("⚠ Primero toca 'Cargar datos' para traer la información","naranja"); return;
+    mostrarToast(" Primero toca 'Cargar datos' para traer la informacion","naranja"); return;
   }
   // Verificar que hay al menos un registro
   const fechas=rangoFechas(inicio,fin);
   let totalRegistros=0;
   fechas.forEach(f=>{ totalRegistros+=Object.keys(datosSemana[f]||{}).length; });
   if(totalRegistros===0){
-    mostrarToast("⚠ No hay datos registrados en este período","naranja"); return;
+    mostrarToast(" No hay datos registrados en este periodo","naranja"); return;
   }
   try {
   const fechas=rangoFechas(inicio,fin);
@@ -3883,8 +4469,8 @@ async function exportarXLSSemanal() {
 
   // == HOJA 1: RESUMEN GENERAL ==========================
   const resumenRows=[];
-  resumenRows.push(["ISIS PROYECTOS DE INGENIERÍA – INFORME SEMANAL SST"]);
-  resumenRows.push([`Período: ${inicio} al ${fin}`]);
+  resumenRows.push(["ISIS PROYECTOS DE INGENIERÍA  INFORME SEMANAL SST"]);
+  resumenRows.push([`Periodo: ${inicio} al ${fin}`]);
   resumenRows.push([`Generado: ${new Date().toLocaleString("es-CO")}`]);
   resumenRows.push([]);
   resumenRows.push(["KPI","Valor"]);
@@ -3908,7 +4494,7 @@ async function exportarXLSSemanal() {
     });
   });
   resumenRows.push(["Frentes activos en la semana", frentesSet.size]);
-  resumenRows.push(["Trabajadores únicos", trabSet.size]);
+  resumenRows.push(["Trabajadores unicos", trabSet.size]);
   resumenRows.push(["Total Horas-Hombre (HH)", Math.round(totHH*100)/100]);
   resumenRows.push(["Accidentes de trabajo (AT)", totAT]);
   resumenRows.push(["Ausencias registradas", totAus]);
@@ -3964,7 +4550,7 @@ async function exportarXLSSemanal() {
       });
     });
   });
-  const trabRows=[["Trabajador","Cédula","Nivel","Cargo","Empresa",...diasHeader,"HH TOTAL SEMANA"]];
+  const trabRows=[["Trabajador","Cedula","Nivel","Cargo","Empresa",...diasHeader,"HH TOTAL SEMANA"]];
   Object.values(trabMap).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(t=>{
     const fila=[t.nombre,t.cedula,t.nivel,t.cargo,t.empresa];
     let sumHH=0;
@@ -3981,7 +4567,7 @@ async function exportarXLSSemanal() {
   XLSX.utils.book_append_sheet(WB, ws3, "Trazabilidad Trabajadores");
 
   // == HOJA 4: ACCIDENTES ==============================
-  const atRows=[["Fecha","Frente","Tipo","Nombre","Cédula","Cargo","ARL","Parte afectada","Lesión","Agente","Atención","N° FURAT","Descripción"]];
+  const atRows=[["Fecha","Frente","Tipo","Nombre","Cedula","Cargo","ARL","Parte afectada","Lesion","Agente","Atencion","N° FURAT","Descripcion"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const s=fr.sesion||{};
@@ -3995,7 +4581,7 @@ async function exportarXLSSemanal() {
   XLSX.utils.book_append_sheet(WB, ws4, "Accidentes AT");
 
   // == HOJA 5: AUSENTISMO ==============================
-  const ausRows=[["Fecha","Frente","Trabajador","Cédula","Causa","Días","N° Incapacidad","Reemplazado por","Observaciones"]];
+  const ausRows=[["Fecha","Frente","Trabajador","Cedula","Causa","Dias","N° Incapacidad","Reemplazado por","Observaciones"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const s=fr.sesion||{};
@@ -4037,7 +4623,7 @@ async function exportarXLSSemanal() {
   XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
 
   // == HOJA 8: EPP =====================================
-  const eppRows=[["Fecha","Frente","Trabajador","Cédula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
+  const eppRows=[["Fecha","Frente","Trabajador","Cedula","Cargo","EPP","Cantidad","Motivo","Conforme"]];
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const s=fr.sesion||{};
@@ -4050,7 +4636,7 @@ async function exportarXLSSemanal() {
   ws8["!cols"]=[{wch:12},{wch:24},{wch:28},{wch:14},{wch:20},{wch:30},{wch:10},{wch:20},{wch:10}];
   XLSX.utils.book_append_sheet(WB, ws8, "EPP");
 
-  // ── HOJA 9: CONSOLIDADO POR TRABAJADOR ───────────────
+  //  HOJA 9: CONSOLIDADO POR TRABAJADOR 
   // Construir mapa: cedula -> {perfil, dias, HHT, EPP, autorreportes, ausentismo, accidentes}
   const trabConsolidado = {};
 
@@ -4059,7 +4645,7 @@ async function exportarXLSSemanal() {
       const d=fr.data||{}, s=fr.sesion||{};
       const planta=d.planta||[];
 
-      // HH por día
+      // HH por dia
       (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(a=>{
         const perf=planta.find(p=>p.id===a.plantaId)||{};
         const ced=perf.cedula||a.cedula||a.plantaId||"SIN_CED";
@@ -4111,8 +4697,8 @@ async function exportarXLSSemanal() {
   // Construir filas del consolidado
   const consRows=[];
   // Cabecera principal
-  consRows.push(["ISIS PROYECTOS DE INGENIERÍA S.A.S. – CONSOLIDADO SEMANAL POR TRABAJADOR"]);
-  consRows.push([`Período: ${inicio} al ${fin}`]);
+  consRows.push(["ISIS PROYECTOS DE INGENIERÍA S.A.S.  CONSOLIDADO SEMANAL POR TRABAJADOR"]);
+  consRows.push([`Periodo: ${inicio} al ${fin}`]);
   consRows.push([]);
 
   const diasHeaderCons=fechas.map(f=>{
@@ -4120,14 +4706,14 @@ async function exportarXLSSemanal() {
     return d.toLocaleDateString("es-CO",{weekday:"short",day:"2-digit",month:"2-digit"});
   });
 
-  // Sección HH por trabajador
+  // Seccion HH por trabajador
   consRows.push(["== HORAS-HOMBRE TRABAJADAS =="]);
-  consRows.push(["Nombre","Cédula","Nivel","Cargo","Empresa","Apto Médico",...diasHeaderCons,"DÍAS TRABAJADOS","HHT TOTAL SEMANA"]);
+  consRows.push(["Nombre","Cedula","Nivel","Cargo","Empresa","Apto Medico",...diasHeaderCons,"DÍAS TRABAJADOS","HHT TOTAL SEMANA"]);
   Object.values(trabConsolidado).sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(t=>{
     const fila=[t.nombre,t.cedula,t.nivel,t.cargo,t.empresa,t.apto];
     fechas.forEach(f=>{
       const dia=t.diasPorFecha[f];
-      fila.push(dia?`${dia.hh}HH – ${dia.frente}`:"");
+      fila.push(dia?`${dia.hh}HH  ${dia.frente}`:"");
     });
     fila.push(t.diasTrabajados);
     fila.push(Math.round(t.HHT*100)/100);
@@ -4136,7 +4722,7 @@ async function exportarXLSSemanal() {
 
   consRows.push([]);
   consRows.push(["== EPP ENTREGADO EN LA SEMANA =="]);
-  consRows.push(["Nombre","Cédula","Cargo","Fecha","Frente","EPP","Cantidad","Motivo"]);
+  consRows.push(["Nombre","Cedula","Cargo","Fecha","Frente","EPP","Cantidad","Motivo"]);
   Object.values(trabConsolidado).filter(t=>t.epp.length>0)
     .sort((a,b)=>a.nombre.localeCompare(b.nombre))
     .forEach(t=>{
@@ -4147,7 +4733,7 @@ async function exportarXLSSemanal() {
 
   consRows.push([]);
   consRows.push(["== AUTORREPORTES DE SALUD =="]);
-  consRows.push(["Nombre","Cédula","Cargo","Fecha","Frente","Condiciones reportadas","Decisión"]);
+  consRows.push(["Nombre","Cedula","Cargo","Fecha","Frente","Condiciones reportadas","Decision"]);
   Object.values(trabConsolidado).filter(t=>t.autorreportes.length>0)
     .sort((a,b)=>a.nombre.localeCompare(b.nombre))
     .forEach(t=>{
@@ -4158,7 +4744,7 @@ async function exportarXLSSemanal() {
 
   consRows.push([]);
   consRows.push(["== AUSENTISMO =="]);
-  consRows.push(["Nombre","Cédula","Cargo","Empresa","Fecha","Frente","Causa","Días","N° Incapacidad"]);
+  consRows.push(["Nombre","Cedula","Cargo","Empresa","Fecha","Frente","Causa","Dias","N° Incapacidad"]);
   Object.values(trabConsolidado).filter(t=>t.ausentismo.length>0)
     .sort((a,b)=>a.nombre.localeCompare(b.nombre))
     .forEach(t=>{
@@ -4169,7 +4755,7 @@ async function exportarXLSSemanal() {
 
   consRows.push([]);
   consRows.push(["== ACCIDENTES DE TRABAJO =="]);
-  consRows.push(["Nombre","Cédula","Cargo","Empresa","Fecha","Frente","Tipo evento","Lesión","Atención","N° FURAT"]);
+  consRows.push(["Nombre","Cedula","Cargo","Empresa","Fecha","Frente","Tipo evento","Lesion","Atencion","N° FURAT"]);
   Object.values(trabConsolidado).filter(t=>t.accidentes.length>0)
     .sort((a,b)=>a.nombre.localeCompare(b.nombre))
     .forEach(t=>{
@@ -4185,40 +4771,40 @@ async function exportarXLSSemanal() {
   // Exportar
   const nombre=`Informe_Semanal_ISIS_${inicio}_${fin}.xlsx`;
   XLSX.writeFile(WB, nombre);
-  mostrarToast("✔ Excel exportado correctamente","verde");
+  mostrarToast(" Excel exportado correctamente","verde");
   } catch(err) {
     console.error("Error exportando Excel:", err);
-    mostrarToast("⚠ Error al exportar. Verifica que haya datos cargados.","rojo");
+    mostrarToast(" Error al exportar. Verifica que haya datos cargados.","rojo");
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   GUIA FIREBASE – CÓMO ACTIVAR LA SINCRONIZACIÓN ENTRE EQUIPOS
-   ════════════════════════════════════════════════════════════════════
+/* 
+   GUIA FIREBASE  CÓMO ACTIVAR LA SINCRONIZACIÓN ENTRE EQUIPOS
+   
 
    SIN FIREBASE: La app funciona en modo local (un solo equipo).
    CON FIREBASE: Todos los frentes sincronizan en tiempo real.
 
    PASOS:
    1. Ve a https://console.firebase.google.com
-      → Inicia sesión con una cuenta Google (puede ser la corporativa).
+       Inicia sesion con una cuenta Google (puede ser la corporativa).
 
    2. Clic en "Agregar proyecto"
-      → Nombre: isis-gestion-frentes
-      → Desactiva Google Analytics (no es necesario)
-      → Clic en "Crear proyecto"
+       Nombre: isis-gestion-frentes
+       Desactiva Google Analytics (no es necesario)
+       Clic en "Crear proyecto"
 
-   3. En el menú lateral: Compilación → Realtime Database
-      → Clic en "Crear base de datos"
-      → Región: us-central1
-      → Modo: "Comenzar en modo de prueba" → Siguiente → Listo
+   3. En el menu lateral: Compilacion  Realtime Database
+       Clic en "Crear base de datos"
+       Region: us-central1
+       Modo: "Comenzar en modo de prueba"  Siguiente  Listo
 
    4. Obtener las credenciales:
-      → Clic en ⚙ (rueda) → Configuración del proyecto
-      → Pestaña "General" → baja hasta "Tus apps"
-      → Clic en el ícono </> (Web)
-      → Nombre de la app: frentes-obra → Registrar app
-      → Aparecerá un bloque como este:
+       Clic en  (rueda)  Configuracion del proyecto
+       Pestana "General"  baja hasta "Tus apps"
+       Clic en el icono </> (Web)
+       Nombre de la app: frentes-obra  Registrar app
+       Aparecera un bloque como este:
 
         const firebaseConfig = {
           apiKey: "AIzaSyABC123...",
@@ -4228,10 +4814,10 @@ async function exportarXLSSemanal() {
           ...
         };
 
-      → Copia los 4 valores: apiKey, authDomain, databaseURL, projectId
-      → Pégalos en la sección FB_CONFIG al inicio del script (arriba ↑)
+       Copia los 4 valores: apiKey, authDomain, databaseURL, projectId
+       Pegalos en la seccion FB_CONFIG al inicio del script (arriba )
 
-   5. Reglas de seguridad (Realtime Database → Reglas):
+   5. Reglas de seguridad (Realtime Database  Reglas):
       Reemplaza el contenido con esto y publica:
 
       {
@@ -4244,25 +4830,25 @@ async function exportarXLSSemanal() {
       }
 
    6. Distribuir la app a los frentes:
-      OPCIÓN A (más simple): Sube el archivo a Google Drive
-        → En Drive: clic derecho → "Obtener enlace" → "Cualquier persona con el enlace"
-        → Comparte ese enlace con cada frente
-        → Cada responsable lo abre en su celular o computador
+      OPCIÓN A (mas simple): Sube el archivo a Google Drive
+         En Drive: clic derecho  "Obtener enlace"  "Cualquier persona con el enlace"
+         Comparte ese enlace con cada frente
+         Cada responsable lo abre en su celular o computador
 
       OPCIÓN B (profesional): Sube el archivo a un hosting gratuito
-        → Ve a https://tiiny.host
-        → Arrastra el archivo HTML → obtienes una URL tipo:
+         Ve a https://tiiny.host
+         Arrastra el archivo HTML  obtienes una URL tipo:
           https://isis-frentes.tiiny.site
-        → Comparte esa URL con todos los frentes
+         Comparte esa URL con todos los frentes
 
    NOTA IMPORTANTE:
    - Cada frente debe escribir el mismo nombre exacto del frente
      para que el administrador pueda ver sus datos consolidados.
    - Se recomienda definir los nombres de frente por escrito y
      distribuirlos antes de iniciar operaciones:
-     Ej: "F1-Subestación Norte", "F2-Red MT Km3", "F3-Planta Bavaria"
+     Ej: "F1-Subestacion Norte", "F2-Red MT Km3", "F3-Planta Bavaria"
 
-════════════════════════════════════════════════════════════════════ */
+ */
 </script>
 </body>
 </html>
