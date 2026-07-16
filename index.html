@@ -1185,6 +1185,12 @@ button, .btn, select, input { touch-action: manipulation; }
 
   <!-- Panel de alertas de documentos -->
   <div id="pg-alertas" style="display:none;margin-bottom:14px"></div>
+
+  <!-- Migracion de datos -->
+  <div class="alerta alerta-warn" style="margin-bottom:14px">
+    <strong>¿Faltan trabajadores?</strong> Si registraste trabajadores desde campo antes de la actualizacion, usa este boton para importarlos a la planta global.
+    <button class="btn btn-primario" onclick="migrarTrabajadoresDeFrente()" style="margin-left:12px;font-size:12px;min-height:36px">Importar trabajadores desde frentes</button>
+  </div>
   <div class="alerta alerta-info">
     Aquí administras todos los trabajadores de la empresa. Se registran una sola vez y están disponibles en todos los frentes. Los cambios aplican inmediatamente a todos los frentes activos.
   </div>
@@ -1874,6 +1880,7 @@ function cargarDatos() {
               autorreportes: Array.isArray(p.data.autorreportes) ? p.data.autorreportes : [],
               lluvias:       Array.isArray(p.data.lluvias)       ? p.data.lluvias       : [],
               fotos:         Array.isArray(p.data.fotos)         ? p.data.fotos         : [],
+              permisos:      Array.isArray(p.data.permisos)      ? p.data.permisos      : [],
               clima:         p.data.clima && typeof p.data.clima==="object" ? p.data.clima : {},
               planta:        plantaGlobal
             };
@@ -3278,6 +3285,16 @@ function exportarXLSTodosFrente() {
     ws7["!cols"]=[{wch:24},{wch:30},{wch:24},{wch:10},{wch:45},{wch:45}];
     XLSX.utils.book_append_sheet(WB, ws7, "Inspecciones");
 
+    // Hoja permisos de trabajo
+    const ptRows=[["Frente","Hora","Tipos de trabajo","Ubicacion","Actividades","Riesgos","Controles","Restricciones","Analista SST","Supervisor","Ejecutor","Estado"]];
+    frentes.forEach(f=>{
+      const d=f.data||{},s=f.sesion||{};
+      (d.permisos||[]).forEach(p=>ptRows.push([s.frente||"",p.horaEmision||"",(p.tipos||[]).join(", "),p.ubicacion||"",p.actividades||"",(p.riesgos||[]).join(", "),p.controles||"",p.restricciones||"",p.firmaSst||"",p.firmaSupervisor||"",p.firmaTrabajador||"",p.estado||""]));
+    });
+    const ws8p=XLSX.utils.aoa_to_sheet(ptRows);
+    ws8p["!cols"]=[{wch:22},{wch:10},{wch:35},{wch:20},{wch:35},{wch:35},{wch:35},{wch:25},{wch:22},{wch:22},{wch:22},{wch:12}];
+    XLSX.utils.book_append_sheet(WB, ws8p, "Permisos de Trabajo");
+
     XLSX.writeFile(WB, `Informe_Diario_ISIS_${fecha}.xlsx`);
     mostrarToast(" Excel diario descargado","verde");
   } catch(err) {
@@ -3825,9 +3842,70 @@ document.getElementById("modal-foto").addEventListener("click",function(e){if(e.
 //  PLANTA GLOBAL  GESTIÓN DESDE ADMIN
 // ======================================================
 
-// ======================================================
-//  DOCUMENTOS Y VIGENCIAS
-// ======================================================
+// Migrar trabajadores desde registros de frente hacia planta_global
+function migrarTrabajadoresDeFrente() {
+  if(!confirm("Esto importara todos los trabajadores registrados en frentes anteriores a la planta global.\nLos duplicados (misma cedula) se omiten.\n\n¿Continuar?")) return;
+  mostrarToast("Importando trabajadores...","naranja");
+
+  const importar = (snapData) => {
+    let importados=0, omitidos=0;
+    snapData.forEach(child=>{
+      const v = child.val ? child.val() : child;
+      if(!v||!v.data) return;
+      // Planta vieja dentro del registro diario
+      const plantaVieja = v.data.planta||[];
+      plantaVieja.forEach(p=>{
+        if(!p||!p.nombre) return;
+        // Verificar si ya existe por cedula o nombre
+        const yaExiste = plantaGlobal.find(x=>
+          (p.cedula && x.cedula && x.cedula===p.cedula) ||
+          (x.nombre && x.nombre.toLowerCase()===p.nombre.toLowerCase())
+        );
+        if(yaExiste){ omitidos++; return; }
+        // Agregar a planta global con nuevo ID si no tiene uno
+        const nuevo = {
+          id: p.id||uid(),
+          nombre: p.nombre||"",
+          cedula: p.cedula||"",
+          nivel: p.nivel||"operativo",
+          cargo: p.cargo||"",
+          empresa: p.empresa||"",
+          apto: p.apto||"pendiente",
+          obs: p.obs||"",
+          activo: true,
+          fechaIngreso: p.fechaIngreso||(v.sesion&&v.sesion.fecha)||FECHA_HOY,
+          docs: p.docs||{}
+        };
+        plantaGlobal.push(nuevo);
+        importados++;
+      });
+    });
+    if(importados>0){
+      guardarPlantaGlobal();
+      renderPlantaAdmin();
+      mostrarToast("Importados: "+importados+" trabajadores. Omitidos: "+omitidos+" (ya existian)","verde");
+    } else {
+      mostrarToast("No se encontraron trabajadores nuevos para importar. Omitidos: "+omitidos,"naranja");
+    }
+  };
+
+  if(usandoFirebase){
+    db.ref("frentes").once("value", snap=>{
+      const registros=[];
+      snap.forEach(child=>{ registros.push({val:()=>child.val()}); });
+      importar(registros);
+    });
+  } else {
+    const registros=[];
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("isis_")){
+        try{ const v=JSON.parse(localStorage.getItem(k)); if(v) registros.push(v); }catch(e){}
+      }
+    }
+    importar(registros);
+  }
+}
 const DOCS_CONFIG = [
   {id:"examen",   label:"Examen medico ocupacional",          corto:"Exam.Med",  vigenciaMeses:12},
   {id:"alturas",  label:"Curso trabajo en alturas (Res 4272)",corto:"Alturas",   vigenciaMeses:12},
