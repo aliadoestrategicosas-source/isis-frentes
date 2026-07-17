@@ -1013,8 +1013,10 @@ button, .btn, select, input { touch-action: manipulation; }
       <label style="font-size:11px;font-weight:700;color:var(--texto-muted)">FECHA</label>
       <input type="date" id="adm-fecha-filtro" style="border:1px solid var(--borde);border-radius:6px;padding:8px 12px;font-size:14px;min-height:44px">
     </div>
-    <button class="btn btn-primario" onclick="cargarTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">🔄 Cargar datos</button>
-    <button class="btn btn-verde" onclick="exportarXLSTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">⬇ Excel del día</button>
+    <button class="btn btn-primario" onclick="cargarTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">🔄 Cargar</button>
+    <button class="btn btn-secundario" onclick="irAyer()" style="margin-top:20px;min-height:48px;font-size:13px">◀ Ayer</button>
+    <button class="btn btn-secundario" onclick="irHoy()" style="margin-top:20px;min-height:48px;font-size:13px">Hoy ▶</button>
+    <button class="btn btn-verde" onclick="exportarXLSTodosFrente()" style="margin-top:20px;min-height:48px;font-size:14px">⬇ Excel</button>
   </div>
 
   <!-- Panel descarga semanal -->
@@ -1106,6 +1108,14 @@ button, .btn, select, input { touch-action: manipulation; }
     <div style="margin-top:10px;font-size:11px;color:var(--texto-muted);font-style:italic" id="ind-nota"></div>
   </div>
 
+  <!-- Panel personal en tiempo real -->
+  <div id="panel-personal-rt" style="display:none;background:#F0FFF4;border:1px solid #82E0AA;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px;color:var(--verde)">👥 Personal presente en todos los frentes</div>
+      <button onclick="document.getElementById('panel-personal-rt').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer;color:#888">✕</button>
+    </div>
+    <div id="lista-personal-rt"></div>
+  </div>
   <div id="adm-frentes-lista"></div>
 </div>
 
@@ -1683,36 +1693,27 @@ function _registrarResponsableEnPlanta() {
   const nombre = SESION.responsable.trim();
   if(!nombre) return;
 
-  // Buscar si ya existe en la planta global por nombre (comparacion flexible)
+  // Solo actuar si el responsable YA existe en la planta global
+  // (registrado por el admin). Nunca crear uno nuevo automaticamente.
   const yaExiste = plantaGlobal.find(p=>
+    p.activo &&
     p.nombre && p.nombre.trim().toLowerCase() === nombre.toLowerCase()
   );
 
-  if(!yaExiste) {
-    // Agregar a la planta global como analista SST / supervisor
-    const nuevo = {
-      id: uid(), nombre, cedula:"", nivel:"analistaSST",
-      cargo:"Responsable de frente / Analista SST",
-      empresa:"ISIS Proyectos de Ingenieria S.A.S.",
-      apto:"si", activo:true, fechaIngreso:SESION.fecha,
-      esResponsable:true
-    };
-    plantaGlobal.push(nuevo);
-    guardarPlantaGlobal();
-    // Crear asistencia del dia
-    crearOActualizarAsistencia(nuevo.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
-    guardarDatos();
-    renderT();
-    mostrarToast(` ${nombre} agregado a la planta como responsable`,"verde");
-  } else {
-    // Ya existe  solo asegurar que tenga asistencia del dia en este frente
+  if(yaExiste) {
+    // Asegurar que tenga asistencia del dia en este frente
     const asistHoy = getAsistenciaHoy(yaExiste.id);
     if(!asistHoy) {
-      crearOActualizarAsistencia(yaExiste.id, {asistencia:"presente", entrada:"", salida:"", almuerzoIni:"", almuerzoFin:"", hh:0});
+      crearOActualizarAsistencia(yaExiste.id, {
+        asistencia:"presente", entrada:"", salida:"",
+        almuerzoIni:"", almuerzoFin:"", hh:0
+      });
       guardarDatos();
       renderT();
     }
   }
+  // Si no existe en la planta, el admin debe agregarlo manualmente
+  // para evitar conteos incorrectos
 }
 
 let _ultimoTapSalir = 0;
@@ -2032,6 +2033,20 @@ function tabAdmin(id) {
     const el=document.getElementById("adm-fecha-frentes");
     if(el&&!el.value) el.value=FECHA_HOY;
   }
+}
+
+function irAyer() {
+  const el=document.getElementById("adm-fecha-filtro");
+  if(!el) return;
+  const d=new Date((el.value||FECHA_HOY)+'T00:00:00');
+  d.setDate(d.getDate()-1);
+  el.value=d.toISOString().split('T')[0];
+  cargarTodosFrente();
+}
+function irHoy() {
+  const el=document.getElementById("adm-fecha-filtro");
+  if(el) el.value=FECHA_HOY;
+  cargarTodosFrente();
 }
 
 function cargarFrentesDetalle() {
@@ -3173,6 +3188,53 @@ function renderAdmin() {
   renderAdmTablaAusentismo(frentes);
   renderAdmTablaAutorreportes(frentes);
   renderAdmTablaInspecciones(frentes);
+
+  // Panel personal en tiempo real
+  const fechaRT = fecha;
+  const personalRT=[];
+  frentes.filter(f=>!f.sinDatos).forEach(f=>{
+    const d=f.data||{}, s=f.sesion||{};
+    const asist=(d.trabajadores||[]).filter(t=>(t.fecha===fechaRT||!t.fecha)&&t.asistencia==='presente');
+    asist.forEach(a=>{
+      const p=plantaGlobal.find(x=>x.id===a.plantaId)||{};
+      personalRT.push({
+        nombre:p.nombre||a.nombre||"—",
+        cargo:p.cargo||"—",
+        frente:s.frente||"—",
+        entrada:a.entrada||"—",
+        salida:a.salida||"—",
+        hh:a.hh||0
+      });
+    });
+  });
+
+  const panelRT=document.getElementById("panel-personal-rt");
+  const listaRT=document.getElementById("lista-personal-rt");
+  if(panelRT&&listaRT&&personalRT.length){
+    panelRT.style.display="block";
+    listaRT.innerHTML=`<div style="font-size:12px;color:var(--texto-muted);margin-bottom:8px">${personalRT.length} trabajadores presentes el ${fechaRT}</div>`+
+      '<div class="tabla-wrap"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead><tr style="background:var(--verde);color:#fff">'+
+      '<th style="padding:6px 8px;text-align:left">Trabajador</th>'+
+      '<th style="padding:6px 8px;text-align:left">Cargo</th>'+
+      '<th style="padding:6px 8px;text-align:left">Frente</th>'+
+      '<th style="padding:6px 8px;text-align:center">Entrada</th>'+
+      '<th style="padding:6px 8px;text-align:center">Salida</th>'+
+      '<th style="padding:6px 8px;text-align:center">HH</th>'+
+      '</tr></thead><tbody>'+
+      personalRT.map((p,i)=>
+        `<tr style="background:${i%2===0?'#fff':'#F0FFF4'}">
+          <td style="padding:5px 8px;font-weight:600">${p.nombre}</td>
+          <td style="padding:5px 8px">${p.cargo}</td>
+          <td style="padding:5px 8px;color:var(--azul);font-weight:600">${p.frente}</td>
+          <td style="padding:5px 8px;text-align:center">${p.entrada}</td>
+          <td style="padding:5px 8px;text-align:center">${p.salida}</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--naranja)">${p.hh}</td>
+        </tr>`).join('')+
+      '</tbody></table></div>';
+  } else if(panelRT) {
+    panelRT.style.display="none";
+  }
 }
 
 // Excel de TODOS los frentes del dia seleccionado
