@@ -1483,6 +1483,15 @@ function abrirPerfilTrabajador(plantaId) {
     html += '<div style="text-align:center;margin-top:12px;padding:10px;background:#fff;border-radius:6px">';
     html += '<div style="font-size:11px;color:var(--texto-muted)">HORAS-HOMBRE DEL DIA</div>';
     html += '<div style="font-size:30px;font-weight:700;color:var(--naranja)">'+(a.hh||0)+' HH</div>';
+    // Desglose nocturno
+    if((a.hhNocturnas||0)>0){
+      html += '<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">';
+      html += '<div style="background:#F0FFF4;border-radius:4px;padding:6px"><div style="font-size:9px;color:var(--texto-muted);font-weight:700">DIURNAS</div><div style="font-size:16px;font-weight:700;color:var(--verde)">'+(a.hhDiurnas||0)+'h</div></div>';
+      html += '<div style="background:#F0F0FF;border-radius:4px;padding:6px"><div style="font-size:9px;color:var(--texto-muted);font-weight:700">NOCTURNAS</div><div style="font-size:16px;font-weight:700;color:#6C3483">'+(a.hhNocturnas||0)+'h</div></div>';
+      html += '<div style="background:#FFF8E8;border-radius:4px;padding:6px"><div style="font-size:9px;color:var(--texto-muted);font-weight:700">RECARGO 35%</div><div style="font-size:16px;font-weight:700;color:var(--naranja)">'+(a.recargo35||0)+'h</div></div>';
+      html += '</div>';
+      html += '<div style="font-size:10px;color:var(--texto-muted);margin-top:6px">Recargo nocturno Art.168 CST (Ley 2466 de 2025) — 19:00 a 06:00</div>';
+    }
     html += '</div>';
   } else {
     html += '<div style="color:var(--texto-muted);font-size:13px;text-align:center;padding:10px">Sin registro de horas para este estado</div>';
@@ -2119,17 +2128,71 @@ function cargarFrentesDetalle() {
 // ======================================================
 function chk() { if(!SESION.activa){alert("Sesion no activa.");return false;} return true; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
-function calcHH(ini, fin, almuerzoIni, almuerzoFin) {
-  if(!ini||!fin) return 0;
+// Art. 168 CST Colombia, modificado por el Art. 10 de la Ley 2466 de 2025 (Reforma Laboral):
+// recargo nocturno entre 19:00 y 06:00 (35%) — vigente desde el 25 de diciembre de 2025.
+// Antes de esa fecha el tramo nocturno era 21:00-06:00; se amplio en 2 horas.
+// Retorna {hh, hhDiurnas, hhNocturnas, recargo35}
+function calcHHDetalle(ini, fin, almuerzoIni, almuerzoFin) {
+  if(!ini||!fin) return {hh:0, hhDiurnas:0, hhNocturnas:0, recargo35:0};
   const toMin = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
-  let mins = toMin(fin) - toMin(ini);
-  if(mins <= 0) return 0;
-  // Descontar almuerzo si esta registrado
+
+  let iniMin = toMin(ini);
+  let finMin = toMin(fin);
+
+  // Si fin <= ini asumimos turno nocturno que cruza medianoche
+  if(finMin <= iniMin) finMin += 1440;
+
+  // Descontar almuerzo
+  let almuerzoDur = 0;
   if(almuerzoIni && almuerzoFin) {
-    const almuerzoDur = toMin(almuerzoFin) - toMin(almuerzoIni);
-    if(almuerzoDur > 0) mins -= almuerzoDur;
+    almuerzoDur = Math.max(0, toMin(almuerzoFin) - toMin(almuerzoIni));
   }
-  return Math.max(0, Math.round(mins/60*100)/100);
+
+  const totalMins = Math.max(0, finMin - iniMin - almuerzoDur);
+  if(totalMins <= 0) return {hh:0, hhDiurnas:0, hhNocturnas:0, recargo35:0};
+
+  // Calcular minutos nocturnos (19:00-06:00 = 19*60 a 30*60 en escala de 0-1440+)
+  // Nocturno (Ley 2466/2025): 0-360 (00:00-06:00) y 1140-1440 (19:00-24:00) y 1440-1800 (00:00-06:00 siguiente dia)
+  let minsNocturnas = 0;
+  // Iterar minuto a minuto es costoso — usar segmentos
+  const segmentosNocturno = [
+    [0, 360],       // 00:00 - 06:00
+    [1140, 1440],   // 19:00 - 24:00
+    [1440, 1800],   // 00:00 - 06:00 (dia siguiente, turno nocturno largo)
+  ];
+
+  // Para cada minuto del turno determinar si es nocturno
+  // Optimizacion: calcular interseccion de [iniMin, finMin] con segmentos nocturnos
+  const intersect = (a1,a2,b1,b2) => Math.max(0, Math.min(a2,b2) - Math.max(a1,b1));
+
+  segmentosNocturno.forEach(([n1,n2])=>{
+    minsNocturnas += intersect(iniMin, finMin, n1, n2);
+  });
+
+  // Restar almuerzo de nocturnas proporcionalmente (simplificado: descontar del bloque donde cae)
+  // Si el almuerzo cae en horario nocturno, reducir minsNocturnas
+  if(almuerzoDur > 0 && almuerzoIni && almuerzoFin) {
+    const almIni = toMin(almuerzoIni);
+    const almFin = almIni + almuerzoDur;
+    let almNocturno = 0;
+    segmentosNocturno.forEach(([n1,n2])=>{
+      almNocturno += intersect(almIni, almFin, n1, n2);
+    });
+    minsNocturnas = Math.max(0, minsNocturnas - almNocturno);
+  }
+
+  const minsDiurnas = Math.max(0, totalMins - minsNocturnas);
+  const hhTotal     = Math.round(totalMins/60*100)/100;
+  const hhDiurnas   = Math.round(minsDiurnas/60*100)/100;
+  const hhNocturnas = Math.round(minsNocturnas/60*100)/100;
+  const recargo35   = Math.round(hhNocturnas*0.35*100)/100; // valor en HH-equivalente
+
+  return {hh:hhTotal, hhDiurnas, hhNocturnas, recargo35};
+}
+
+// Funcion de compatibilidad — retorna solo el total
+function calcHH(ini, fin, almuerzoIni, almuerzoFin) {
+  return calcHHDetalle(ini,fin,almuerzoIni,almuerzoFin).hh;
 }
 // ======================================================
 //  INDICADORES SST AUTOMATICOS
@@ -2513,10 +2576,12 @@ function marcarTodosPresentes() {
 // Recalcular HH del dia actual
 function calcularHH(){
   DATA.trabajadores.filter(t=>t.fecha===SESION.fecha).forEach(t=>{
-    t.hh=calcHH(t.entrada, t.salida, t.almuerzoIni, t.almuerzoFin);
+    const det=calcHHDetalle(t.entrada,t.salida,t.almuerzoIni,t.almuerzoFin);
+    t.hh=det.hh; t.hhDiurnas=det.hhDiurnas;
+    t.hhNocturnas=det.hhNocturnas; t.recargo35=det.recargo35;
   });
   guardarDatos(); renderT();
-  mostrarToast(" HH recalculadas","verde");
+  mostrarToast("HH recalculadas con desglose nocturno","verde");
 }
 
 // Render principal: panel asistencia del dia + tabla planta
@@ -2650,11 +2715,17 @@ function setAsistencia(plantaId, campo, valor) {
   }
   reg[campo] = valor;
   if(["entrada","salida","almuerzoIni","almuerzoFin"].includes(campo)){
-    reg.hh = calcHH(reg.entrada, reg.salida, reg.almuerzoIni, reg.almuerzoFin);
+    const det = calcHHDetalle(reg.entrada, reg.salida, reg.almuerzoIni, reg.almuerzoFin);
+    reg.hh          = det.hh;
+    reg.hhDiurnas   = det.hhDiurnas;
+    reg.hhNocturnas = det.hhNocturnas;
+    reg.recargo35   = det.recargo35;
     const cel = document.getElementById("hh-row-"+plantaId);
     if(cel){
-      cel.textContent = reg.hh+" HH";
-      cel.style.color = reg.hh>0?"var(--naranja)":"var(--texto-muted)";
+      cel.innerHTML = det.hh+" HH"+(det.hhNocturnas>0
+        ? `<span style="font-size:10px;color:#5D6D7E;display:block">${det.hhNocturnas}h noct.</span>`
+        : "");
+      cel.style.color = det.hh>0?"var(--naranja)":"var(--texto-muted)";
     }
     // Actualizar total HH solo presentes
     const tot = DATA.trabajadores.filter(t=>t.fecha===fecha&&t.asistencia==="presente").reduce((s,t)=>s+(t.hh||0),0);
@@ -3267,14 +3338,15 @@ function exportarXLSTodosFrente() {
     XLSX.utils.book_append_sheet(WB, ws0, "Resumen del Dia");
 
     // Hoja trabajadores de todos los frentes
-    const tRows=[["Frente","Responsable","Trabajador","Cedula","Nivel","Cargo","Empresa","Asistencia","Entrada","Almuerzo Ini","Almuerzo Fin","Salida","HH"]];
+    const tRows=[["Frente","Responsable","Trabajador","Cedula","Nivel","Cargo","Empresa","Asistencia","Entrada","Almuerzo Ini","Almuerzo Fin","Salida","HH Total","HH Diurnas","HH Nocturnas","Recargo 35% (HH-eq)"]];
     frentes.forEach(f=>{
       const d=f.data||{},s=f.sesion||{};
       (d.trabajadores||[]).filter(t=>t.fecha===fecha||!t.fecha).forEach(a=>{
         const p=plantaGlobal.find(x=>x.id===a.plantaId)||{};
         tRows.push([s.frente||"",s.responsable||"",p.nombre||a.nombre||"",p.cedula||"",
           p.nivel||"",p.cargo||"",p.empresa||"",a.asistencia||"",
-          a.entrada||"",a.almuerzoIni||"",a.almuerzoFin||"",a.salida||"",a.hh||0]);
+          a.entrada||"",a.almuerzoIni||"",a.almuerzoFin||"",a.salida||"",
+          a.hh||0, a.hhDiurnas||0, a.hhNocturnas||0, a.recargo35||0]);
       });
     });
     const ws1=XLSX.utils.aoa_to_sheet(tRows);
@@ -4501,7 +4573,7 @@ function renderResumenSemanal(fechas) {
       frentesSet.add(s.frente||"?");
       const asist=(d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha);
       asist.forEach(t=>{ totHH+=(t.hh||0); if(t.plantaId) trabajadoresSet.add(t.plantaId); });
-      (d.planta||[]).forEach(p=>trabajadoresSet.add(p.cedula||p.id));
+      plantaGlobal.forEach(p=>trabajadoresSet.add(p.cedula||p.id));
       totAT+=(d.accidentes||[]).length;
       totAus+=(d.ausentismo||[]).length;
       totCharlas+=(d.charlas||[]).length;
@@ -4554,7 +4626,7 @@ function renderResumenSemanal(fechas) {
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const d=fr.data||{}, s=fr.sesion||{};
-      const planta=d.planta||[];
+      const planta=plantaGlobal;
       const asist=(d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha);
       asist.forEach(a=>{
         const perfil=planta.find(p=>p.id===a.plantaId)||{};
@@ -4634,7 +4706,7 @@ async function exportarXLSSemanal() {
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const d=fr.data||{}, s=fr.sesion||{};
       frentesSet.add(s.frente||"?");
-      (d.planta||[]).forEach(p=>trabSet.add(p.cedula||p.id));
+      plantaGlobal.forEach(p=>trabSet.add(p.cedula||p.id));
       (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(t=>{
         totHH+=(t.hh||0);
         if(t.plantaId) trabSet.add(t.plantaId);
@@ -4695,7 +4767,7 @@ async function exportarXLSSemanal() {
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const d=fr.data||{}, s=fr.sesion||{};
-      const planta=d.planta||[];
+      const planta=plantaGlobal;
       (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(a=>{
         const perf=planta.find(p=>p.id===a.plantaId)||{};
         const ced=perf.cedula||a.cedula||a.plantaId||"?";
@@ -4797,7 +4869,7 @@ async function exportarXLSSemanal() {
   fechas.forEach(f=>{
     Object.values(datosSemana[f]||{}).forEach(fr=>{
       const d=fr.data||{}, s=fr.sesion||{};
-      const planta=d.planta||[];
+      const planta=plantaGlobal;
 
       // HH por dia
       (d.trabajadores||[]).filter(t=>t.fecha===f||!t.fecha).forEach(a=>{
