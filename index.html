@@ -73,6 +73,17 @@ nav button.active{color:var(--naranja);border-color:var(--naranja)}
 nav button:hover:not(.active){color:var(--texto);background:var(--gris-claro)}
 nav button:active{transform:scale(0.97);opacity:.8}
 
+/* ══ MENU DE SECCIONES EN PANTALLA (reemplaza la barra superior) ══ */
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:4px}
+.menu-btn{position:relative;background:#fff;border:1px solid var(--borde);border-radius:8px;padding:16px 10px;text-align:center;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:92px;touch-action:manipulation}
+.menu-btn:active{transform:scale(0.96);background:var(--gris-claro)}
+.menu-btn .menu-icono{font-size:26px;line-height:1}
+.menu-btn .menu-label{font-size:12px;font-weight:700;color:var(--texto)}
+.menu-btn.menu-destacado{border:2px solid var(--naranja);background:#FFF8F0}
+.menu-badge{position:absolute;top:6px;right:6px;background:var(--naranja);color:#fff;font-size:10px;font-weight:700;border-radius:10px;padding:1px 6px;min-width:16px}
+.menu-badge.cero{background:var(--gris-claro);color:var(--texto-muted)}
+@media(max-width:768px){.menu-btn{min-height:100px;padding:16px 8px}.menu-btn .menu-icono{font-size:28px}.menu-btn .menu-label{font-size:12.5px}}
+
 /* ══ MAIN ══ */
 main{padding:18px;max-width:1400px;margin:0 auto}
 .seccion{display:none}.seccion.activa{display:block}
@@ -337,6 +348,9 @@ button, .btn, select, input { touch-action: manipulation; }
   <div class="spacer"></div>
   <span class="badge-rol" id="badge-rol"></span>
   <span class="badge-fecha" id="badge-fecha"></span>
+  <button class="btn-logout" id="btn-menu-colab" onclick="tab('dashboard')"
+    style="display:none;margin-left:16px;padding:5px 14px;font-size:11px;border-radius:20px;border:1px solid rgba(245,166,35,.5);color:var(--amarillo);letter-spacing:.3px;min-width:60px">
+    🏠 Menú</button>
   <button class="btn-logout" onclick="confirmarSalida()" 
     style="margin-left:16px;padding:5px 14px;font-size:10px;border-radius:20px;opacity:.5;border:1px solid rgba(255,255,255,.25);letter-spacing:.3px;min-width:60px"
     title="Cerrar sesión (mantén presionado)">↩ Salir</button>
@@ -394,6 +408,64 @@ button, .btn, select, input { touch-action: manipulation; }
   <div class="alerta alerta-info" id="alerta-sesion-colab">✔ Sesión activa. Registra la información de tu frente de trabajo.</div>
   <div id="alertas-docs-colab" style="display:none"></div>
   <div id="alertas-salud-colab"></div>
+
+  <div class="card" style="border-left:4px solid var(--naranja)">
+    <div class="card-titulo">📝 Completa el informe del día</div>
+    <div class="texto-muted" style="margin-bottom:10px">Toca cada sección para registrar la información. Todo se guarda automáticamente al momento.</div>
+    <div class="menu-grid">
+      <div class="menu-btn menu-destacado" onclick="tab('trabajadores')">
+        <span class="menu-icono">👷</span><span class="menu-label">Trabajadores</span>
+        <span class="menu-badge cero" id="menu-badge-trabajadores">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('actividades')">
+        <span class="menu-icono">📋</span><span class="menu-label">Actividades</span>
+        <span class="menu-badge cero" id="menu-badge-actividades">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('ausentismo')">
+        <span class="menu-icono">🏥</span><span class="menu-label">Ausentismo</span>
+        <span class="menu-badge cero" id="menu-badge-ausentismo">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('accidentes')">
+        <span class="menu-icono">🚨</span><span class="menu-label">Accidentes AT</span>
+        <span class="menu-badge cero" id="menu-badge-accidentes">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('materiales')">
+        <span class="menu-icono">📦</span><span class="menu-label">Materiales</span>
+        <span class="menu-badge cero" id="menu-badge-materiales">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('permiso')">
+        <span class="menu-icono">📋</span><span class="menu-label">Permiso Trabajo</span>
+        <span class="menu-badge cero" id="menu-badge-permiso">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('seguridad')">
+        <span class="menu-icono">🦺</span><span class="menu-label">Charlas SST</span>
+        <span class="menu-badge cero" id="menu-badge-charlas">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('inspecciones')">
+        <span class="menu-icono">🔍</span><span class="menu-label">Inspecciones</span>
+        <span class="menu-badge cero" id="menu-badge-inspecciones">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('autoreporte')">
+        <span class="menu-icono">💊</span><span class="menu-label">Autorreporte Salud</span>
+        <span class="menu-badge cero" id="menu-badge-autoreporte">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('clima')">
+        <span class="menu-icono">🌧</span><span class="menu-label">Clima</span>
+      </div>
+      <div class="menu-btn" onclick="tab('epp')">
+        <span class="menu-icono">🥽</span><span class="menu-label">EPP</span>
+        <span class="menu-badge cero" id="menu-badge-epp">0</span>
+      </div>
+      <div class="menu-btn" onclick="tab('residuos')">
+        <span class="menu-icono">♻</span><span class="menu-label">Residuos</span>
+      </div>
+      <div class="menu-btn" onclick="tab('fotos')">
+        <span class="menu-icono">📷</span><span class="menu-label">Evidencias</span>
+        <span class="menu-badge cero" id="menu-badge-fotos">0</span>
+      </div>
+    </div>
+  </div>
+
   <div class="stats-grid">
     <div class="stat-card"><div class="stat-num" id="st-trabajadores">0</div><div class="stat-label">Trabajadores</div></div>
     <div class="stat-card"><div class="stat-num" id="st-hh">0</div><div class="stat-label">Horas-Hombre</div></div>
@@ -1667,7 +1739,8 @@ function iniciarApp() {
     document.getElementById("lbl-frente").textContent = SESION.frente;
     document.getElementById("lbl-resp").textContent = SESION.responsable;
     document.getElementById("lbl-fecha-bar").textContent = SESION.fecha;
-    document.getElementById("nav-colab").style.display="flex";
+    document.getElementById("nav-colab").style.display="none";
+    document.getElementById("btn-menu-colab").style.display="inline-block";
     document.getElementById("vista-colab").style.display="block";
     document.getElementById("nav-admin").style.display="none";
     document.getElementById("vista-admin").style.display="none";
@@ -1810,6 +1883,14 @@ function guardarDatos() {
     clima:        DATA.clima||{}
   };
   const payload = { sesion:SESION, data:dataLimpia, ts:new Date().toISOString() };
+
+  // == RESPALDO LOCAL INMEDIATO ==
+  // Aunque se este usando Firebase, se guarda tambien de inmediato en este dispositivo
+  // (localStorage es sincrono, no depende de la señal). Asi, si la conexion falla o la
+  // app se cierra a mitad de la sincronizacion, el registro no se pierde: se recupera
+  // automaticamente la proxima vez que se abra la sesion (ver cargarDatos()).
+  try { localStorage.setItem("isis_backup_"+claveDB(), JSON.stringify(payload)); } catch(e){}
+
   if (usandoFirebase) {
     db.ref("frentes/"+claveDB()).set(payload)
       .then(()=>setSyncDot(true))
@@ -1830,23 +1911,40 @@ function cargarDatos() {
       db.ref("frentes/"+claveDB()).on("value", snap=>{
         try {
           const v = snap.val();
-          if (v && v.data) {
+
+          // == DETECCION DE RESPALDO LOCAL MAS RECIENTE ==
+          // Si este dispositivo tiene un respaldo (isis_backup_) mas nuevo que lo que
+          // hay en Firebase -o Firebase no tiene nada-, significa que hubo datos que
+          // no alcanzaron a sincronizar (ej: se cerro la app o fallo la señal). En ese
+          // caso se recuperan esos datos y se vuelven a guardar automaticamente.
+          let backup=null;
+          try { const raw=localStorage.getItem("isis_backup_"+claveDB()); if(raw) backup=JSON.parse(raw); } catch(e){}
+          const remoteTs = (v && v.ts) ? new Date(v.ts).getTime() : 0;
+          const backupTs = (backup && backup.ts) ? new Date(backup.ts).getTime() : 0;
+          let fuente = (v && v.data) ? v : null;
+          let recuperado = false;
+          if(backup && backup.data && backupTs > remoteTs){
+            fuente = backup;
+            recuperado = true;
+          }
+
+          if (fuente && fuente.data) {
             // Fusionar con valores por defecto para evitar nulls de Firebase
             DATA = {
-              trabajadores:  Array.isArray(v.data.trabajadores)  ? v.data.trabajadores  : [],
-              actividades:   Array.isArray(v.data.actividades)   ? v.data.actividades   : [],
-              ausentismo:    Array.isArray(v.data.ausentismo)    ? v.data.ausentismo    : [],
-              accidentes:    Array.isArray(v.data.accidentes)    ? v.data.accidentes    : [],
-              materiales:    Array.isArray(v.data.materiales)    ? v.data.materiales    : [],
-              charlas:       Array.isArray(v.data.charlas)       ? v.data.charlas       : [],
-              epp:           Array.isArray(v.data.epp)           ? v.data.epp           : [],
-              residuos:      Array.isArray(v.data.residuos)      ? v.data.residuos      : [],
-              inspecciones:  Array.isArray(v.data.inspecciones)  ? v.data.inspecciones  : [],
-              autorreportes: Array.isArray(v.data.autorreportes) ? v.data.autorreportes : [],
-              lluvias:       Array.isArray(v.data.lluvias)       ? v.data.lluvias       : [],
-              fotos:         Array.isArray(v.data.fotos)         ? v.data.fotos         : [],
-              permisos:      Array.isArray(v.data.permisos)      ? v.data.permisos      : [],
-              clima:         v.data.clima && typeof v.data.clima==="object" ? v.data.clima : {},
+              trabajadores:  Array.isArray(fuente.data.trabajadores)  ? fuente.data.trabajadores  : [],
+              actividades:   Array.isArray(fuente.data.actividades)   ? fuente.data.actividades   : [],
+              ausentismo:    Array.isArray(fuente.data.ausentismo)    ? fuente.data.ausentismo    : [],
+              accidentes:    Array.isArray(fuente.data.accidentes)    ? fuente.data.accidentes    : [],
+              materiales:    Array.isArray(fuente.data.materiales)    ? fuente.data.materiales    : [],
+              charlas:       Array.isArray(fuente.data.charlas)       ? fuente.data.charlas       : [],
+              epp:           Array.isArray(fuente.data.epp)           ? fuente.data.epp           : [],
+              residuos:      Array.isArray(fuente.data.residuos)      ? fuente.data.residuos      : [],
+              inspecciones:  Array.isArray(fuente.data.inspecciones)  ? fuente.data.inspecciones  : [],
+              autorreportes: Array.isArray(fuente.data.autorreportes) ? fuente.data.autorreportes : [],
+              lluvias:       Array.isArray(fuente.data.lluvias)       ? fuente.data.lluvias       : [],
+              fotos:         Array.isArray(fuente.data.fotos)         ? fuente.data.fotos         : [],
+              permisos:      Array.isArray(fuente.data.permisos)      ? fuente.data.permisos      : [],
+              clima:         fuente.data.clima && typeof fuente.data.clima==="object" ? fuente.data.clima : {},
               planta:        plantaGlobal
             };
           } else {
@@ -1856,6 +1954,13 @@ function cargarDatos() {
               materiales:[], charlas:[], epp:[], residuos:[], inspecciones:[],
               autorreportes:[], lluvias:[], fotos:[], clima:{}, planta:plantaGlobal
             };
+          }
+          if(recuperado){
+            setTimeout(()=>{
+              mostrarToast("⚠ Se recuperó un registro guardado en este dispositivo que no había sincronizado. Sincronizando de nuevo…","naranja");
+              guardarDatos();
+              renderizarTodo();
+            }, 300);
           }
         } catch(e) {
           console.warn("Error procesando datos Firebase:", e);
@@ -3120,6 +3225,19 @@ function refrescarDashboard() {
   document.getElementById("st-autoreporte").textContent=(DATA.autorreportes||[]).length;
   document.getElementById("st-epp").textContent=DATA.epp.length;
   document.getElementById("st-fotos").textContent=DATA.fotos.length;
+  // Badges del menu de botones en pantalla
+  const setBadge=(id,val)=>{ const el=document.getElementById(id); if(!el) return; el.textContent=val; el.classList.toggle("cero", !val); };
+  setBadge("menu-badge-trabajadores", pres+(hh>0?` · ${Math.round(hh*100)/100}HH`:""));
+  setBadge("menu-badge-actividades", DATA.actividades.length);
+  setBadge("menu-badge-ausentismo", DATA.ausentismo.length);
+  setBadge("menu-badge-accidentes", DATA.accidentes.length);
+  setBadge("menu-badge-materiales", (DATA.materiales||[]).length);
+  setBadge("menu-badge-permiso", (DATA.permisos||[]).length);
+  setBadge("menu-badge-charlas", DATA.charlas.length);
+  setBadge("menu-badge-inspecciones", (DATA.inspecciones||[]).length);
+  setBadge("menu-badge-autoreporte", (DATA.autorreportes||[]).length);
+  setBadge("menu-badge-epp", DATA.epp.length);
+  setBadge("menu-badge-fotos", DATA.fotos.length);
   // Alertas de documentos vencidos/proximos en planta activa
   if(typeof DOCS_CONFIG !== 'undefined' && plantaGlobal.length) {
     const hoy=new Date(); hoy.setHours(0,0,0,0);
